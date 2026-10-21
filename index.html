@@ -1946,9 +1946,9 @@ button.arena-contender:not(:disabled):hover{transform:translateY(-2px);border-co
   font-size: 10px; letter-spacing: .5px; color: var(--silver-dim); margin-top: 2px;
 }
 /* =====================================================================
-   TRIOLOCKE · AÑIL — capa de diseño nueva (Kanto)
+   TRIOLOCKE · RADICAL RED — capa de diseño nueva (Kanto)
    Concepto: "Pokénav" — carril lateral de navegación, cuadro de mando de
-   la Liga, cartas con esquinas-corchete y una paleta índigo/cian propia de Añil.
+   la Liga, cartas con esquinas-corchete y una paleta índigo/cian propia de Radical Red.
    Todo lo de abajo se aplica DESPUÉS de las reglas heredadas
    (ya recoloreadas), así que manda sobre ellas.
    ===================================================================== */
@@ -2264,8 +2264,8 @@ input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--sapphi
 .badge-progress-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .badge-progress-count{ color:var(--silver-bright); font-family:var(--f-mono); font-size:12px; }
 .badge-progress-count b{ color:var(--neon-cyan); font-size:16px; }
-.anil-badge-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
-.anil-badge{
+.gym-badge-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.gym-badge{
   --badge-color:#ffd771;
   position:relative; cursor:pointer; font:inherit; color:inherit;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px;
@@ -2274,15 +2274,15 @@ input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--sapphi
   background:linear-gradient(160deg,rgba(66,19,27,.62),rgba(29,8,12,.72));
   opacity:.55; filter:saturate(.55); transition:transform .18s,border-color .18s,box-shadow .18s,opacity .18s,filter .18s;
 }
-.anil-badge.earned{
+.gym-badge.earned{
   opacity:1; filter:none; border-color:color-mix(in srgb,var(--badge-color) 52%,rgba(230,186,76,.18));
   background:linear-gradient(160deg,color-mix(in srgb,var(--badge-color) 9%,#3c1118),rgba(29,8,12,.82));
   box-shadow:inset 0 0 18px color-mix(in srgb,var(--badge-color) 5%,transparent);
 }
-.anil-badge.earned:hover{ transform:translateY(-2px); box-shadow:0 0 18px color-mix(in srgb,var(--badge-color) 18%,transparent); }
-.anil-badge:focus-visible{ outline:2px solid var(--badge-color); outline-offset:2px; }
+.gym-badge.earned:hover{ transform:translateY(-2px); box-shadow:0 0 18px color-mix(in srgb,var(--badge-color) 18%,transparent); }
+.gym-badge:focus-visible{ outline:2px solid var(--badge-color); outline-offset:2px; }
 .badge-hover-tooltip{ position:absolute; z-index:5; left:50%; bottom:calc(100% + 8px); width:max-content; max-width:min(220px,80vw); padding:8px 10px; border:1px solid color-mix(in srgb,var(--badge-color) 55%,var(--border)); border-radius:7px; background:rgba(29,9,12,.97); box-shadow:0 8px 22px rgba(0,0,0,.45); opacity:0; visibility:hidden; transform:translate(-50%,5px); transition:opacity .12s ease,transform .12s ease,visibility .12s; pointer-events:none; text-align:center; }
-.anil-badge:hover .badge-hover-tooltip,.anil-badge:focus-visible .badge-hover-tooltip{ opacity:1; visibility:visible; transform:translate(-50%,0); }
+.gym-badge:hover .badge-hover-tooltip,.gym-badge:focus-visible .badge-hover-tooltip{ opacity:1; visibility:visible; transform:translate(-50%,0); }
 .badge-hover-tooltip b{ display:block; color:var(--silver-bright); font:700 11px var(--f-ui); }
 .badge-hover-tooltip span{ display:block; margin-top:3px; color:var(--badge-color); font:700 10px var(--f-mono); }
 .gym-detail{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px; }
@@ -2293,21 +2293,21 @@ input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--sapphi
 .gym-detail-status{ color:var(--silver-dim); font:600 11px var(--f-ui); }
 .badge-progress-track{ height:6px; overflow:hidden; margin:-4px 0 14px; border-radius:999px; background:rgba(234,199,109,.13); }
 .badge-progress-track i{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#ff626f,#ffca45); box-shadow:0 0 12px rgba(255,202,69,.38); transition:width .35s ease; }
-.anil-badge-gem{
+.gym-badge-gem{
   width:48px; height:48px; display:block; border-radius:50%;
   background-color:rgba(21,6,9,.55); background-image:var(--badge-sprite);
   background-repeat:no-repeat; background-size:384px 96px;
   background-position:var(--badge-offset) 0;
   filter:drop-shadow(0 3px 5px rgba(0,0,0,.4)); image-rendering:pixelated;
 }
-.anil-badge.earned .anil-badge-gem{
+.gym-badge.earned .gym-badge-gem{
   filter:drop-shadow(0 0 8px color-mix(in srgb,var(--badge-color) 48%,transparent)) drop-shadow(0 3px 5px rgba(0,0,0,.4));
 }
-.anil-badge-copy{ display:flex; flex-direction:column; align-items:center; min-width:0; gap:3px; }
-.anil-badge-copy b{ color:var(--silver-bright); font-family:var(--f-ui); font-size:11px; letter-spacing:.55px; }
-.anil-badge-copy small{ color:var(--silver-dim); font-size:10px; }
-.anil-badge.earned .anil-badge-copy small{ color:var(--badge-color); }
-@media(max-width:900px){ .anil-badge-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.gym-badge-copy{ display:flex; flex-direction:column; align-items:center; min-width:0; gap:3px; }
+.gym-badge-copy b{ color:var(--silver-bright); font-family:var(--f-ui); font-size:11px; letter-spacing:.55px; }
+.gym-badge-copy small{ color:var(--silver-dim); font-size:10px; }
+.gym-badge.earned .gym-badge-copy small{ color:var(--badge-color); }
+@media(max-width:900px){ .gym-badge-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .kpi.wide{ grid-column:span 3; } @media (max-width:760px){ .kpi.wide{ grid-column:auto; } }
 .kpi .hexes{ margin:4px 0 12px; }
 .kpi .hex{ max-width:44px; font-size:18px; }
@@ -2786,7 +2786,7 @@ body.casino-mode main{ max-width:1320px; }
 @media(max-width:740px){.contest-layout{grid-template-columns:1fr}.contest-card{padding:17px}}
 @media(max-width:450px){.contest-options{grid-template-columns:1fr}.contest-head{display:block}.contest-badge{display:inline-flex;margin-top:10px}}
 
-/* Acentos índigo y cian para que la interfaz herede la identidad de Añil. */
+/* Acentos índigo y cian para que la interfaz herede la identidad de Radical Red. */
 ::selection{ background:var(--accent-dim); color:#fff; }
 ::-webkit-scrollbar-thumb{ background:linear-gradient(180deg,var(--ruby-deep),var(--sapphire)); }
 .orb{ box-shadow:0 0 0 2px #0e0406,0 0 0 3px rgba(255,255,255,.18),0 0 22px rgba(255,91,105,.35),0 0 26px rgba(255,200,60,.3); }
@@ -2871,7 +2871,7 @@ button.primary:active{ box-shadow:0 1px 0 #60202b; }
 @media(prefers-reduced-motion:reduce){ .medal-rays,.medal-ring,.medal-gem,.medal-spark,.medal-pips i.now,.modal.medal-modal{ animation:none; } .medal-spark{ opacity:.8; } }
 /* =====================================================================
    LOCKE NAVIDEÑO · RADICAL RED — capa de diseño (rojo Radical Red + Navidad)
-   Va la última: manda sobre la capa Añil de arriba.
+   Va la última: manda sobre la capa Radical Red de arriba.
    ===================================================================== */
 :root{
   --bg:#12060a; --bg-elev:#1c0a10; --panel:#260e15; --panel-2:#33121b; --border:#5a1f2b;
@@ -3479,7 +3479,7 @@ let trackerSnapshots = {};
 let trackerVersion = {};
 let trackerLives = {};
 let trackerBadgesAvailable = {};
-const ANIL_LEVEL_CAPS = [
+const GAME_LEVEL_CAPS = [
   { leader:'Brock', cap:14, sprite:'https://play.pokemonshowdown.com/sprites/trainers/brock-gen3.png' },
   { leader:'Misty', cap:23, sprite:'https://play.pokemonshowdown.com/sprites/trainers/misty-gen3.png' },
   { leader:'Teniente Surge', cap:30, sprite:'https://play.pokemonshowdown.com/sprites/trainers/ltsurge-gen3.png' },
@@ -3489,7 +3489,7 @@ const ANIL_LEVEL_CAPS = [
   { leader:'Blaine', cap:59, sprite:'https://play.pokemonshowdown.com/sprites/trainers/blaine-gen3.png' },
   { leader:'Urano', cap:66, sprite:'URANO_SPRITE_PLACEHOLDER'}
 ];
-ANIL_LEVEL_CAPS[7].sprite = 'data:image/png;base64,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';
+GAME_LEVEL_CAPS[7].sprite = 'data:image/png;base64,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';
 let collections = {}; // idem: coleccion completa (equipo+cajas) por entrenador, para poder ver/ofertar cualquier Pokémon
 let graveyard = {}; // idem: cementerio (Pokémon caídos) por entrenador
 let manualFainted = {}; // override manual por si el watcher se equivoca: {trainer: [pids]}
@@ -3501,7 +3501,7 @@ let normas = [];
 // Normas fijas del Permalocke. Se siembran solas la primera vez (si todavia
 // no estan en la lista) para no tener que anadirlas a mano una por una.
 const GYM_COUNT = 8;
-const ANIL_BADGES = [
+const GAME_BADGES = [
   { name:'Roca', color:'#c8d8ef' },
   { name:'Cascada', color:'#45d8ff' },
   { name:'Trueno', color:'#ffe066' },
@@ -3511,7 +3511,7 @@ const ANIL_BADGES = [
   { name:'Volcán', color:'#ff9166' },
   { name:'Tierra', color:'#8fe39a' },
 ];
-const ANIL_BADGE_SPRITE = 'data:image/png;base64,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';
+const GAME_BADGE_SPRITE = 'data:image/png;base64,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';
 const DEFAULT_NORMAS = [
   'Cualquier Pokémon debilitado debe ser liberado.',
   'Solo se podrá capturar el primer Pokémon salvaje de cada ruta o zona.',
@@ -3968,9 +3968,9 @@ async function loadNameLists(){
 const API_URL = 'https://script.google.com/macros/s/AKfycbzUnDSmlCgrxjQO_mhesd-9fir2CY18psAq9LEXrLRzrgYVyAHUW6Zg5Iz6lfvlSuQ/exec';
 const BACKEND_REQUEST_TIMEOUT_MS = 15000;
 const TRACKER_KEYS = {
-  iker: 'anil_vidas_iker',
-  joel: 'anil_vidas_joel',
-  alex: 'anil_vidas_alex',
+  iker: 'locke_vidas_iker',
+  joel: 'locke_vidas_joel',
+  alex: 'locke_vidas_alex',
 };
 
 async function fetchBackendText(url, options = {}){
@@ -4136,10 +4136,10 @@ function decodeTrackerResponse(text){
   return value;
 }
 
-const ANIL_EGG_SPRITE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAABACAYAAADS1n9/AAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAAF3CculE8AAAABmJLR0QA/wD/AP+gvaeTAAACl0lEQVR42u2cIZfiQBCEi30nIlciRyIjI/kJKyMjTyJXrkRGnkQi+QnIyJVIJBKJ4wTp5ZjdLNkjkyFUfQYSGkj3q670zHswKv68QfDyFPsCRFwkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHJ+xfri7XJ9/PfY5dNR7GIwIgcgpzcHsI5/LcYAgGz1++L1arU6AsB8sQPw+I5wLw4oByAnuAOY0styAgBwbgoASJKXi7isPizTNQBgNju971Gc4F4dUA5ATm8zQHXYnh43CwBAkb58GWcOAWziVaVD7t0B5QDkBHMAU34+T76NOxxWX563jhnqLODnbw448TrfxxyiLNFL/nIAcnrfCcwnBYDmzh861vlZnrSKb6qDOcFrsQcAzBdhnEAOQE7nDtA09RrLehVgmCP457PEATivm0N1QChcennc1vk+1SF19bNdkOuUA5ATbAbwO/+nLKstACDPXH0mTAd0xTXn+8irwQGv1SHUqkgOQE60VUDT+flyEbEct3Or8zXNRKGQA5ATbidwuwZw3gEzmhzA4s/3/Mfk2j3f6mCroCwLez1yAHI6dwDnxq3iTOldf24s7PosL5sF2k79bevRdR3kAOSMgv1beLU5AsBs9vxtmK1zDX8GKMv96Uk2GcQOoJ930wzkd7xfB78eoeogByAn+D7A7n0PABinz63irROmSbv4e8XyPu/ln/jp7GOfEwo5ADnhZgCjvicaTTOBdf6u8l4fyr3/P/OOXQc5ADnhHcDH64xPDLXjb807Uh3kAOT0/+vgR+3wgeYtByBHAiBHAiBHAiBHAiBHAiBHAiBHAiBHAiDnL+C08TDVTMxTAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDIwLTA5LTAyVDE4OjE1OjQwKzAwOjAwMZ72KQAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxOS0wMy0wOFQyMjowNjo1NCswMDowMEWJl4MAAAAASUVORK5CYII=';
+const GAME_EGG_SPRITE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAABACAYAAADS1n9/AAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAAF3CculE8AAAABmJLR0QA/wD/AP+gvaeTAAACl0lEQVR42u2cIZfiQBCEi30nIlciRyIjI/kJKyMjTyJXrkRGnkQi+QnIyJVIJBKJ4wTp5ZjdLNkjkyFUfQYSGkj3q670zHswKv68QfDyFPsCRFwkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHIkAHJ+xfri7XJ9/PfY5dNR7GIwIgcgpzcHsI5/LcYAgGz1++L1arU6AsB8sQPw+I5wLw4oByAnuAOY0styAgBwbgoASJKXi7isPizTNQBgNju971Gc4F4dUA5ATm8zQHXYnh43CwBAkb58GWcOAWziVaVD7t0B5QDkBHMAU34+T76NOxxWX563jhnqLODnbw448TrfxxyiLNFL/nIAcnrfCcwnBYDmzh861vlZnrSKb6qDOcFrsQcAzBdhnEAOQE7nDtA09RrLehVgmCP457PEATivm0N1QChcennc1vk+1SF19bNdkOuUA5ATbAbwO/+nLKstACDPXH0mTAd0xTXn+8irwQGv1SHUqkgOQE60VUDT+flyEbEct3Or8zXNRKGQA5ATbidwuwZw3gEzmhzA4s/3/Mfk2j3f6mCroCwLez1yAHI6dwDnxq3iTOldf24s7PosL5sF2k79bevRdR3kAOSMgv1beLU5AsBs9vxtmK1zDX8GKMv96Uk2GcQOoJ930wzkd7xfB78eoeogByAn+D7A7n0PABinz63irROmSbv4e8XyPu/ln/jp7GOfEwo5ADnhZgCjvicaTTOBdf6u8l4fyr3/P/OOXQc5ADnhHcDH64xPDLXjb807Uh3kAOT0/+vgR+3wgeYtByBHAiBHAiBHAiBHAiBHAiBHAiBHAiBHAiDnL+C08TDVTMxTAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDIwLTA5LTAyVDE4OjE1OjQwKzAwOjAwMZ72KQAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxOS0wMy0wOFQyMjowNjo1NCswMDowMEWJl4MAAAAASUVORK5CYII=';
 
-const ANIL_EGG_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAeCAYAAAA2Lt7lAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADNSURBVEhLxZSxDcIwEEUzmktGSJmSESgzhktKRmAEyoyS0l0QQV/CL/oyBfiK15zv/pOd2MOU5+EbUkrbJ1x3HAqOnwsUdL+OO+t6q1C9JTwU/i7QwLKcdxRYSqlQXX1OFCfIj1OFE4h4gQumgMGto4oXMMgRJ1CBv6VwQtY1zwvYT8BgF+Tql/yGRxUvaKHgeIEWuHUGCvU7+gmmadxetAQMaKHcDgI9rRA53Edl8OEt6ibQVeegEwjNBQogah2ZgtnPvAABYQBhf2/BE+oE7BuV5u61AAAAAElFTkSuQmCC';
-const ANIL_KANTO_MAP = 'data:image/png;base64,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';
+const GAME_EGG_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAeCAYAAAA2Lt7lAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADNSURBVEhLxZSxDcIwEEUzmktGSJmSESgzhktKRmAEyoyS0l0QQV/CL/oyBfiK15zv/pOd2MOU5+EbUkrbJ1x3HAqOnwsUdL+OO+t6q1C9JTwU/i7QwLKcdxRYSqlQXX1OFCfIj1OFE4h4gQumgMGto4oXMMgRJ1CBv6VwQtY1zwvYT8BgF+Tql/yGRxUvaKHgeIEWuHUGCvU7+gmmadxetAQMaKHcDgI9rRA53Edl8OEt6ibQVeegEwjNBQogah2ZgtnPvAABYQBhf2/BE+oE7BuV5u61AAAAAElFTkSuQmCC';
+const GAME_KANTO_MAP = 'data:image/png;base64,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';
 let worldMapExpanded = false;
 
 function eggSpriteAttributes(mon){
@@ -4222,7 +4222,7 @@ function trainerTrackerTeam(snapshot){
         pid,
         nickname: isEgg ? 'Huevo' : String(mon.name || species || 'Pokémon'),
         species,
-        sprite: isEgg ? ANIL_EGG_ICON : (speciesId ? pokedexSpriteUrl(Number(speciesId)) : ''),
+        sprite: isEgg ? GAME_EGG_ICON : (speciesId ? pokedexSpriteUrl(Number(speciesId)) : ''),
         eggScale: isEgg && mon.eggScale != null && Number.isFinite(Number(mon.eggScale)) ? Math.max(0.65, Math.min(1.25, Number(mon.eggScale))) : 1,
         level: isEgg || mon.level == null || !Number.isFinite(Number(mon.level)) ? null : Number(mon.level),
         fainted: !isEgg && !!mon.fainted,
@@ -4258,7 +4258,7 @@ async function __oldFetchTrackerState(t){
   return snapshot;
 }
 
-const ANIL_MAP_NAMES = {
+const GAME_MAP_NAMES = {
   1:'Intro', 82:'Guarida Rocket', 83:'Guarida Rocket', 84:'Guarida Rocket', 85:'Guarida Rocket',
   103:'Intro de verdad', 104:'Intro de verdad de la buena', 179:'Guarida Rocket',
   198:'Cueva Glaciada', 199:'Bosque Arcoiris', 201:'Bosque Arcoiris',
@@ -4268,8 +4268,8 @@ const ANIL_MAP_NAMES = {
 function mapTrackerLocation(mapId){
   if(mapId === null || mapId === undefined || mapId === '' || !Number.isFinite(Number(mapId)) || Number(mapId) <= 0) return null;
   const id = String(mapId);
-  const place = ANIL_MAP_LOOKUP[id];
-  return place ? (place.zona || place.nombre_mapa || `Zona #${id}`) : (ANIL_MAP_NAMES[id] || `Zona #${id}`);
+  const place = GAME_MAP_LOOKUP[id];
+  return place ? (place.zona || place.nombre_mapa || `Zona #${id}`) : (GAME_MAP_NAMES[id] || `Zona #${id}`);
 }
 
 function mapTrackerCaptureLocation(mapId, locationName){
@@ -4278,10 +4278,10 @@ function mapTrackerCaptureLocation(mapId, locationName){
     return customName || null;
   }
   const id = String(mapId);
-  const place = ANIL_MAP_LOOKUP[id];
+  const place = GAME_MAP_LOOKUP[id];
   const mapName = place && typeof place.nombre_mapa === 'string'
     ? place.nombre_mapa.trim()
-    : String(ANIL_MAP_NAMES[id] || '').trim();
+    : String(GAME_MAP_NAMES[id] || '').trim();
   const zoneName = place && typeof place.zona === 'string' ? place.zona.trim() : '';
   if(mapName && mapName !== zoneName && (!customName || customName === zoneName)){
     return mapName;
@@ -4314,7 +4314,7 @@ function renderWorldMapWidget(){
       ${worldMapExpanded ? `
         <div class="world-map-panel">
           <div class="world-map-heading">POSICIÓN EN TIEMPO REAL <button type="button" onclick="toggleWorldMap()" aria-label="Cerrar mapa">×</button></div>
-          <div class="world-map-canvas" role="img" aria-label="Mapa de Kanto con la ubicación actual de los jugadores" style="background-image:url('${ANIL_KANTO_MAP}')">${markers || '<div class="world-map-empty">Esperando coordenadas de Kanto</div>'}</div>
+          <div class="world-map-canvas" role="img" aria-label="Mapa de Kanto con la ubicación actual de los jugadores" style="background-image:url('${GAME_KANTO_MAP}')">${markers || '<div class="world-map-empty">Esperando coordenadas de Kanto</div>'}</div>
           <div class="world-map-players">${locations}</div>
           <small>Posiciones actualizadas cada pocos segundos desde Tracker Sync.</small>
         </div>` : ''}
@@ -4346,7 +4346,7 @@ function pushHistoryEvents(list){
   if(!fresh.length) return;
   fresh.forEach(e => history.unshift({ id:e.id, text:e.text, ts:Date.now() }));
   history = history.slice(0, 300);
-  trackedStoreSet('history', 'anil:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>trackedStoreSet('history', 'anil:history', history)); });
+  trackedStoreSet('history', 'locke:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>trackedStoreSet('history', 'locke:history', history)); });
 }
 function syncTrackerEvents(t, snapshot, team){
   try{
@@ -4379,11 +4379,11 @@ function syncTrackerEvents(t, snapshot, team){
     });
     if(regChanged){
       collections[t] = newReg;
-      trackedStoreSet('collection:'+t, 'anil:collection:'+t, { pids:newReg }).then(ok=>{ if(!ok) queueRetry('collection:'+t, ()=>trackedStoreSet('collection:'+t, 'anil:collection:'+t, { pids:collections[t] })); });
+      trackedStoreSet('collection:'+t, 'locke:collection:'+t, { pids:newReg }).then(ok=>{ if(!ok) queueRetry('collection:'+t, ()=>trackedStoreSet('collection:'+t, 'locke:collection:'+t, { pids:collections[t] })); });
     }
     if(tombs.length){
       graveyard[t] = [...grave, ...tombs];
-      trackedStoreSet('graveyard:'+t, 'anil:graveyard:'+t, graveyard[t]).then(ok=>{ if(!ok) queueRetry('graveyard:'+t, ()=>trackedStoreSet('graveyard:'+t, 'anil:graveyard:'+t, graveyard[t])); });
+      trackedStoreSet('graveyard:'+t, 'locke:graveyard:'+t, graveyard[t]).then(ok=>{ if(!ok) queueRetry('graveyard:'+t, ()=>trackedStoreSet('graveyard:'+t, 'locke:graveyard:'+t, graveyard[t])); });
     }
     if(events.length) pushHistoryEvents(events);
   }catch(error){
@@ -4477,22 +4477,22 @@ async function loadAll(){
   // datos. Ahora es UNA sola peticion HTTP (?keys=...) que trae todo de
   // golpe; el backend hace un unico candado + una unica lectura de la hoja.
   const keyDefaults = [
-    ...TRAINERS.map(t => ({ key: 'anil:profile:'+t, def: {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, dailyContestRewardClaims:[], money:0, badges:0, locationName:null} })),
-    { key: 'anil:history', def: [] },
-    { key: 'anil:trades', def: {active:[], history:[]} },
-    { key: 'anil:duel', def: { scheduled:null, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null } },
-    { key: 'anil:duelHistory', def: [] },
-    { key: 'anil:duelBets', def: { match1: [], final: [] } },
-    { key: 'anil:arenaJourney', def: { completed:[], winners:{}, postLeagueDone:false, postLeagueWinner:null, votes:{} } },
-    { key: 'anil:challenge', def: null },
-    { key: 'anil:dailyContest', def: { date:null, winner:null, attempts:{}, pieces:{iker:0,joel:0,alex:0}, stars:{iker:0,joel:0,alex:0} } },
-    { key: 'anil:finalState', def: null },
-    { key: 'anil:normas', def: [] },
-    { key: 'anil:sancion', def: { offender: null, prize: null } },
-    { key: 'anil:loteria', def: { pot: 0, entries: [], history: [] } },
-    ...TRAINERS.map(t => ({ key: 'anil:collection:'+t, def: {pids:{}} })),
-    ...TRAINERS.map(t => ({ key: 'anil:graveyard:'+t, def: [] })),
-    ...TRAINERS.map(t => ({ key: 'anil:manualFainted:'+t, def: [] })),
+    ...TRAINERS.map(t => ({ key: 'locke:profile:'+t, def: {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, dailyContestRewardClaims:[], money:0, badges:0, locationName:null} })),
+    { key: 'locke:history', def: [] },
+    { key: 'locke:trades', def: {active:[], history:[]} },
+    { key: 'locke:duel', def: { scheduled:null, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null } },
+    { key: 'locke:duelHistory', def: [] },
+    { key: 'locke:duelBets', def: { match1: [], final: [] } },
+    { key: 'locke:arenaJourney', def: { completed:[], winners:{}, postLeagueDone:false, postLeagueWinner:null, votes:{} } },
+    { key: 'locke:challenge', def: null },
+    { key: 'locke:dailyContest', def: { date:null, winner:null, attempts:{}, pieces:{iker:0,joel:0,alex:0}, stars:{iker:0,joel:0,alex:0} } },
+    { key: 'locke:finalState', def: null },
+    { key: 'locke:normas', def: [] },
+    { key: 'locke:sancion', def: { offender: null, prize: null } },
+    { key: 'locke:loteria', def: { pot: 0, entries: [], history: [] } },
+    ...TRAINERS.map(t => ({ key: 'locke:collection:'+t, def: {pids:{}} })),
+    ...TRAINERS.map(t => ({ key: 'locke:graveyard:'+t, def: [] })),
+    ...TRAINERS.map(t => ({ key: 'locke:manualFainted:'+t, def: [] })),
   ];
 
   const batch = await storeGetBatch(keyDefaults);
@@ -4516,22 +4516,22 @@ async function loadAll(){
     return !wasLoaded || previous !== JSON.stringify({ hearts, teams, locationName, locationId, trackerStatus, trackerSnapshots });
   }
 
-  const profileResults = TRAINERS.map(t => batch['anil:profile:'+t]);
-  const historyResult = batch['anil:history'];
-  const tradesResult = batch['anil:trades'];
-  const duelResult = batch['anil:duel'];
-  const duelHistoryResult = batch['anil:duelHistory'];
-  const duelBetsResult = batch['anil:duelBets'];
-  const arenaJourneyResult = batch['anil:arenaJourney'];
-  const challengeResult = batch['anil:challenge'];
-  const dailyContestResult = batch['anil:dailyContest'];
-  const finalResult = batch['anil:finalState'];
-  const normasResult = batch['anil:normas'];
-  const sancionResult = batch['anil:sancion'];
-  const loteriaResult = batch['anil:loteria'];
-  const collectionResults = TRAINERS.map(t => batch['anil:collection:'+t]);
-  const graveyardResults = TRAINERS.map(t => batch['anil:graveyard:'+t]);
-  const manualFaintedResults = TRAINERS.map(t => batch['anil:manualFainted:'+t]);
+  const profileResults = TRAINERS.map(t => batch['locke:profile:'+t]);
+  const historyResult = batch['locke:history'];
+  const tradesResult = batch['locke:trades'];
+  const duelResult = batch['locke:duel'];
+  const duelHistoryResult = batch['locke:duelHistory'];
+  const duelBetsResult = batch['locke:duelBets'];
+  const arenaJourneyResult = batch['locke:arenaJourney'];
+  const challengeResult = batch['locke:challenge'];
+  const dailyContestResult = batch['locke:dailyContest'];
+  const finalResult = batch['locke:finalState'];
+  const normasResult = batch['locke:normas'];
+  const sancionResult = batch['locke:sancion'];
+  const loteriaResult = batch['locke:loteria'];
+  const collectionResults = TRAINERS.map(t => batch['locke:collection:'+t]);
+  const graveyardResults = TRAINERS.map(t => batch['locke:graveyard:'+t]);
+  const manualFaintedResults = TRAINERS.map(t => batch['locke:manualFainted:'+t]);
 
   // TODO O NADA: si ha fallado aunque sea uno solo de los 14 datos, no
   // tocamos NADA de lo que ya habia en pantalla -- ni siquiera los que si
@@ -4618,7 +4618,7 @@ async function loadAll(){
 }
 async function saveProfile(t){
   teams[t] = normalizeTeamSpecies(teams[t]);
-  return await trackedStoreSet('profile:'+t, 'anil:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null, dailyContestRewardClaims: dailyContestRewardClaims[t]||[], money: money[t]||0, medalLog: medalLog[t]||null, badges: badgeBits[t]||0, locationName: locationName[t]||null, trackerVersion: trackerVersion[t]||null, trackerLives: trackerLives[t]??null, trackerBadges: trackerBadgesAvailable[t] ? Array.from({length:GYM_COUNT}, (_,i)=>!!(badgeBits[t] & (1<<i))) : null });
+  return await trackedStoreSet('profile:'+t, 'locke:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null, dailyContestRewardClaims: dailyContestRewardClaims[t]||[], money: money[t]||0, medalLog: medalLog[t]||null, badges: badgeBits[t]||0, locationName: locationName[t]||null, trackerVersion: trackerVersion[t]||null, trackerLives: trackerLives[t]??null, trackerBadges: trackerBadgesAvailable[t] ? Array.from({length:GYM_COUNT}, (_,i)=>!!(badgeBits[t] & (1<<i))) : null });
 }
 
 const DAILY_CONTEST_START = new Date('2026-10-07T10:00:00Z');
@@ -4692,7 +4692,7 @@ function normalizeDailyContestState(raw){
   };
 }
 async function saveDailyContest(){
-  return await trackedStoreSet('dailyContest', 'anil:dailyContest', dailyContestState);
+  return await trackedStoreSet('dailyContest', 'locke:dailyContest', dailyContestState);
 }
 function ensureContestDay(){
   const today = contestSpainDateKey(new Date());
@@ -4798,7 +4798,7 @@ function renderContest(app){
       : `<div class="contest-options">${order.map((optionIndex,i)=>`<button class="contest-option" type="button" onclick="submitDailyContest('${selectedTrainer}',${optionIndex})">${String.fromCharCode(65+i)} · ${puzzle.options[optionIndex]}</button>`).join('')}</div>`;
   app.innerHTML = `<section class="contest-page">
     <div class="contest-intro"><div class="contest-head"><div><div class="contest-kicker">Desafío diario · ${new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',day:'numeric',month:'long'}).format(new Date())}</div>
-      <h1 class="contest-title">El Enigma de Añil</h1><div class="contest-subtitle">Un acertijo Pokémon nuevo cada día. Solo hay una victoria y el primero en acertar cierra el reto para todos.</div></div>
+      <h1 class="contest-title">El Enigma de Radical Red</h1><div class="contest-subtitle">Un acertijo Pokémon nuevo cada día. Solo hay una victoria y el primero en acertar cierra el reto para todos.</div></div>
       <div class="contest-badge">🏆 8 aciertos = ⭐</div></div>
       <div class="contest-next">Siguiente desafío en <span id="contest-clock">${contestClockMarkup(contestNextReset()-Date.now())}</span></div>
     </div>
@@ -4886,7 +4886,7 @@ async function submitDailyContest(trainer, answer){
     return;
   }
   await new Promise(resolve=>setTimeout(resolve,900));
-  const confirmed = await storeGet('anil:dailyContest', null);
+  const confirmed = await storeGet('locke:dailyContest', null);
   if(confirmed === STORE_FETCH_FAILED){
     contestSubmitting = false;
     toast('No se pudo confirmar el resultado con el servidor; no se han concedido tickets todavía.');
@@ -4948,25 +4948,25 @@ async function checkDailyBonus(t){
   if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
 }
 async function saveTrades(){
-  return await trackedStoreSet('trades', 'anil:trades', { active: tradesActive, history: tradesHistory });
+  return await trackedStoreSet('trades', 'locke:trades', { active: tradesActive, history: tradesHistory });
 }
 async function saveDuelState(){
-  return await trackedStoreSet('duel', 'anil:duel', duelState);
+  return await trackedStoreSet('duel', 'locke:duel', duelState);
 }
 async function saveDuelHistory(){
-  return await trackedStoreSet('duelHistory', 'anil:duelHistory', duelHistory);
+  return await trackedStoreSet('duelHistory', 'locke:duelHistory', duelHistory);
 }
 async function saveDuelBets(){
-  return await trackedStoreSet('duelBets', 'anil:duelBets', duelBets);
+  return await trackedStoreSet('duelBets', 'locke:duelBets', duelBets);
 }
 async function saveArenaJourney(){
-  return await trackedStoreSet('arenaJourney', 'anil:arenaJourney', arenaJourneyState);
+  return await trackedStoreSet('arenaJourney', 'locke:arenaJourney', arenaJourneyState);
 }
 async function saveChallengeState(){
-  return await trackedStoreSet('challenge', 'anil:challenge', challengeState);
+  return await trackedStoreSet('challenge', 'locke:challenge', challengeState);
 }
 async function saveFinalState(){
-  return await trackedStoreSet('finalState', 'anil:finalState', finalState);
+  return await trackedStoreSet('finalState', 'locke:finalState', finalState);
 }
 
 /* ================================================================
@@ -5026,7 +5026,7 @@ async function submitFinalPassword(){
   if(err) err.textContent = '';
   // por si alguien más la ha desbloqueado justo antes que nosotros, comprobamos
   // el estado real del servidor antes de generar uno nuevo
-  const existing = await storeGet('anil:finalState', null);
+  const existing = await storeGet('locke:finalState', null);
   if(existing && existing.unlocked){
     finalState = existing;
   } else {
@@ -5301,14 +5301,14 @@ function renderFinal(app){
     app.innerHTML = `
       <div class="final-page">
         <header class="final-page-head">
-          <div><div class="final-page-kicker">Añil · Último acto</div><h1 class="final-page-title">La Final</h1><p class="final-page-subtitle">El cierre de temporada y el reparto de las estrellas especiales.</p></div>
+          <div><div class="final-page-kicker">Radical Red · Último acto</div><h1 class="final-page-title">La Final</h1><p class="final-page-subtitle">El cierre de temporada y el reparto de las estrellas especiales.</p></div>
           <span class="final-page-status">🔒 Sellada</span>
         </header>
         <section class="final-gate" aria-labelledby="final-gate-title">
         <div class="final-gate-eyebrow">⚡ Se acabaron los rounds de clasificación ⚡</div>
         <div class="final-gate-icon">🏆</div>
         <div class="final-gate-title" id="final-gate-title">LA FINAL</div>
-        <div class="final-gate-sub">Todo lo que habéis conseguido durante Añil llega a este momento. Al desbloquearla se sortearán tres categorías y sus estrellas quedarán fijas para todos.</div>
+        <div class="final-gate-sub">Todo lo que habéis conseguido durante Radical Red llega a este momento. Al desbloquearla se sortearán tres categorías y sus estrellas quedarán fijas para todos.</div>
         <div class="final-gate-hype"><span>◆</span> ÚLTIMA PARADA <span>◆</span> SIN VUELTA ATRÁS <span>◆</span></div>
         <div class="field" style="max-width:260px;margin:20px auto 0;">
           <input type="password" id="final-password-input" placeholder="Contraseña" autocomplete="off" onkeydown="if(event.key==='Enter') submitFinalPassword();">
@@ -5339,7 +5339,7 @@ function renderFinal(app){
   let html = `
     <div class="final-page">
       <header class="final-page-head">
-        <div><div class="final-page-kicker">Añil · Último acto</div><h1 class="final-page-title">La Final</h1><p class="final-page-subtitle">Ceremonia de estrellas y campeón absoluto de la temporada.</p></div>
+        <div><div class="final-page-kicker">Radical Red · Último acto</div><h1 class="final-page-title">La Final</h1><p class="final-page-subtitle">Ceremonia de estrellas y campeón absoluto de la temporada.</p></div>
         <span class="final-page-status">${ceremonyComplete ? '✓ Ceremonia completa' : `Acto ${step+1} / ${totalSteps}`}</span>
       </header>
       <div class="final-ceremony-progress" role="progressbar" aria-label="Progreso de la ceremonia" aria-valuemin="0" aria-valuemax="${totalSteps}" aria-valuenow="${step}">
@@ -5465,7 +5465,7 @@ async function resolveDuelBets(matchKey, winner){
 }
 
 async function saveNormas(){
-  return await trackedStoreSet('normas', 'anil:normas', normas);
+  return await trackedStoreSet('normas', 'locke:normas', normas);
 }
 async function seedDefaultNormasIfMissing(){
   const defaultTextsSet = new Set(DEFAULT_NORMAS);
@@ -5495,10 +5495,10 @@ async function seedDefaultNormasIfMissing(){
   if(!ok) queueRetry('normas', saveNormas);
 }
 async function saveSancion(){
-  return await trackedStoreSet('sancion', 'anil:sancion', sancionState);
+  return await trackedStoreSet('sancion', 'locke:sancion', sancionState);
 }
 async function saveLoteria(){
-  return await trackedStoreSet('loteria', 'anil:loteria', loteria);
+  return await trackedStoreSet('loteria', 'locke:loteria', loteria);
 }
 
 function fmtTime(ts){
@@ -5562,17 +5562,11 @@ async function flushPending(){
   updateSyncBadge();
 }
 setInterval(flushPending, 4000);
-window.addEventListener('beforeunload', (e)=>{
-  if(pendingSaves.size > 0){
-    e.preventDefault();
-    e.returnValue = '';
-  }
-});
 
 function pushHistory(text){
   history.unshift({id: crypto.randomUUID(), text, ts: Date.now()});
   history = history.slice(0, 300);
-  trackedStoreSet('history', 'anil:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>trackedStoreSet('history', 'anil:history', history)); });
+  trackedStoreSet('history', 'locke:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>trackedStoreSet('history', 'locke:history', history)); });
 }
 
 /* ---- Popup de novedades al abrir la web: solo una vez, luego no vuelve a
@@ -5713,8 +5707,8 @@ let medalPopupQueue = [];
 let medalPopupIndex = 0;
 
 function medalHistoryText(t, i, lives){
-  const gym = ANIL_LEVEL_CAPS[i];
-  return `🏅 ${NAMES[t]} ganó la medalla ${ANIL_BADGES[i].name}${gym ? ` al derrotar a ${gym.leader}` : ''}${Number.isFinite(lives) ? ` · ${lives}/20 vidas` : ''}`;
+  const gym = GAME_LEVEL_CAPS[i];
+  return `🏅 ${NAMES[t]} ganó la medalla ${GAME_BADGES[i].name}${gym ? ` al derrotar a ${gym.leader}` : ''}${Number.isFinite(lives) ? ` · ${lives}/20 vidas` : ''}`;
 }
 // El sprite de medallas es un data-URI enorme: se inyecta UNA vez como clase CSS
 // en vez de repetirlo en cada elemento del historial.
@@ -5722,14 +5716,14 @@ function ensureMedalSpriteStyle(){
   if(document.getElementById('medal-sprite-style')) return;
   const st = document.createElement('style');
   st.id = 'medal-sprite-style';
-  st.textContent = `.medal-sprite{ background-image:url(${ANIL_BADGE_SPRITE}); }`;
+  st.textContent = `.medal-sprite{ background-image:url(${GAME_BADGE_SPRITE}); }`;
   document.head.appendChild(st);
 }
 function medalEventOf(h){
   const m = /^medal:([^:]+):(\d+)$/.exec(String((h && h.id) || ''));
   if(!m) return null;
   const index = Number(m[2]);
-  if(!TRAINERS.includes(m[1]) || !ANIL_BADGES[index]) return null;
+  if(!TRAINERS.includes(m[1]) || !GAME_BADGES[index]) return null;
   const lv = /(\d+)\/(\d+) vidas/.exec(String(h.text || ''));
   return { trainer:m[1], index, ts:h.ts, lives: lv ? Number(lv[1]) : null, maxLives: lv ? Number(lv[2]) : null };
 }
@@ -5759,12 +5753,12 @@ function renderMedalPopupCard(){
   const m = medalPopupQueue[medalPopupIndex];
   if(!m){ closeModal(); return; }
   ensureMedalSpriteStyle();
-  const b = ANIL_BADGES[m.index];
-  const gym = ANIL_LEVEL_CAPS[m.index] || { leader:'el líder', cap:'?' };
+  const b = GAME_BADGES[m.index];
+  const gym = GAME_LEVEL_CAPS[m.index] || { leader:'el líder', cap:'?' };
   const md = body.closest('.modal');
   if(md) md.style.setProperty('--mc', b.color);
   const bits = badgeBitsOf(m.trainer);
-  const pips = ANIL_BADGES.map((bd,i)=> `<i class="${bits & (1<<i) ? 'on' : ''} ${i === m.index ? 'now' : ''}" style="--pc:${bd.color}"></i>`).join('');
+  const pips = GAME_BADGES.map((bd,i)=> `<i class="${bits & (1<<i) ? 'on' : ''} ${i === m.index ? 'now' : ''}" style="--pc:${bd.color}"></i>`).join('');
   const total = medalPopupQueue.length;
   const last = medalPopupIndex === total - 1;
   body.innerHTML = `
@@ -5888,7 +5882,7 @@ function go(v, param){
   view = v;
   currentTrainer = param || null;
   if(v === 'casino'){
-    casinoNeedsProfileSelect = false; casinoPlayer = LOGIN_ME;
+    casinoPlayer = LOGIN_ME; Promise.resolve(maybeShowGiovanniQuiz(LOGIN_ME)).catch(()=>{});
     casinoFloor = true;
     casinoGreetingLine = CROUPIER_LINES[Math.floor(Math.random()*CROUPIER_LINES.length)];
   }
@@ -5982,7 +5976,7 @@ function currentLevelCap(t){
   if(!trackerBadgesAvailable[t]) return null;
   const badges = milestonesOf(t);
   const nextGym = badges.findIndex(earned => !earned);
-  return nextGym < 0 ? null : ANIL_LEVEL_CAPS[nextGym];
+  return nextGym < 0 ? null : GAME_LEVEL_CAPS[nextGym];
 }
 function levelCapLabelOf(t){
   if(!trackerBadgesAvailable[t]) return 'cap esperando medallas';
@@ -6198,7 +6192,7 @@ function renderRailStatus(){
 function renderTopbar(){
   const el = document.getElementById('crumb');
   if(!el) return;
-  const name = view==='locker' ? 'Taquilla' : view==='profile' && currentTrainer ? `${NAMES[currentTrainer]}` : view==='contest' && new Date()>=DAILY_CONTEST_START ? 'El Enigma de Añil' : (VIEW_TITLES[view] || '');
+  const name = view==='locker' ? 'Taquilla' : view==='profile' && currentTrainer ? `${NAMES[currentTrainer]}` : view==='contest' && new Date()>=DAILY_CONTEST_START ? 'El Enigma de Radical Red' : (VIEW_TITLES[view] || '');
   el.innerHTML = `Radical Red <b>/ ${name}</b>`;
 }
 
@@ -6215,21 +6209,21 @@ function trackerBadgeProgress(t){
     <div class="badge-progress-track" aria-label="${count} de ${GYM_COUNT} medallas conseguidas">
       <i style="width:${percent}%"></i>
     </div>
-    <div class="anil-badge-grid">
-      ${ANIL_BADGES.map((badge,i)=>{
+    <div class="gym-badge-grid">
+      ${GAME_BADGES.map((badge,i)=>{
         const earned = !!(raw & (1<<i));
-        const gym = ANIL_LEVEL_CAPS[i];
-        return `<button type="button" class="anil-badge ${earned?'earned':''}" style="--badge-color:${badge.color};--badge-offset:${i * -48}px;--badge-sprite:url(${ANIL_BADGE_SPRITE})" onclick="showGymBadgeDetail('${t}',${i})" aria-label="Medalla ${badge.name}, líder ${gym.leader}, nivel máximo ${gym.cap}">
-          <span class="anil-badge-gem" aria-hidden="true"></span>
-          <span class="anil-badge-copy"><b>${badge.name}</b><small>${earned?'CONSEGUIDA':'PENDIENTE'}</small></span>
+        const gym = GAME_LEVEL_CAPS[i];
+        return `<button type="button" class="gym-badge ${earned?'earned':''}" style="--badge-color:${badge.color};--badge-offset:${i * -48}px;--badge-sprite:url(${GAME_BADGE_SPRITE})" onclick="showGymBadgeDetail('${t}',${i})" aria-label="Medalla ${badge.name}, líder ${gym.leader}, nivel máximo ${gym.cap}">
+          <span class="gym-badge-gem" aria-hidden="true"></span>
+          <span class="gym-badge-copy"><b>${badge.name}</b><small>${earned?'CONSEGUIDA':'PENDIENTE'}</small></span>
           <span class="badge-hover-tooltip" aria-hidden="true"><b>${gym.leader}</b><span>🎯 Cap Nv. ${gym.cap}</span></span>
         </button>`;
       }).join('')}
     </div>`;
 }
 function showGymBadgeDetail(t,index){
-  const badge = ANIL_BADGES[index];
-  const gym = ANIL_LEVEL_CAPS[index];
+  const badge = GAME_BADGES[index];
+  const gym = GAME_LEVEL_CAPS[index];
   if(!badge || !gym) return;
   const earned = !!milestonesOf(t)[index];
   const status = !trackerBadgesAvailable[t] ? 'Esperando medallas de Tracker Sync' : earned ? 'Medalla conseguida' : 'Medalla pendiente';
@@ -6475,7 +6469,7 @@ function renderProfile(app, t){
             <div class="kpi-val">${trackerBadgesAvailable[t] ? `${badgeCountOf(t)}<small>/ ${GYM_COUNT}</small>` : 'Sin datos<small> de Tracker Sync</small>'}</div>
           </div>
           <div class="kpi wide brk">
-            <div class="kpi-label">Progreso de Añil</div>
+            <div class="kpi-label">Progreso de Radical Red</div>
             ${trackerBadgeProgress(t)}
             <div class="capline">${trackerBadgesAvailable[t] ? 'El level cap se calcula con el nivel del Pokémon más alto del próximo líder.' : 'El level cap aparecerá cuando Tracker Sync publique las medallas de la partida.'}</div>
           </div>
@@ -6617,8 +6611,8 @@ function historyItemHtml(e){
   const med = medalEventOf(e);
   if(med){
     ensureMedalSpriteStyle();
-    const b = ANIL_BADGES[med.index];
-    const gym = ANIL_LEVEL_CAPS[med.index];
+    const b = GAME_BADGES[med.index];
+    const gym = GAME_LEVEL_CAPS[med.index];
     return `<div class="history-item medal-item" style="--mc:${b.color}">
         <span class="h-left">
           <span class="h-medal-gem medal-sprite" style="--bo:${med.index * -38}px" aria-hidden="true"></span>
@@ -6785,7 +6779,7 @@ function pokedexSpriteUrl(dexId){
 function renderNormaText(text){
   if(!text.toLowerCase().includes('level cap')) return text;
   return text.replace(/level cap/ig, match =>
-    `<span title="Los niveles de cap de Pokémon Añil están pendientes de configurar">${match}</span>`
+    `<span title="Los niveles de cap de Pokémon Radical Red están pendientes de configurar">${match}</span>`
   );
 }
 
@@ -6886,9 +6880,7 @@ function renderCasinoFloor(){
         </div>
         <div class="cz-desk">
           <div class="cz-desk-label">Jugador en sala</div>
-          <select class="cz-select" onchange="setCasinoPlayer(this.value)">
-            ${TRAINERS.map(t=>`<option value="${t}" ${t===casinoPlayer?'selected':''}>${NAMES[t]}</option>`).join('')}
-          </select>
+          <div class="cz-balance" style="font-size:20px;"><span>👤</span>${NAMES[casinoPlayer]}</div>
           <div class="cz-desk-label" style="margin-top:14px;">Saldo</div>
           <div class="cz-balance"><span>🎟️</span>${bal}</div>
           <div class="cz-desk-note">Los tickets se ganan combatiendo, con el bonus diario… y perdiéndolos aquí.</div>
@@ -7018,9 +7010,7 @@ function renderCasino(app){
         <button class="back-btn cz-back" onclick="backToCasinoFloor()">◀ SALÓN</button>
         <div class="cz-head-title">${CZ_TITLES[casinoTab] || 'CASINO'}</div>
         <div class="cz-head-player casino-topbar">
-          <select id="casino-player-select" onchange="setCasinoPlayer(this.value)">
-            ${TRAINERS.map(t=>`<option value="${t}" ${t===casinoPlayer?'selected':''}>${NAMES[t]}</option>`).join('')}
-          </select>
+          <div class="casino-player-name" style="font-weight:700;margin-right:10px;">${NAMES[casinoPlayer]}</div>
           <div class="casino-balance">🎟️ ${tickets[casinoPlayer]||0}</div>
         </div>
         ${renderMascot()}
@@ -7030,9 +7020,6 @@ function renderCasino(app){
         ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : casinoTab==='eggwheel' ? renderEggWheelTab() : casinoTab==='mines' ? renderMinesTab() : casinoTab==='grieta' ? renderGrietaTab() : casinoTab==='crash' ? renderCrashTab() : casinoTab==='plinko' ? renderPlinkoTab() : renderLoteriaTab()}
       </div>
     `;
-  }
-  if(casinoNeedsProfileSelect){
-    openCasinoProfileModal();
   }
 }
 
@@ -7114,7 +7101,7 @@ function injectGiovanniQuizStyle(){
 
 // Devuelve una pregunta que este perfil aun no ha contestado (o null).
 async function pickGiovanniQuestion(t){
-  const done = await storeGet('anil:quiz:' + t, []);
+  const done = await storeGet('locke:quiz:' + t, []);
   if(done === STORE_FETCH_FAILED || !Array.isArray(done)) return null;
   const answered = new Set(done.map(a => a.qid));
   const left = GIOVANNI_QUIZ.filter(q => !answered.has(q.id));
@@ -7129,7 +7116,7 @@ function quizTodayKey(){
   return new Intl.DateTimeFormat('sv-SE', { timeZone:'Europe/Madrid' }).format(new Date());
 }
 async function giovanniDailyRoll(t){
-  const key = 'anil:quizRoll:' + t;
+  const key = 'locke:quizRoll:' + t;
   const today = quizTodayKey();
   const last = await storeGet(key, null);
   if(last === STORE_FETCH_FAILED) return false; // sin saber si ya tiró hoy, mejor no tirar
@@ -7178,7 +7165,7 @@ async function answerGiovanniQuiz(i){
     : 'Muchas gracias por contestar.';
   el.querySelector('.gq-opts').innerHTML = '<button class="gq-enter" style="grid-column:1/-1" onclick="closeGiovanniQuiz()">Entrar al casino</button>';
   const trainer = giovanniQuizTrainer;
-  try{ await storeSet('anil:quiz:' + trainer, [...giovanniQuizDone, record]); }catch(e){}
+  try{ await storeSet('locke:quiz:' + trainer, [...giovanniQuizDone, record]); }catch(e){}
   if(won || lost){
     try{ await addTickets(trainer, won ? GIOVANNI_QUIZ_TICKETS : -GIOVANNI_QUIZ_TICKETS, (won ? 'acierto' : 'fallo') + ' en el cuestionario de Charizard'); render(); }catch(e){}
   }
@@ -8981,10 +8968,10 @@ async function toggleArenaVote(key, trainer){
   saveInFlight['arenaJourney'] = (saveInFlight['arenaJourney']||0) + 1;
   let ok = false;
   try{
-    const remote = await storeGet('anil:arenaJourney', { completed:[], winners:{}, postLeagueDone:false, postLeagueWinner:null, votes:{} });
+    const remote = await storeGet('locke:arenaJourney', { completed:[], winners:{}, postLeagueDone:false, postLeagueWinner:null, votes:{} });
     if(remote !== STORE_FETCH_FAILED){
       const merged = applyToggle(normalizeArenaJourney(remote));
-      ok = await storeSet('anil:arenaJourney', merged);
+      ok = await storeSet('locke:arenaJourney', merged);
       if(ok) arenaJourneyState = merged;
     }
   } finally {
@@ -9066,7 +9053,7 @@ function renderArenaJourney(){
   return `
     <section class="arena-journey" aria-labelledby="arena-journey-title">
       <div class="arena-journey-heading">
-        <div><div class="arena-journey-kicker">Camino de la Liga · Añil</div><h2 class="arena-journey-title" id="arena-journey-title">El recorrido de los tres</h2></div>
+        <div><div class="arena-journey-kicker">Camino de la Liga · Radical Red</div><h2 class="arena-journey-title" id="arena-journey-title">El recorrido de los tres</h2></div>
         <div class="arena-journey-count"><strong>${completedCount}/4</strong> torneos</div>
       </div>
       <div class="arena-readiness">${players}</div>
@@ -9669,7 +9656,7 @@ function getUltraSolRecord(){ return null; }
 // Un K alto hace que cada combate pese y que una victoria sorpresa mueva mucho
 // más el rating que una victoria esperada; el cambio siempre es simétrico.
 const ELO_START = 1000, ELO_K_COMBAT = 200, ELO_K_LOCKE = 80, ELO_MARGIN_20 = 1.3;
-// Partida en curso (Añil): cada vida perdida resta un poco y llegar a una medalla con
+// Partida en curso (Radical Red): cada vida perdida resta un poco y llegar a una medalla con
 // muchas vidas suma un poco. No es de suma cero: solo depende de cada uno.
 const ELO_LIVES_MAX = 20;
 const ELO_LIFE_LOSS = 3; // Elo por vida perdida (de las 20)
@@ -9682,7 +9669,7 @@ function eloMedalBonus(livesAtMedal){
   return 0;
 }
 
-// Orden cronológico de las partidas anteriores a Añil.
+// Orden cronológico de las partidas anteriores a Radical Red.
 const ELO_LEGACY_GAMES = [];
 
 // Quién ganó el LOCKE de cada partida anterior (null = todavía sin dato, no puntúa).
@@ -9860,16 +9847,16 @@ function computeElo(){
     if(lk) applyLocke(game, lk.players, lk.winner);
   });
 
-  // Añil es, otra vez, una partida nueva: racha a cero también aquí.
+  // Radical Red es, otra vez, una partida nueva: racha a cero también aquí.
   TRAINERS.forEach(t => { st[t].streak = 0; st[t].streakVs = {}; });
-  // Añil: duelHistory guarda el más reciente primero → del más antiguo al más nuevo
+  // Radical Red: duelHistory guarda el más reciente primero → del más antiguo al más nuevo
   [...hist].reverse().forEach(h => {
     const one = (c, score) => {
       if(!c || !c.winner) return;
       const l = c.winner === c.p1 ? c.p2 : c.p1;
       let m = 1;
       if(score && score[c.winner] === 2 && score[l] === 0) m = ELO_MARGIN_20;
-      applyCombat('Añil', c.winner, l, m, 'run');
+      applyCombat('Radical Red', c.winner, l, m, 'run');
     };
     one(h.match1, h.match1Score);
     one(h.final, h.finalScore);
@@ -9885,7 +9872,7 @@ function computeElo(){
     if(!d) return;
     R[t] += d; st[t].fromRun += d;
     st[t].peak = Math.max(st[t].peak, R[t]);
-    series[t].push({ elo: R[t], label: `Añil: vidas y medallas (${d > 0 ? '+' : ''}${Math.round(d)})`, type: 'run', d });
+    series[t].push({ elo: R[t], label: `Radical Red: vidas y medallas (${d > 0 ? '+' : ''}${Math.round(d)})`, type: 'run', d });
   });
 
   _eloCache = { R, series, st, h2h };
@@ -9987,33 +9974,33 @@ function bo3NarrationCore(games, p1, p2, isFinal){
       if(us){
         const score = `${P1} ${us[p1]}-${us[p2]} ${P2}`;
         const variants = [
-          () => `🌞 Aquí no hay historial de esta partida, pero sí de la anterior: en Ultra Sol el marcador quedó ${score} (sin contar las estrellas de la final), y si Iker se llevó aquello fue porque le salieron 3 Pokémon con Potencia. Ahora, en Añil, el primer asalto es para <strong>${W}</strong> — ¿volverá a repartir la suerte de las habilidades?`,
+          () => `🌞 Aquí no hay historial de esta partida, pero sí de la anterior: en Ultra Sol el marcador quedó ${score} (sin contar las estrellas de la final), y si Iker se llevó aquello fue porque le salieron 3 Pokémon con Potencia. Ahora, en Radical Red, el primer asalto es para <strong>${W}</strong> — ¿volverá a repartir la suerte de las habilidades?`,
           () => `🌞 Nueva región, cuentas pendientes de Ultra Sol: ${score} (sin las estrellas de la final), con Iker agarrado a sus 3 Potencias como quien se agarra a un clavo ardiendo. Aquí el marcador vuelve a cero y el primer asalto lo firma <strong>${W}</strong>.`,
-          () => `🌞 Antes de Añil hubo Alola. Aquella vez terminó ${score} sin contar las estrellas de la final — y todo el mundo sabe que a Iker le salieron 3 Pokémon con Potencia, que no es lo mismo que ganar a pelo. El primer round de esta nueva etapa se lo lleva <strong>${W}</strong>.`,
-          () => `🌞 Hay marcadores que se recuerdan con asterisco: en Ultra Sol quedó ${score} (estrellas de la final aparte), y el asterisco se llama Potencia, tres veces. Empieza Añil, y el primer golpe cae del lado de <strong>${W}</strong>.`,
-          () => `🌞 Ultra Sol: ${score}, sin contar las estrellas de la final. Iker ganó, sí, pero con 3 Pokémon con Potencia de por medio, y Alex todavía lo tiene apuntado en algún sitio. Nuevo capítulo en Añil: primer asalto para <strong>${W}</strong>.`,
-          () => `🌞 La rivalidad viene de lejos: ${score} en Ultra Sol (sin estrellas de la final) y un Iker que ganó gracias a que le tocaron 3 Potencias. En Añil nadie garantiza que se repita — el primer asalto ya es de <strong>${W}</strong>.`,
-          ...(wMon ? [() => `🌞 En Ultra Sol quedó ${score} (sin estrellas de la final) y Potencia hizo el resto. Aquí, el primero en dar el golpe es <strong>${wMon.species}</strong>, del equipo de ${W} — Añil escribe su propia versión.`] : []),
+          () => `🌞 Antes de Radical Red hubo Alola. Aquella vez terminó ${score} sin contar las estrellas de la final — y todo el mundo sabe que a Iker le salieron 3 Pokémon con Potencia, que no es lo mismo que ganar a pelo. El primer round de esta nueva etapa se lo lleva <strong>${W}</strong>.`,
+          () => `🌞 Hay marcadores que se recuerdan con asterisco: en Ultra Sol quedó ${score} (estrellas de la final aparte), y el asterisco se llama Potencia, tres veces. Empieza Radical Red, y el primer golpe cae del lado de <strong>${W}</strong>.`,
+          () => `🌞 Ultra Sol: ${score}, sin contar las estrellas de la final. Iker ganó, sí, pero con 3 Pokémon con Potencia de por medio, y Alex todavía lo tiene apuntado en algún sitio. Nuevo capítulo en Radical Red: primer asalto para <strong>${W}</strong>.`,
+          () => `🌞 La rivalidad viene de lejos: ${score} en Ultra Sol (sin estrellas de la final) y un Iker que ganó gracias a que le tocaron 3 Potencias. En Radical Red nadie garantiza que se repita — el primer asalto ya es de <strong>${W}</strong>.`,
+          ...(wMon ? [() => `🌞 En Ultra Sol quedó ${score} (sin estrellas de la final) y Potencia hizo el resto. Aquí, el primero en dar el golpe es <strong>${wMon.species}</strong>, del equipo de ${W} — Radical Red escribe su propia versión.`] : []),
         ];
         return pickNarrationVariant('g1_ultrasol', variants)();
       }
       const px = getPokemonXRecord(p1, p2);
       if(px){
         const variants = [
-          () => `🕹️ Aquí no hay historial de esta partida, pero sí de la anterior: en Pokémon X el marcador entre ${P1} y ${P2} quedó ${P1} ${px[p1]}-${px[p2]} ${P2}. Con esos números de fondo llega este primer cruce en Añil, y el primer asalto se lo lleva <strong>${W}</strong> — ¿se repetirá la historia, o esta vez todo empieza de cero de verdad?`,
-          () => `🕹️ Nueva región, viejas cuentas pendientes. ${P1} y ${P2} ya se vieron las caras en Pokémon X (${P1} ${px[p1]}-${px[p2]} ${P2}), y aunque aquí el marcador arranca en blanco, ese precedente sigue pesando. El primer asalto en Añil cae del lado de <strong>${W}</strong>.`,
-          () => `🕹️ Antes de Añil hubo Kalos. Aquella vez terminó ${P1} ${px[p1]}-${px[p2]} ${P2}, y aunque el contador de esta partida se pone a cero, el recuerdo no. El primer round de este nuevo capítulo lo gana <strong>${W}</strong> — toca ver si esta rivalidad sigue el mismo guion o le da la vuelta del todo.`,
+          () => `🕹️ Aquí no hay historial de esta partida, pero sí de la anterior: en Pokémon X el marcador entre ${P1} y ${P2} quedó ${P1} ${px[p1]}-${px[p2]} ${P2}. Con esos números de fondo llega este primer cruce en Radical Red, y el primer asalto se lo lleva <strong>${W}</strong> — ¿se repetirá la historia, o esta vez todo empieza de cero de verdad?`,
+          () => `🕹️ Nueva región, viejas cuentas pendientes. ${P1} y ${P2} ya se vieron las caras en Pokémon X (${P1} ${px[p1]}-${px[p2]} ${P2}), y aunque aquí el marcador arranca en blanco, ese precedente sigue pesando. El primer asalto en Radical Red cae del lado de <strong>${W}</strong>.`,
+          () => `🕹️ Antes de Radical Red hubo Kalos. Aquella vez terminó ${P1} ${px[p1]}-${px[p2]} ${P2}, y aunque el contador de esta partida se pone a cero, el recuerdo no. El primer round de este nuevo capítulo lo gana <strong>${W}</strong> — toca ver si esta rivalidad sigue el mismo guion o le da la vuelta del todo.`,
           () => `🕹️ Hay partidas que terminan pero las rivalidades no. En Pokémon X quedó ${P1} ${px[p1]}-${px[p2]} ${P2}, y aunque han pasado región, consola y unos cuantos años, ${P1} y ${P2} se vuelven a encontrar. El primer asalto de esta nueva era lo firma <strong>${W}</strong>.`,
-          () => `🕹️ Los libros de Kalos ya tienen un capítulo escrito sobre esto (${P1} ${px[p1]}-${px[p2]} ${P2}), pero Añil empieza su propia historia desde cero. Eso sí, el primer golpe de esta nueva etapa lo da <strong>${W}</strong> — con o sin precedente, hay que ganárselo igual.`,
-          () => `🕹️ Rivalidad de toda la vida, escenario nuevo. Lo de Pokémon X (${P1} ${px[p1]}-${px[p2]} ${P2}) se queda como referencia, pero en Añil manda lo de hoy — y hoy manda <strong>${W}</strong>, que se adelanta en el primer asalto.`,
-          ...(wMon ? [() => `🕹️ En Pokémon X el marcador quedó ${P1} ${px[p1]}-${px[p2]} ${P2}, pero eso fue otra región, otra época. Aquí y ahora, el primer golpe lo da <strong>${wMon.species}</strong>, del equipo de ${W} — Añil empieza a escribir su propia versión de esta rivalidad.`] : []),
+          () => `🕹️ Los libros de Kalos ya tienen un capítulo escrito sobre esto (${P1} ${px[p1]}-${px[p2]} ${P2}), pero Radical Red empieza su propia historia desde cero. Eso sí, el primer golpe de esta nueva etapa lo da <strong>${W}</strong> — con o sin precedente, hay que ganárselo igual.`,
+          () => `🕹️ Rivalidad de toda la vida, escenario nuevo. Lo de Pokémon X (${P1} ${px[p1]}-${px[p2]} ${P2}) se queda como referencia, pero en Radical Red manda lo de hoy — y hoy manda <strong>${W}</strong>, que se adelanta en el primer asalto.`,
+          ...(wMon ? [() => `🕹️ En Pokémon X el marcador quedó ${P1} ${px[p1]}-${px[p2]} ${P2}, pero eso fue otra región, otra época. Aquí y ahora, el primer golpe lo da <strong>${wMon.species}</strong>, del equipo de ${W} — Radical Red empieza a escribir su propia versión de esta rivalidad.`] : []),
         ];
         const isAlexIker = (p1 === 'alex' && p2 === 'iker') || (p1 === 'iker' && p2 === 'alex');
         if(isAlexIker){
           variants.push(
-            () => `🕹️ Que nadie se olvide del segundo enfrentamiento en Pokémon X, cuando Alex le metió una auténtica manita a Iker sin despeinarse. Con eso en la memoria llega este primer cruce en Añil, y el primer asalto se lo lleva <strong>${W}</strong>.`,
-            () => `🕹️ En Kalos hubo un segundo combate que Iker preferiría no recordar: Alex le pasó por encima sin piedad. Rivalidad marcada a fuego, capítulo nuevo en Añil — y el primer asalto cae del lado de <strong>${W}</strong>.`,
-            () => `🕹️ Iker sabe perfectamente de lo que hablamos: aquella paliza de Alex en el segundo duelo de Pokémon X todavía escuece. Ahora, en Añil, arranca otro capítulo — y el primero se lo apunta <strong>${W}</strong>.`
+            () => `🕹️ Que nadie se olvide del segundo enfrentamiento en Pokémon X, cuando Alex le metió una auténtica manita a Iker sin despeinarse. Con eso en la memoria llega este primer cruce en Radical Red, y el primer asalto se lo lleva <strong>${W}</strong>.`,
+            () => `🕹️ En Kalos hubo un segundo combate que Iker preferiría no recordar: Alex le pasó por encima sin piedad. Rivalidad marcada a fuego, capítulo nuevo en Radical Red — y el primer asalto cae del lado de <strong>${W}</strong>.`,
+            () => `🕹️ Iker sabe perfectamente de lo que hablamos: aquella paliza de Alex en el segundo duelo de Pokémon X todavía escuece. Ahora, en Radical Red, arranca otro capítulo — y el primero se lo apunta <strong>${W}</strong>.`
           );
         }
         return pickNarrationVariant('g1_pokemonx', variants)();
@@ -10021,13 +10008,13 @@ function bo3NarrationCore(games, p1, p2, isFinal){
       const ss = getSoulSilverRecord(p1, p2);
       if(ss){
         const variants = [
-          () => `📼 Aquí no hay historial de esta partida, pero sí de la anterior: en SoulSilver el marcador entre ${P1} y ${P2} quedó ${P1} ${ss[p1]}-${ss[p2]} ${P2}. Con esos números de fondo llega este primer cruce en Añil, y el primer asalto se lo lleva <strong>${W}</strong> — ¿se repetirá la historia, o esta vez todo empieza de cero de verdad?`,
-          () => `📼 Nueva región, viejas cuentas pendientes. ${P1} y ${P2} ya se vieron las caras en SoulSilver (${P1} ${ss[p1]}-${ss[p2]} ${P2}), y aunque aquí el marcador arranca en blanco, ese precedente sigue pesando. El primer asalto en Añil cae del lado de <strong>${W}</strong>.`,
-          () => `📼 Antes de Añil hubo Johto. Aquella vez terminó ${P1} ${ss[p1]}-${ss[p2]} ${P2}, y aunque el contador de esta partida se pone a cero, el recuerdo no. El primer round de este nuevo capítulo lo gana <strong>${W}</strong> — toca ver si esta rivalidad sigue el mismo guion o le da la vuelta del todo.`,
+          () => `📼 Aquí no hay historial de esta partida, pero sí de la anterior: en SoulSilver el marcador entre ${P1} y ${P2} quedó ${P1} ${ss[p1]}-${ss[p2]} ${P2}. Con esos números de fondo llega este primer cruce en Radical Red, y el primer asalto se lo lleva <strong>${W}</strong> — ¿se repetirá la historia, o esta vez todo empieza de cero de verdad?`,
+          () => `📼 Nueva región, viejas cuentas pendientes. ${P1} y ${P2} ya se vieron las caras en SoulSilver (${P1} ${ss[p1]}-${ss[p2]} ${P2}), y aunque aquí el marcador arranca en blanco, ese precedente sigue pesando. El primer asalto en Radical Red cae del lado de <strong>${W}</strong>.`,
+          () => `📼 Antes de Radical Red hubo Johto. Aquella vez terminó ${P1} ${ss[p1]}-${ss[p2]} ${P2}, y aunque el contador de esta partida se pone a cero, el recuerdo no. El primer round de este nuevo capítulo lo gana <strong>${W}</strong> — toca ver si esta rivalidad sigue el mismo guion o le da la vuelta del todo.`,
           () => `📼 Hay partidas que terminan pero las rivalidades no. En SoulSilver quedó ${P1} ${ss[p1]}-${ss[p2]} ${P2}, y aunque han pasado región, consola y unos cuantos años, ${P1} y ${P2} se vuelven a encontrar. El primer asalto de esta nueva era lo firma <strong>${W}</strong>.`,
-          () => `📼 Los libros de Johto ya tienen un capítulo escrito sobre esto (${P1} ${ss[p1]}-${ss[p2]} ${P2}), pero Añil empieza su propia historia desde cero. Eso sí, el primer golpe de esta nueva etapa lo da <strong>${W}</strong> — con o sin precedente, hay que ganárselo igual.`,
-          () => `📼 Rivalidad de toda la vida, escenario nuevo. Lo de SoulSilver (${P1} ${ss[p1]}-${ss[p2]} ${P2}) se queda como referencia, pero en Añil manda lo de hoy — y hoy manda <strong>${W}</strong>, que se adelanta en el primer asalto.`,
-          ...(wMon ? [() => `📼 En SoulSilver el marcador quedó ${P1} ${ss[p1]}-${ss[p2]} ${P2}, pero eso fue otra región, otra época. Aquí y ahora, el primer golpe lo da <strong>${wMon.species}</strong>, del equipo de ${W} — Añil empieza a escribir su propia versión de esta rivalidad.`] : []),
+          () => `📼 Los libros de Johto ya tienen un capítulo escrito sobre esto (${P1} ${ss[p1]}-${ss[p2]} ${P2}), pero Radical Red empieza su propia historia desde cero. Eso sí, el primer golpe de esta nueva etapa lo da <strong>${W}</strong> — con o sin precedente, hay que ganárselo igual.`,
+          () => `📼 Rivalidad de toda la vida, escenario nuevo. Lo de SoulSilver (${P1} ${ss[p1]}-${ss[p2]} ${P2}) se queda como referencia, pero en Radical Red manda lo de hoy — y hoy manda <strong>${W}</strong>, que se adelanta en el primer asalto.`,
+          ...(wMon ? [() => `📼 En SoulSilver el marcador quedó ${P1} ${ss[p1]}-${ss[p2]} ${P2}, pero eso fue otra región, otra época. Aquí y ahora, el primer golpe lo da <strong>${wMon.species}</strong>, del equipo de ${W} — Radical Red empieza a escribir su propia versión de esta rivalidad.`] : []),
         ];
         return pickNarrationVariant('g1_soulsilver', variants)();
       }
@@ -10540,7 +10527,7 @@ const BOX_BASE = 0x33000; // absoluto (bloque Box)
 const BOX_SLOT_SIZE = 232; // formato EK6 (sin datos de combate)
 const BOX_SLOTS = 30; // slots por caja
 const BOX_STRIDE = BOX_SLOTS * BOX_SLOT_SIZE;
-const BOXES = 31; // heredado de ORAS -- no aplica a Añil (pendiente)
+const BOXES = 31; // heredado de ORAS -- no aplica a Radical Red (pendiente)
 
 const EXPECTED_SIZE = 0x76000; // 483328 bytes
 
@@ -10629,7 +10616,7 @@ function readNickname(dec) {
   return out;
 }
 
-const ANIL_MAP_LOOKUP = {"10":{"nombre_mapa":"Ruta 3","zona":"Ruta 3"},"100":{"nombre_mapa":"Silph S.A","zona":"Ciudad Azafrán"},"101":{"nombre_mapa":"Silph S.A","zona":"Ciudad Azafrán"},"102":{"nombre_mapa":"Silph S.A","zona":"Ciudad Azafrán"},"105":{"nombre_mapa":"Ruta 18","zona":"Ruta 18"},"106":{"nombre_mapa":"Ruta 19","zona":"Ruta 19"},"107":{"nombre_mapa":"Ruta 3","zona":"Ruta 3"},"108":{"nombre_mapa":"Ruta 12","zona":"Ruta 12"},"109":{"nombre_mapa":"Ruta 21","zona":"Ruta 21"},"11":{"nombre_mapa":"Monte Moon","zona":"Monte Moon"},"110":{"nombre_mapa":"Camino de Bicis","zona":"Camino de Bicis"},"111":{"nombre_mapa":"Camino de Bicis","zona":"Camino de Bicis"},"112":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"113":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"114":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"115":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"116":{"nombre_mapa":"Isla Canela","zona":"Isla Canela"},"117":{"nombre_mapa":"Dojo Azafrán","zona":"Ciudad Azafrán"},"118":{"nombre_mapa":"Laboratorio Canela","zona":"Isla Canela"},"119":{"nombre_mapa":"Mansión Quemada","zona":"Isla Canela"},"12":{"nombre_mapa":"Monte Moon Exterior","zona":"Monte Moon Exterior"},"120":{"nombre_mapa":"Mansión Quemada","zona":"Isla Canela"},"121":{"nombre_mapa":"Mansión Quemada","zona":"Isla Canela"},"122":{"nombre_mapa":"Mansión Quemada","zona":"Isla Canela"},"123":{"nombre_mapa":"Centro Pokémon","zona":"Pueblo Marengo"},"124":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Fucsia"},"125":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Fucsia"},"126":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Azafrán"},"127":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Azafrán"},"128":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Azafrán"},"129":{"nombre_mapa":"Centro Pokémon","zona":"Isla Canela"},"13":{"nombre_mapa":"Monte Moon","zona":"Monte Moon"},"130":{"nombre_mapa":"Islas Espuma","zona":"Ruta 18"},"131":{"nombre_mapa":"Gimnasio Pokémon","zona":"Isla Canela"},"132":{"nombre_mapa":"Liga Pokémon","zona":"Ciudad Añil"},"133":{"nombre_mapa":"Islas Espuma","zona":"Ruta 18"},"134":{"nombre_mapa":"Islas Espuma","zona":"Ruta 18"},"135":{"nombre_mapa":"Islas Espuma","zona":"Ruta 18"},"136":{"nombre_mapa":"Islas Espuma","zona":"Ruta 18"},"137":{"nombre_mapa":"Transición","zona":"Ruta 14"},"138":{"nombre_mapa":"Casa","zona":"Pueblo Marengo"},"139":{"nombre_mapa":"Casa","zona":"Ciudad Fucsia"},"14":{"nombre_mapa":"Ruta 4","zona":"Ruta 4"},"140":{"nombre_mapa":"Casa","zona":"Isla Canela"},"141":{"nombre_mapa":"Casa","zona":"Ciudad Azafrán"},"142":{"nombre_mapa":"Tienda Exótica","zona":"Ciudad Fucsia"},"143":{"nombre_mapa":"Casa del Guarda","zona":"Ciudad Fucsia"},"144":{"nombre_mapa":"Casa del Sr. Psíquico","zona":"Ciudad Azafrán"},"145":{"nombre_mapa":"Estación del Magnetotrén","zona":"Ciudad Azafrán"},"146":{"nombre_mapa":"Granja Marengo","zona":"Pueblo Marengo"},"147":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"148":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"149":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"15":{"nombre_mapa":"Ciudad Celeste","zona":"Ciudad Celeste"},"150":{"nombre_mapa":"Central Energía","zona":"Central Energía"},"151":{"nombre_mapa":"Volcán Canela","zona":"Volcán Canela"},"152":{"nombre_mapa":"Volcán Canela","zona":"Volcán Canela"},"153":{"nombre_mapa":"Volcán Canela","zona":"Volcán Canela"},"154":{"nombre_mapa":"Ruta 23","zona":"Ruta 23"},"155":{"nombre_mapa":"Ruta 24","zona":"Ruta 24"},"156":{"nombre_mapa":"Ruta 24","zona":"Ruta 24"},"157":{"nombre_mapa":"Cataratas Tohjo","zona":"Cataratas Tohjo"},"158":{"nombre_mapa":"Ruta 25 Sur","zona":"Ruta 25 (Sur)"},"159":{"nombre_mapa":"Centro Pokémon","zona":"Ruta 25 (Sur)"},"16":{"nombre_mapa":"Ruta 20","zona":"Ruta 20"},"160":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"161":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"162":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"163":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"164":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"165":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"166":{"nombre_mapa":"Ruta 25 Norte","zona":"Ruta 25 (Norte)"},"167":{"nombre_mapa":"Ciudad Añil","zona":"Ciudad Añil"},"168":{"nombre_mapa":"Cueva Celeste","zona":"Cueva Celeste"},"169":{"nombre_mapa":"Cueva Celeste","zona":"Cueva Celeste"},"17":{"nombre_mapa":"Ruta 5","zona":"Ruta 5"},"170":{"nombre_mapa":"Cueva Celeste","zona":"Cueva Celeste"},"171":{"nombre_mapa":"Casa","zona":"Ruta 23"},"172":{"nombre_mapa":"Liga Pokémon","zona":"Ciudad Añil"},"173":{"nombre_mapa":"Liga Pokémon","zona":"Ciudad Añil"},"174":{"nombre_mapa":"Bosque Celeste","zona":"Cueva Celeste"},"175":{"nombre_mapa":"Casa","zona":"Ruta 24"},"176":{"nombre_mapa":"Casa","zona":"Ruta 25 (Sur)"},"177":{"nombre_mapa":"Casa","zona":"Ciudad Añil"},"178":{"nombre_mapa":"Claro Secreto","zona":"Bosque Verde"},"18":{"nombre_mapa":"Ruta 6","zona":"Ruta 6"},"180":{"nombre_mapa":"Hostal Añil","zona":"Ciudad Añil"},"181":{"nombre_mapa":"Cataratas Tohjo","zona":"Cataratas Tohjo"},"182":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Verde"},"183":{"nombre_mapa":"Villa Ámbar","zona":"Villa Ámbar"},"184":{"nombre_mapa":"Ruta 26","zona":"Ruta 26"},"185":{"nombre_mapa":"Villa Azabache","zona":"Villa Azabache"},"186":{"nombre_mapa":"Cabo Azabache","zona":"Cabo Azabache"},"187":{"nombre_mapa":"Centro Pokémon","zona":"Villa Ámbar"},"188":{"nombre_mapa":"Centro Pokémon","zona":"Villa Azabache"},"189":{"nombre_mapa":"Ruta 27","zona":"Ruta 27"},"19":{"nombre_mapa":"Ciudad Carmín","zona":"Ciudad Carmín"},"190":{"nombre_mapa":"Islote Recuerdo","zona":"Islote Recuerdo"},"191":{"nombre_mapa":"Ruta 28","zona":"Ruta 28"},"192":{"nombre_mapa":"Villa Magenta","zona":"Villa Magenta"},"193":{"nombre_mapa":"Centro Pokémon","zona":"Villa Magenta"},"194":{"nombre_mapa":"Ruta 29","zona":"Ruta 29"},"195":{"nombre_mapa":"Ruta 29","zona":"Ruta 29"},"196":{"nombre_mapa":"Ruta 30","zona":"Ruta 30"},"197":{"nombre_mapa":"Cabo Magenta","zona":"Cabo Magenta"},"2":{"nombre_mapa":"Pueblo Paleta","zona":"Pueblo Paleta"},"20":{"nombre_mapa":"Ruta 15","zona":"Ruta 15"},"200":{"nombre_mapa":"Cueva Perdida","zona":"Ruta 27"},"202":{"nombre_mapa":"Casa","zona":"Villa Ámbar"},"203":{"nombre_mapa":"Casa","zona":"Villa Azabache"},"204":{"nombre_mapa":"Casa","zona":"Villa Magenta"},"205":{"nombre_mapa":"Casa","zona":"Ruta 29"},"206":{"nombre_mapa":"Casa","zona":"Cabo Magenta"},"207":{"nombre_mapa":"Dojo Magenta","zona":"Villa Magenta"},"21":{"nombre_mapa":"Túnel Diglett","zona":"Túnel Diglett"},"212":{"nombre_mapa":"Escena","zona":"Villa Ámbar"},"213":{"nombre_mapa":"Almacén Secreto","zona":"Almacén Secreto"},"214":{"nombre_mapa":"Almacén Rocket","zona":"Almacén Secreto"},"215":{"nombre_mapa":"Torre Batalla","zona":"Ciudad Carmín"},"216":{"nombre_mapa":"Ciudad Carmín","zona":"Ciudad Carmín"},"219":{"nombre_mapa":"Torre Pokémon","zona":"Pueblo Lavanda"},"22":{"nombre_mapa":"Ruta 9","zona":"Ruta 9"},"23":{"nombre_mapa":"Ruta 10 Norte","zona":"Ruta 10 (Norte)"},"24":{"nombre_mapa":"Ruta 10 Sur","zona":"Ruta 10 (Sur)"},"25":{"nombre_mapa":"Túnel Roca","zona":"Túnel Roca"},"26":{"nombre_mapa":"Túnel Roca","zona":"Túnel Roca"},"27":{"nombre_mapa":"Pueblo Lavanda","zona":"Pueblo Lavanda"},"28":{"nombre_mapa":"Casa","zona":"Pueblo Paleta"},"29":{"nombre_mapa":"Laboratorio","zona":"Pueblo Paleta"},"3":{"nombre_mapa":"Ruta 1","zona":"Ruta 1"},"30":{"nombre_mapa":"Casa","zona":"Ciudad Verde"},"31":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Verde"},"32":{"nombre_mapa":"Escuela","zona":"Ciudad Verde"},"33":{"nombre_mapa":"Transición","zona":"Ruta 2 (Sur)"},"34":{"nombre_mapa":"Casa","zona":"Ruta 2 (Norte)"},"35":{"nombre_mapa":"Transición","zona":"Ruta 22"},"36":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Plateada"},"37":{"nombre_mapa":"Casa","zona":"Ciudad Plateada"},"38":{"nombre_mapa":"Casa","zona":"Ciudad Azulona"},"39":{"nombre_mapa":"Casino Azulona","zona":"Ciudad Azulona"},"4":{"nombre_mapa":"Ciudad Verde","zona":"Ciudad Verde"},"40":{"nombre_mapa":"Museo Pokémon","zona":"Ciudad Plateada"},"41":{"nombre_mapa":"Casa","zona":"Monte Moon Exterior"},"42":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Plateada"},"43":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Celeste"},"44":{"nombre_mapa":"Caravana","zona":"Ruta 20"},"45":{"nombre_mapa":"Casa","zona":"Ciudad Celeste"},"46":{"nombre_mapa":"Transición","zona":"Ruta 5"},"47":{"nombre_mapa":"Transición","zona":"Ruta 6"},"48":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Carmín"},"49":{"nombre_mapa":"Guardería","zona":"Ruta 5"},"5":{"nombre_mapa":"Ruta 22","zona":"Ruta 22"},"50":{"nombre_mapa":"Casa","zona":"Ciudad Carmín"},"51":{"nombre_mapa":"Centro Pokémon","zona":"Ruta 10 (Norte)"},"52":{"nombre_mapa":"Centro Pokémon","zona":"Pueblo Lavanda"},"53":{"nombre_mapa":"Casa","zona":"Ruta 10 (Norte)"},"54":{"nombre_mapa":"Casa","zona":"Pueblo Lavanda"},"55":{"nombre_mapa":"Subterráneo","zona":"Ruta 5"},"56":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Carmín"},"57":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Celeste"},"58":{"nombre_mapa":"S.S Anne","zona":"Ciudad Carmín"},"59":{"nombre_mapa":"S.S Anne","zona":"Ciudad Carmín"},"6":{"nombre_mapa":"Ruta 2 Sur","zona":"Ruta 2 (Sur)"},"60":{"nombre_mapa":"Tienda de Bicis","zona":"Ciudad Celeste"},"61":{"nombre_mapa":"Cafetería","zona":"Ciudad Celeste"},"62":{"nombre_mapa":"Casa de Bill","zona":"Ruta 20"},"63":{"nombre_mapa":"Club de Fans Pokémon","zona":"Ciudad Carmín"},"64":{"nombre_mapa":"Torre Pokémon","zona":"Pueblo Lavanda"},"65":{"nombre_mapa":"Torre Pokémon","zona":"Pueblo Lavanda"},"66":{"nombre_mapa":"Transición","zona":"Bosque Verde"},"67":{"nombre_mapa":"Refugio Fuji","zona":"Pueblo Lavanda"},"68":{"nombre_mapa":"Transición","zona":"Ruta 15"},"69":{"nombre_mapa":"Ciudad Carmín","zona":"Ciudad Carmín"},"7":{"nombre_mapa":"Ruta 2 Norte","zona":"Ruta 2 (Norte)"},"70":{"nombre_mapa":"Centro Pokémon","zona":"Ruta 3"},"71":{"nombre_mapa":"Ruta 8","zona":"Ruta 8"},"72":{"nombre_mapa":"Ruta 7","zona":"Ruta 7"},"73":{"nombre_mapa":"Transición","zona":"Ruta 8"},"74":{"nombre_mapa":"Transición","zona":"Ruta 7"},"75":{"nombre_mapa":"Subterráneo","zona":"Ruta 8"},"76":{"nombre_mapa":"Ciudad Azulona","zona":"Ciudad Azulona"},"77":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Azulona"},"78":{"nombre_mapa":"Centro Comercial","zona":"Ciudad Azulona"},"79":{"nombre_mapa":"Restaurante de Ramen","zona":"Ciudad Azulona"},"8":{"nombre_mapa":"Bosque Verde","zona":"Bosque Verde"},"80":{"nombre_mapa":"Edificio Azulona","zona":"Ciudad Azulona"},"81":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Azulona"},"86":{"nombre_mapa":"Ruta 12","zona":"Ruta 12"},"87":{"nombre_mapa":"Ruta 11","zona":"Ruta 11"},"88":{"nombre_mapa":"Transición","zona":"Ruta 11"},"89":{"nombre_mapa":"Casa","zona":"Ruta 12"},"9":{"nombre_mapa":"Ciudad Plateada","zona":"Ciudad Plateada"},"90":{"nombre_mapa":"Casa","zona":"Ruta 11"},"91":{"nombre_mapa":"Pueblo Marengo","zona":"Pueblo Marengo"},"92":{"nombre_mapa":"Ruta 13","zona":"Ruta 13"},"93":{"nombre_mapa":"Ruta 14","zona":"Ruta 14"},"94":{"nombre_mapa":"Ciudad Fucsia","zona":"Ciudad Fucsia"},"95":{"nombre_mapa":"Ruta 16","zona":"Ruta 16"},"96":{"nombre_mapa":"Transición","zona":"Ruta 16"},"97":{"nombre_mapa":"Ruta 17","zona":"Ruta 17"},"98":{"nombre_mapa":"Transición","zona":"Ruta 17"},"99":{"nombre_mapa":"Ciudad Azafrán","zona":"Ciudad Azafrán"}};
+const GAME_MAP_LOOKUP = {"10":{"nombre_mapa":"Ruta 3","zona":"Ruta 3"},"100":{"nombre_mapa":"Silph S.A","zona":"Ciudad Azafrán"},"101":{"nombre_mapa":"Silph S.A","zona":"Ciudad Azafrán"},"102":{"nombre_mapa":"Silph S.A","zona":"Ciudad Azafrán"},"105":{"nombre_mapa":"Ruta 18","zona":"Ruta 18"},"106":{"nombre_mapa":"Ruta 19","zona":"Ruta 19"},"107":{"nombre_mapa":"Ruta 3","zona":"Ruta 3"},"108":{"nombre_mapa":"Ruta 12","zona":"Ruta 12"},"109":{"nombre_mapa":"Ruta 21","zona":"Ruta 21"},"11":{"nombre_mapa":"Monte Moon","zona":"Monte Moon"},"110":{"nombre_mapa":"Camino de Bicis","zona":"Camino de Bicis"},"111":{"nombre_mapa":"Camino de Bicis","zona":"Camino de Bicis"},"112":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"113":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"114":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"115":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"116":{"nombre_mapa":"Isla Canela","zona":"Isla Canela"},"117":{"nombre_mapa":"Dojo Azafrán","zona":"Ciudad Azafrán"},"118":{"nombre_mapa":"Laboratorio Canela","zona":"Isla Canela"},"119":{"nombre_mapa":"Mansión Quemada","zona":"Isla Canela"},"12":{"nombre_mapa":"Monte Moon Exterior","zona":"Monte Moon Exterior"},"120":{"nombre_mapa":"Mansión Quemada","zona":"Isla Canela"},"121":{"nombre_mapa":"Mansión Quemada","zona":"Isla Canela"},"122":{"nombre_mapa":"Mansión Quemada","zona":"Isla Canela"},"123":{"nombre_mapa":"Centro Pokémon","zona":"Pueblo Marengo"},"124":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Fucsia"},"125":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Fucsia"},"126":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Azafrán"},"127":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Azafrán"},"128":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Azafrán"},"129":{"nombre_mapa":"Centro Pokémon","zona":"Isla Canela"},"13":{"nombre_mapa":"Monte Moon","zona":"Monte Moon"},"130":{"nombre_mapa":"Islas Espuma","zona":"Ruta 18"},"131":{"nombre_mapa":"Gimnasio Pokémon","zona":"Isla Canela"},"132":{"nombre_mapa":"Liga Pokémon","zona":"Ciudad Añil"},"133":{"nombre_mapa":"Islas Espuma","zona":"Ruta 18"},"134":{"nombre_mapa":"Islas Espuma","zona":"Ruta 18"},"135":{"nombre_mapa":"Islas Espuma","zona":"Ruta 18"},"136":{"nombre_mapa":"Islas Espuma","zona":"Ruta 18"},"137":{"nombre_mapa":"Transición","zona":"Ruta 14"},"138":{"nombre_mapa":"Casa","zona":"Pueblo Marengo"},"139":{"nombre_mapa":"Casa","zona":"Ciudad Fucsia"},"14":{"nombre_mapa":"Ruta 4","zona":"Ruta 4"},"140":{"nombre_mapa":"Casa","zona":"Isla Canela"},"141":{"nombre_mapa":"Casa","zona":"Ciudad Azafrán"},"142":{"nombre_mapa":"Tienda Exótica","zona":"Ciudad Fucsia"},"143":{"nombre_mapa":"Casa del Guarda","zona":"Ciudad Fucsia"},"144":{"nombre_mapa":"Casa del Sr. Psíquico","zona":"Ciudad Azafrán"},"145":{"nombre_mapa":"Estación del Magnetotrén","zona":"Ciudad Azafrán"},"146":{"nombre_mapa":"Granja Marengo","zona":"Pueblo Marengo"},"147":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"148":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"149":{"nombre_mapa":"Zona Safari","zona":"Zona Safari"},"15":{"nombre_mapa":"Ciudad Celeste","zona":"Ciudad Celeste"},"150":{"nombre_mapa":"Central Energía","zona":"Central Energía"},"151":{"nombre_mapa":"Volcán Canela","zona":"Volcán Canela"},"152":{"nombre_mapa":"Volcán Canela","zona":"Volcán Canela"},"153":{"nombre_mapa":"Volcán Canela","zona":"Volcán Canela"},"154":{"nombre_mapa":"Ruta 23","zona":"Ruta 23"},"155":{"nombre_mapa":"Ruta 24","zona":"Ruta 24"},"156":{"nombre_mapa":"Ruta 24","zona":"Ruta 24"},"157":{"nombre_mapa":"Cataratas Tohjo","zona":"Cataratas Tohjo"},"158":{"nombre_mapa":"Ruta 25 Sur","zona":"Ruta 25 (Sur)"},"159":{"nombre_mapa":"Centro Pokémon","zona":"Ruta 25 (Sur)"},"16":{"nombre_mapa":"Ruta 20","zona":"Ruta 20"},"160":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"161":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"162":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"163":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"164":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"165":{"nombre_mapa":"Monte Plateado","zona":"Monte Plateado"},"166":{"nombre_mapa":"Ruta 25 Norte","zona":"Ruta 25 (Norte)"},"167":{"nombre_mapa":"Ciudad Añil","zona":"Ciudad Añil"},"168":{"nombre_mapa":"Cueva Celeste","zona":"Cueva Celeste"},"169":{"nombre_mapa":"Cueva Celeste","zona":"Cueva Celeste"},"17":{"nombre_mapa":"Ruta 5","zona":"Ruta 5"},"170":{"nombre_mapa":"Cueva Celeste","zona":"Cueva Celeste"},"171":{"nombre_mapa":"Casa","zona":"Ruta 23"},"172":{"nombre_mapa":"Liga Pokémon","zona":"Ciudad Añil"},"173":{"nombre_mapa":"Liga Pokémon","zona":"Ciudad Añil"},"174":{"nombre_mapa":"Bosque Celeste","zona":"Cueva Celeste"},"175":{"nombre_mapa":"Casa","zona":"Ruta 24"},"176":{"nombre_mapa":"Casa","zona":"Ruta 25 (Sur)"},"177":{"nombre_mapa":"Casa","zona":"Ciudad Añil"},"178":{"nombre_mapa":"Claro Secreto","zona":"Bosque Verde"},"18":{"nombre_mapa":"Ruta 6","zona":"Ruta 6"},"180":{"nombre_mapa":"Hostal Añil","zona":"Ciudad Añil"},"181":{"nombre_mapa":"Cataratas Tohjo","zona":"Cataratas Tohjo"},"182":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Verde"},"183":{"nombre_mapa":"Villa Ámbar","zona":"Villa Ámbar"},"184":{"nombre_mapa":"Ruta 26","zona":"Ruta 26"},"185":{"nombre_mapa":"Villa Azabache","zona":"Villa Azabache"},"186":{"nombre_mapa":"Cabo Azabache","zona":"Cabo Azabache"},"187":{"nombre_mapa":"Centro Pokémon","zona":"Villa Ámbar"},"188":{"nombre_mapa":"Centro Pokémon","zona":"Villa Azabache"},"189":{"nombre_mapa":"Ruta 27","zona":"Ruta 27"},"19":{"nombre_mapa":"Ciudad Carmín","zona":"Ciudad Carmín"},"190":{"nombre_mapa":"Islote Recuerdo","zona":"Islote Recuerdo"},"191":{"nombre_mapa":"Ruta 28","zona":"Ruta 28"},"192":{"nombre_mapa":"Villa Magenta","zona":"Villa Magenta"},"193":{"nombre_mapa":"Centro Pokémon","zona":"Villa Magenta"},"194":{"nombre_mapa":"Ruta 29","zona":"Ruta 29"},"195":{"nombre_mapa":"Ruta 29","zona":"Ruta 29"},"196":{"nombre_mapa":"Ruta 30","zona":"Ruta 30"},"197":{"nombre_mapa":"Cabo Magenta","zona":"Cabo Magenta"},"2":{"nombre_mapa":"Pueblo Paleta","zona":"Pueblo Paleta"},"20":{"nombre_mapa":"Ruta 15","zona":"Ruta 15"},"200":{"nombre_mapa":"Cueva Perdida","zona":"Ruta 27"},"202":{"nombre_mapa":"Casa","zona":"Villa Ámbar"},"203":{"nombre_mapa":"Casa","zona":"Villa Azabache"},"204":{"nombre_mapa":"Casa","zona":"Villa Magenta"},"205":{"nombre_mapa":"Casa","zona":"Ruta 29"},"206":{"nombre_mapa":"Casa","zona":"Cabo Magenta"},"207":{"nombre_mapa":"Dojo Magenta","zona":"Villa Magenta"},"21":{"nombre_mapa":"Túnel Diglett","zona":"Túnel Diglett"},"212":{"nombre_mapa":"Escena","zona":"Villa Ámbar"},"213":{"nombre_mapa":"Almacén Secreto","zona":"Almacén Secreto"},"214":{"nombre_mapa":"Almacén Rocket","zona":"Almacén Secreto"},"215":{"nombre_mapa":"Torre Batalla","zona":"Ciudad Carmín"},"216":{"nombre_mapa":"Ciudad Carmín","zona":"Ciudad Carmín"},"219":{"nombre_mapa":"Torre Pokémon","zona":"Pueblo Lavanda"},"22":{"nombre_mapa":"Ruta 9","zona":"Ruta 9"},"23":{"nombre_mapa":"Ruta 10 Norte","zona":"Ruta 10 (Norte)"},"24":{"nombre_mapa":"Ruta 10 Sur","zona":"Ruta 10 (Sur)"},"25":{"nombre_mapa":"Túnel Roca","zona":"Túnel Roca"},"26":{"nombre_mapa":"Túnel Roca","zona":"Túnel Roca"},"27":{"nombre_mapa":"Pueblo Lavanda","zona":"Pueblo Lavanda"},"28":{"nombre_mapa":"Casa","zona":"Pueblo Paleta"},"29":{"nombre_mapa":"Laboratorio","zona":"Pueblo Paleta"},"3":{"nombre_mapa":"Ruta 1","zona":"Ruta 1"},"30":{"nombre_mapa":"Casa","zona":"Ciudad Verde"},"31":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Verde"},"32":{"nombre_mapa":"Escuela","zona":"Ciudad Verde"},"33":{"nombre_mapa":"Transición","zona":"Ruta 2 (Sur)"},"34":{"nombre_mapa":"Casa","zona":"Ruta 2 (Norte)"},"35":{"nombre_mapa":"Transición","zona":"Ruta 22"},"36":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Plateada"},"37":{"nombre_mapa":"Casa","zona":"Ciudad Plateada"},"38":{"nombre_mapa":"Casa","zona":"Ciudad Azulona"},"39":{"nombre_mapa":"Casino Azulona","zona":"Ciudad Azulona"},"4":{"nombre_mapa":"Ciudad Verde","zona":"Ciudad Verde"},"40":{"nombre_mapa":"Museo Pokémon","zona":"Ciudad Plateada"},"41":{"nombre_mapa":"Casa","zona":"Monte Moon Exterior"},"42":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Plateada"},"43":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Celeste"},"44":{"nombre_mapa":"Caravana","zona":"Ruta 20"},"45":{"nombre_mapa":"Casa","zona":"Ciudad Celeste"},"46":{"nombre_mapa":"Transición","zona":"Ruta 5"},"47":{"nombre_mapa":"Transición","zona":"Ruta 6"},"48":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Carmín"},"49":{"nombre_mapa":"Guardería","zona":"Ruta 5"},"5":{"nombre_mapa":"Ruta 22","zona":"Ruta 22"},"50":{"nombre_mapa":"Casa","zona":"Ciudad Carmín"},"51":{"nombre_mapa":"Centro Pokémon","zona":"Ruta 10 (Norte)"},"52":{"nombre_mapa":"Centro Pokémon","zona":"Pueblo Lavanda"},"53":{"nombre_mapa":"Casa","zona":"Ruta 10 (Norte)"},"54":{"nombre_mapa":"Casa","zona":"Pueblo Lavanda"},"55":{"nombre_mapa":"Subterráneo","zona":"Ruta 5"},"56":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Carmín"},"57":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Celeste"},"58":{"nombre_mapa":"S.S Anne","zona":"Ciudad Carmín"},"59":{"nombre_mapa":"S.S Anne","zona":"Ciudad Carmín"},"6":{"nombre_mapa":"Ruta 2 Sur","zona":"Ruta 2 (Sur)"},"60":{"nombre_mapa":"Tienda de Bicis","zona":"Ciudad Celeste"},"61":{"nombre_mapa":"Cafetería","zona":"Ciudad Celeste"},"62":{"nombre_mapa":"Casa de Bill","zona":"Ruta 20"},"63":{"nombre_mapa":"Club de Fans Pokémon","zona":"Ciudad Carmín"},"64":{"nombre_mapa":"Torre Pokémon","zona":"Pueblo Lavanda"},"65":{"nombre_mapa":"Torre Pokémon","zona":"Pueblo Lavanda"},"66":{"nombre_mapa":"Transición","zona":"Bosque Verde"},"67":{"nombre_mapa":"Refugio Fuji","zona":"Pueblo Lavanda"},"68":{"nombre_mapa":"Transición","zona":"Ruta 15"},"69":{"nombre_mapa":"Ciudad Carmín","zona":"Ciudad Carmín"},"7":{"nombre_mapa":"Ruta 2 Norte","zona":"Ruta 2 (Norte)"},"70":{"nombre_mapa":"Centro Pokémon","zona":"Ruta 3"},"71":{"nombre_mapa":"Ruta 8","zona":"Ruta 8"},"72":{"nombre_mapa":"Ruta 7","zona":"Ruta 7"},"73":{"nombre_mapa":"Transición","zona":"Ruta 8"},"74":{"nombre_mapa":"Transición","zona":"Ruta 7"},"75":{"nombre_mapa":"Subterráneo","zona":"Ruta 8"},"76":{"nombre_mapa":"Ciudad Azulona","zona":"Ciudad Azulona"},"77":{"nombre_mapa":"Centro Pokémon","zona":"Ciudad Azulona"},"78":{"nombre_mapa":"Centro Comercial","zona":"Ciudad Azulona"},"79":{"nombre_mapa":"Restaurante de Ramen","zona":"Ciudad Azulona"},"8":{"nombre_mapa":"Bosque Verde","zona":"Bosque Verde"},"80":{"nombre_mapa":"Edificio Azulona","zona":"Ciudad Azulona"},"81":{"nombre_mapa":"Gimnasio Pokémon","zona":"Ciudad Azulona"},"86":{"nombre_mapa":"Ruta 12","zona":"Ruta 12"},"87":{"nombre_mapa":"Ruta 11","zona":"Ruta 11"},"88":{"nombre_mapa":"Transición","zona":"Ruta 11"},"89":{"nombre_mapa":"Casa","zona":"Ruta 12"},"9":{"nombre_mapa":"Ciudad Plateada","zona":"Ciudad Plateada"},"90":{"nombre_mapa":"Casa","zona":"Ruta 11"},"91":{"nombre_mapa":"Pueblo Marengo","zona":"Pueblo Marengo"},"92":{"nombre_mapa":"Ruta 13","zona":"Ruta 13"},"93":{"nombre_mapa":"Ruta 14","zona":"Ruta 14"},"94":{"nombre_mapa":"Ciudad Fucsia","zona":"Ciudad Fucsia"},"95":{"nombre_mapa":"Ruta 16","zona":"Ruta 16"},"96":{"nombre_mapa":"Transición","zona":"Ruta 16"},"97":{"nombre_mapa":"Ruta 17","zona":"Ruta 17"},"98":{"nombre_mapa":"Transición","zona":"Ruta 17"},"99":{"nombre_mapa":"Ciudad Azafrán","zona":"Ciudad Azafrán"}};
 function normalizeSpeciesName(name){
   const raw = String(name || '').trim();
   const match = raw.match(/^#?(\d+)$/);
@@ -10742,7 +10729,7 @@ function parseORASSave(buffer) {
   if (buffer.byteLength !== EXPECTED_SIZE) {
     throw new Error(
       `Tamaño de archivo inesperado: ${buffer.byteLength} (se esperaban ${EXPECTED_SIZE} bytes). ` +
-      `[Importador pendiente de adaptar a Añil] Asegúrate de subir el archivo "main" sin modificar.`
+      `[Importador pendiente de adaptar a Radical Red] Asegúrate de subir el archivo "main" sin modificar.`
     );
   }
   const data = new Uint8Array(buffer);
@@ -10891,7 +10878,7 @@ function openImportSave(t){
   openModal(`
     <h3>📥 Importar desde save · ${NAMES[t]}</h3>
     <p style="font-size:13px;color:var(--silver-dim);margin-bottom:14px;line-height:1.5;">
-      Sube el archivo <strong>main</strong> de tu partida (importador pendiente de adaptar a Añil)
+      Sube el archivo <strong>main</strong> de tu partida (importador pendiente de adaptar a Radical Red)
       y se leerá tu equipo actual automáticamente.
     </p>
     <div id="save-drop-zone" style="border:2px dashed var(--border);border-radius:12px;padding:24px 14px;text-align:center;margin-bottom:14px;cursor:pointer;transition:border-color .15s,background .15s;">
@@ -11656,7 +11643,7 @@ function openPokemonDetail(ownerTrainer, pid){
   const mon = allMonsOf(ownerTrainer).find(m=>m.pid===pid);
   if(!mon) return;
   if(mon.isEgg){
-    openModal(`<div class="poke-detail"><div class="poke-detail-hero"><img loading="lazy" ${eggSpriteAttributes(mon)} src="${ANIL_EGG_ICON}" alt="Huevo"><div class="poke-detail-name">Huevo</div><div class="poke-detail-species">Huevo</div></div></div><div class="modal-actions"><button class="primary" onclick="closeModal()">Cerrar</button></div>`);
+    openModal(`<div class="poke-detail"><div class="poke-detail-hero"><img loading="lazy" ${eggSpriteAttributes(mon)} src="${GAME_EGG_ICON}" alt="Huevo"><div class="poke-detail-name">Huevo</div><div class="poke-detail-species">Huevo</div></div></div><div class="modal-actions"><button class="primary" onclick="closeModal()">Cerrar</button></div>`);
     return;
   }
   openModal(`
@@ -11704,8 +11691,8 @@ async function toggleManualFainted(trainer, pid){
   manualFainted[trainer] = map;
   closeModal();
   render();
-  const ok = await trackedStoreSet('manualFainted:'+trainer, 'anil:manualFainted:'+trainer, manualFainted[trainer]);
-  if(!ok) queueRetry('manualFainted:'+trainer, ()=>trackedStoreSet('manualFainted:'+trainer, 'anil:manualFainted:'+trainer, manualFainted[trainer]));
+  const ok = await trackedStoreSet('manualFainted:'+trainer, 'locke:manualFainted:'+trainer, manualFainted[trainer]);
+  if(!ok) queueRetry('manualFainted:'+trainer, ()=>trackedStoreSet('manualFainted:'+trainer, 'locke:manualFainted:'+trainer, manualFainted[trainer]));
 }
 
 const ABILITY_REVEAL_COST = 20;
@@ -11952,7 +11939,7 @@ async function deleteTradeRecord(id){
 }
 
 /* ---------------- Cuenta atrás de inicio de temporada ---------------- */
-const SEASON_COUNTDOWN_STORAGE_KEY = 'anil_season_countdown_target_v2';
+const SEASON_COUNTDOWN_STORAGE_KEY = 'locke_season_countdown_target_v2';
 const DEFAULT_SEASON_COUNTDOWN_TARGET = new Date('2026-10-06T17:54:00+02:00');
 let seasonCountdownTarget = DEFAULT_SEASON_COUNTDOWN_TARGET;
 let seasonCountdownInterval = null;
@@ -12059,6 +12046,7 @@ let dashboardPolling = false;
   if(muteBtn) muteBtn.textContent = soundMuted ? '🔇' : '🔊';
   loadNameLists();
   await FBREADY;
+  casinoPlayer = LOGIN_ME;
   await loadAll();
   render();
   showMedalPopupIfAny();
