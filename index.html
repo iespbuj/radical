@@ -18,22 +18,30 @@ label{display:grid;gap:6px;color:var(--mu);font-size:13px}
 select,input{font:inherit;color:var(--tx);background:var(--bg);border:1px solid color-mix(in srgb,var(--pr) 45%,transparent);border-radius:10px;padding:10px 12px}
 .btn,.sm{font:inherit;font-weight:600;color:var(--bg);background:var(--pr);border:0;border-radius:999px;padding:10px 18px;cursor:pointer}
 .sm{font-size:13px;padding:6px 14px;color:var(--tx);background:var(--sf);border:1px solid var(--pr)}
+.sm.on{background:var(--pr);color:var(--bg)}
+button:disabled{opacity:.45;cursor:default}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .err{color:#ff8a7a;margin:0;min-height:1.4em}
-.bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid color-mix(in srgb,var(--pr) 30%,transparent)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid color-mix(in srgb,var(--pr) 30%,transparent)}
 .bar b{font:700 20px 'Pixelify Sans',sans-serif;color:var(--ac)}
-.bar span{display:flex;align-items:center;gap:10px}
+.bar span,nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #dot{width:10px;height:10px;border-radius:50%;background:#888}#dot.on{background:#5fd07a}
 .prof{position:relative;padding:0;overflow:hidden;background:var(--sf);color:var(--tx);border-color:color-mix(in srgb,var(--ac) 45%,transparent)}
-.ban{height:110px;background:var(--bg) center/cover;image-rendering:auto}
-.big .ban{height:170px}
+.ban{height:110px;background:var(--bg) center/cover}.big .ban{height:170px}
 .ch{position:absolute;left:16px;top:44px;width:96px;height:96px;object-fit:contain;image-rendering:pixelated}
 .big .ch{top:70px;width:128px;height:128px}
 .prof h3{margin:16px 16px 0 130px;font-size:22px;color:var(--ac)}.big h3{margin-left:160px}
 .prof p{margin:2px 16px 0 130px}.big p{margin-left:160px}
-.ttl{color:var(--tx)}.ttl span{color:var(--ac)}
-.st{padding-bottom:16px;color:var(--tx)}.st b{color:var(--ac)}
+.ttl span{color:var(--ac)}.st{padding-bottom:16px}.st b{color:var(--ac)}
 .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.daily{margin:0 0 14px;display:flex;align-items:center;gap:12px}
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:14px}
+.it{background:var(--sf);border:1px solid color-mix(in srgb,var(--pr) 35%,transparent);border-radius:14px;padding:10px;display:grid;gap:8px;align-content:start;text-align:center}
+.it.own{border-color:var(--ac)}.it .vis{width:100%;aspect-ratio:1;object-fit:contain;image-rendering:pixelated;border-radius:8px}
+.it .vis.w{aspect-ratio:16/9;object-fit:cover;image-rendering:auto}
+.it .nm{font-size:13px}.it .nm small{display:block;color:var(--mu)}
+.sw{display:flex;justify-content:center;gap:4px;padding:10px 0}.sw i{width:22px;height:22px;border-radius:50%;border:1px solid #fff4}
+.tt{font:700 15px 'Pixelify Sans',sans-serif;color:var(--ac);padding:12px 0}
 [hidden]{display:none!important}
 </style></head><body>
 <main id="login"><form id="f" class="card narrow">
@@ -43,13 +51,17 @@ select,input{font:inherit;color:var(--tx);background:var(--bg);border:1px solid 
 <button class="btn">Entrar</button><p id="err" class="err" role="alert"></p>
 </form></main>
 <div id="app" hidden>
-<header class="bar"><b>Locke Navideño</b><span><i id="dot" title="Conexión"></i><span id="who"></span><button id="out" class="sm" type="button">Salir</button></span></header>
-<main class="wrap"><p id="msg" class="err" role="alert"></p><section id="me"></section><h2>Los tres perfiles</h2><section id="all" class="row"></section></main>
-</div>
+<header class="bar"><b>Locke Navideño</b>
+<nav><button class="sm on" id="v-perfil" type="button">Perfil</button><button class="sm" id="v-tienda" type="button">Tienda</button></nav>
+<span><b id="tk"></b><i id="dot" title="Conexión"></i><span id="who"></span><button id="out" class="sm" type="button">Salir</button></span></header>
+<main class="wrap"><p id="msg" class="err" role="alert"></p>
+<section id="perfil"><div id="daily" class="card daily" hidden></div><section id="me"></section><h2>Los tres perfiles</h2><section id="all" class="row"></section></section>
+<section id="tienda" hidden><h2 style="margin-top:8px">Tienda</h2><nav id="tabs"></nav><div id="grid" class="shop"></div></section>
+</main></div>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import {getDatabase,ref,onValue,get} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+import {getDatabase,ref,onValue,get,set,runTransaction} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 const app=initializeApp({
   apiKey:"AIzaSyA7HY0r6mmwWUTBgDG8M0quYH6j6roJct8",
   authDomain:"locke-navideno.firebaseapp.com",
@@ -59,40 +71,77 @@ const app=initializeApp({
 });
 const auth=getAuth(app),db=getDatabase(app),$=s=>document.querySelector(s);
 const NAMES={iker:'Iker',joel:'Joel',alex:'Alex'};
+const TABS={skins:['Skins','characters','character'],fondos:['Fondos','backgrounds','background'],titulos:['Títulos','titles','title'],paletas:['Paletas','palettes','palette']};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let cfg=null,unsubs=[];
-$('#f').onsubmit=async e=>{
-  e.preventDefault();$('#err').textContent='';
+const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid'}).format(new Date());
+const msg=t=>{$('#msg').textContent=t||''};
+let cfg={},me=null,ps={},inv={},view='perfil',tab='skins',busy=false,unsubs=[];
+$('#f').onsubmit=async e=>{e.preventDefault();$('#err').textContent='';
   try{await signInWithEmailAndPassword(auth,$('#u').value+'@locke.local',$('#p').value)}
-  catch{$('#err').textContent='Usuario o contraseña incorrectos.'}
-};
+  catch{$('#err').textContent='Usuario o contraseña incorrectos.'}};
 $('#out').onclick=()=>signOut(auth);
-const fail=()=>{$('#msg').textContent='No se pudieron leer los datos. Revisa las reglas de la base de datos.'};
-function vars(a){
-  const c=cfg&&cfg.palettes&&cfg.palettes[a.palette];
-  return c?`--bg:${esc(c.colors.fondo)};--sf:${esc(c.colors.superficie)};--pr:${esc(c.colors.primario)};--ac:${esc(c.colors.acento)};--tx:${esc(c.colors.texto)}`:'';
-}
+const fail=()=>msg('No se pudieron leer los datos. Revisa las reglas de la base de datos.');
+function vars(a){const c=cfg.palettes&&cfg.palettes[a.palette];
+  return c?`--bg:${esc(c.colors.fondo)};--sf:${esc(c.colors.superficie)};--pr:${esc(c.colors.primario)};--ac:${esc(c.colors.acento)};--tx:${esc(c.colors.texto)}`:''}
 function card(id,p,big){
   const a=p.avatar||{},t=(cfg.titles&&cfg.titles[a.title])||{name:'',stars:0};
   return `<article class="card prof${big?' big':''}" style="${vars(a)}">
 <div class="ban" style="background-image:url(fondos/fondo_${esc(a.background)}.png)"></div>
 <img class="ch" src="personajes/personaje_${esc(a.character)}.png" alt="" onerror="this.hidden=true">
 <h3>${esc(NAMES[id]||id)}</h3><p class="ttl"><span>${'★'.repeat(t.stars)}</span> ${esc(t.name)}</p>
-<p class="st"><b>${+p.tickets||0}</b> tickets · <b>${+p.lives||0}</b>/20 vidas</p></article>`;
-}
-function render(me,ps){
-  $('#msg').textContent='';
-  if(ps[me])$('#me').innerHTML=card(me,ps[me],true);
+<p class="st"><b>${+p.tickets||0}</b> tickets · <b>${+p.lives||0}</b>/20 vidas</p></article>`}
+function renderProfile(){
+  const mine=ps[me];if(!mine)return;
+  $('#me').innerHTML=card(me,mine,true);
   $('#all').innerHTML=Object.keys(ps).sort().map(k=>card(k,ps[k],false)).join('');
+  const d=$('#daily'),can=mine.lastDaily!==today();
+  d.hidden=!can;
+  if(can)d.innerHTML=`<span>Tienes el bonus de hoy: +${+cfg.dailyBonus||10} tickets.</span><button class="btn" id="claim" type="button">Cobrar</button>`;
 }
+function renderShop(){
+  const [,kind,field]=TABS[tab],own=inv[kind]||{},cur=String((ps[me]&&ps[me].avatar||{})[field]),P=cfg.prices||{},tk=+(ps[me]&&ps[me].tickets)||0;
+  $('#tabs').innerHTML=Object.keys(TABS).map(k=>`<button class="sm${k===tab?' on':''}" data-tab="${k}" type="button">${TABS[k][0]}</button>`).join('');
+  let items=[];
+  if(kind==='characters')items=Array.from({length:cfg.counts?.characters||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.characters,nm:'Personaje '+n,vis:own[n]?`personajes/personaje_${n}.png`:`personajes_siluetas/personaje_${n}_silueta.png`}});
+  if(kind==='backgrounds')items=Array.from({length:cfg.counts?.backgrounds||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.backgrounds,nm:'Fondo '+n,w:1,vis:own[n]?`fondos/fondo_${n}.png`:`fondos_siluetas/fondo_${n}_silueta.png`}});
+  if(kind==='palettes')items=Object.keys(cfg.palettes||{}).sort((a,b)=>a-b).map(id=>{const p=cfg.palettes[id];return{id,price:P.palettes,nm:`${esc(p.name)}<small>${esc(p.rarity)}</small>`,sw:p.colors}});
+  if(kind==='titles')items=Object.keys(cfg.titles||{}).sort((a,b)=>cfg.titles[a].stars-cfg.titles[b].stars).map(id=>{const t=cfg.titles[id];return{id,price:(P.titleByStars||{})[t.stars],nm:`${'★'.repeat(t.stars)}<small>${esc(t.name)}</small>`,tt:esc(t.name)}});
+  $('#grid').innerHTML=items.map(it=>{
+    const has=!!own[it.id],now=cur===it.id;
+    const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" alt="">`;
+    const btn=has?`<button class="sm" data-eq="${it.id}" ${now?'disabled':''} type="button">${now?'Puesto':'Ponerme'}</button>`:`<button class="btn" data-buy="${it.id}" data-price="${it.price}" ${tk<it.price?'disabled':''} type="button">Comprar ${it.price}</button>`;
+    return `<div class="it${has?' own':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div>${btn}</div>`}).join('');
+}
+function render(){
+  $('#tk').textContent=((+(ps[me]&&ps[me].tickets)||0))+' tickets';
+  renderProfile();if(view==='tienda')renderShop();
+}
+function show(v){view=v;$('#perfil').hidden=v!=='perfil';$('#tienda').hidden=v!=='tienda';
+  $('#v-perfil').classList.toggle('on',v==='perfil');$('#v-tienda').classList.toggle('on',v==='tienda');render()}
+$('#v-perfil').onclick=()=>show('perfil');$('#v-tienda').onclick=()=>show('tienda');
+async function act(fn){if(busy)return;busy=true;msg('');try{await fn()}catch{msg('Error de conexión. Inténtalo otra vez.')}finally{busy=false}}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.id==='claim')act(()=>runTransaction(ref(db,'profiles/'+me),c=>{
+    if(!c||c.lastDaily===today())return;
+    c.tickets=(+c.tickets||0)+(+cfg.dailyBonus||10);c.lastDaily=today();return c}));
+  if(b.dataset.tab){tab=b.dataset.tab;renderShop()}
+  if(b.dataset.eq)act(()=>set(ref(db,`profiles/${me}/avatar/${TABS[tab][2]}`),b.dataset.eq));
+  if(b.dataset.buy)act(async()=>{
+    const id=b.dataset.buy,price=+b.dataset.price,kind=TABS[tab][1],tkRef=ref(db,`profiles/${me}/tickets`);
+    const r=await runTransaction(tkRef,c=>(+c||0)>=price?(+c||0)-price:undefined);
+    if(!r.committed){msg('No tienes tickets suficientes.');return}
+    try{await set(ref(db,`inventory/${me}/${kind}/${id}`),true)}
+    catch{await runTransaction(tkRef,c=>(+c||0)+price);msg('No se pudo completar la compra. Te hemos devuelto los tickets.')}});
+});
 onAuthStateChanged(auth,async user=>{
   unsubs.forEach(f=>f());unsubs=[];
   $('#login').hidden=!!user;$('#app').hidden=!user;
   if(!user)return;
-  const me=user.email.split('@')[0];
-  $('#who').textContent=NAMES[me]||me;
+  me=user.email.split('@')[0];$('#who').textContent=NAMES[me]||me;
   try{cfg=(await get(ref(db,'config'))).val()||{}}catch{cfg={};fail()}
   unsubs.push(onValue(ref(db,'.info/connected'),s=>{$('#dot').className=s.val()?'on':''}));
-  unsubs.push(onValue(ref(db,'profiles'),s=>render(me,s.val()||{}),fail));
+  unsubs.push(onValue(ref(db,'inventory/'+me),s=>{inv=s.val()||{};render()},fail));
+  unsubs.push(onValue(ref(db,'profiles'),s=>{ps=s.val()||{};msg('');render()},fail));
 });
 </script></body></html>
