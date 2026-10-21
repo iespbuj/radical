@@ -75,8 +75,8 @@ function vars(a){
 function card(id,p,big){
   const a=p.avatar||{},t=(cfg.titles&&cfg.titles[a.title])||{name:'',stars:0};
   return `<article class="card prof${big?' big':''}" style="${vars(a)}">
-<div class="ban" style="background-image:url(recompensas/fondos/fondo_${esc(a.background)}.png)"></div>
-<img class="ch" src="recompensas/personajes/personaje_${esc(a.character)}.png" alt="" onerror="this.hidden=true">
+<div class="ban" style="background-image:url(fondos/fondo_${esc(a.background)}.png)"></div>
+<img class="ch" src="personajes/personaje_${esc(a.character)}.png" alt="" onerror="this.hidden=true">
 <h3>${esc(NAMES[id]||id)}</h3><p class="ttl"><span>${'★'.repeat(t.stars)}</span> ${esc(t.name)}</p>
 <p class="st"><b>${+p.tickets||0}</b> tickets · <b>${+p.lives||0}</b>/20 vidas</p></article>`;
 }
