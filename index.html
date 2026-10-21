@@ -42,13 +42,23 @@ button:disabled{opacity:.45;cursor:default}
 .it .nm{font-size:13px}.it .nm small{display:block;color:var(--mu)}
 .sw{display:flex;justify-content:center;gap:4px;padding:10px 0}.sw i{width:22px;height:22px;border-radius:50%;border:1px solid #fff4}
 .tt{font:700 15px 'Pixelify Sans',sans-serif;color:var(--ac);padding:12px 0}
+.arena{margin:0 0 6px}.arena h2{margin:8px 0 2px}.ar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.at{position:relative;text-align:center;padding:20px 8px 14px;border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--sf) 82%,var(--ac)),var(--sf));border:1px solid color-mix(in srgb,var(--pr) 40%,transparent)}
+.at.lead{border-color:var(--ac);box-shadow:0 0 28px color-mix(in srgb,var(--ac) 35%,transparent)}.at.lead::before{content:"👑";position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:20px}
+.at .an{display:block;font:700 clamp(34px,8vw,54px)/1 'Pixelify Sans',sans-serif;color:var(--ac)}
+.at .as{min-height:1.6em;margin:8px 0 6px;color:var(--ac);font-size:clamp(13px,3vw,18px);letter-spacing:1px;word-break:break-all}
+.at .nm{font:600 14px Poppins,sans-serif}.at .nm small{margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--pr);color:var(--bg);font-size:11px}
 .vp{position:relative;overflow:hidden;border-radius:22px;border:1px solid #f2c14e44;background:radial-gradient(120% 80% at 50% 0,#24382f,#0e1813 72%);box-shadow:0 24px 70px #0009}
 .vp::before{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(circle,#0000 35%,#000b);opacity:0;transition:opacity 1s}.vp.zoomed::before{opacity:1}
 .snow{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}.snow i{position:absolute;top:-10px;border-radius:50%;background:#fff;animation:fall linear infinite}
 .stage{transform-origin:0 0;transition:transform 1.15s cubic-bezier(.65,0,.25,1);padding:20px 12px 28px}
-.house{max-width:760px;margin:0 auto}.roofw{position:relative;z-index:1;margin-bottom:-6px}.roof{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 8px #0009)}
-.lights{position:absolute;left:3%;right:3%;bottom:2px;display:flex;justify-content:space-between;pointer-events:none}
-.lights i{width:9px;height:9px;border-radius:50%;background:var(--b);box-shadow:0 0 9px 3px var(--b);animation:tw 1.8s ease-in-out infinite}
+.house{max-width:760px;margin:0 auto}.roofw{position:relative;margin:40px 0 -6px}.roof{position:relative;display:block;width:100%;height:auto;filter:drop-shadow(0 8px 8px #0009)}
+.bl{animation:tw 1.8s ease-in-out infinite;filter:drop-shadow(0 0 3px currentColor)}
+.chim{position:absolute;left:15%;top:-32px;width:8%;min-width:28px;height:95px}
+.chim::before{content:"";position:absolute;inset:0;border:2px solid #4a1d14;border-bottom:0;background:repeating-linear-gradient(0deg,#8a3a2c 0 9px,#6e2c20 9px 10px)}
+.chim::after{content:"";position:absolute;left:-4px;right:-4px;top:-7px;height:10px;border-radius:6px;background:#f8fbff}
+.chim i{position:absolute;left:50%;bottom:100%;width:14px;height:14px;margin:0 0 6px -7px;border-radius:50%;background:#e9eef5;opacity:0;animation:smoke 4.5s ease-out infinite}.chim i:nth-child(2){animation-delay:1.5s}.chim i:nth-child(3){animation-delay:3s}
+@keyframes smoke{0%{opacity:.7;transform:scale(.5)}100%{opacity:0;transform:translate(20px,-64px) scale(1.8)}}
 .wall{position:relative;padding:34px 14px 26px;border-radius:0 0 16px 16px;border:4px solid #7a4a25;border-top:0;background:repeating-linear-gradient(90deg,#b98550 0 46px,#a97644 46px 48px);box-shadow:inset 0 0 50px #0007,0 14px 0 -4px #f5f9ff}
 .plaque{position:relative;margin:-14px auto 22px;width:min(80%,430px);padding:12px 10px;text-align:center;border-radius:10px;border:3px solid #7a4a25;background:repeating-linear-gradient(90deg,#dcb581 0 38px,#d1a66f 38px 40px);box-shadow:0 8px 14px #0007,inset 0 2px #fff7;font:700 clamp(18px,5vw,30px)/1 'Pixelify Sans',sans-serif;color:#5b1f1f;text-shadow:0 1px #ffe9c4}
 .plaque::before,.plaque::after{content:"";position:absolute;top:-18px;width:3px;height:18px;background:#555}.plaque::before{left:16%}.plaque::after{right:16%}
@@ -89,7 +99,7 @@ button:disabled{opacity:.45;cursor:default}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes tw{50%{opacity:.3}}
 @keyframes fall{to{transform:translate(var(--dx),1400px)}}
-@media(prefers-reduced-motion:reduce){.snow{display:none}.rays,.cd::before,.lights i,.today{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.snow{display:none}.rays,.cd::before,.bl,.chim i,.today{animation:none!important}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 [hidden]{display:none!important}
 </style></head><body>
@@ -106,7 +116,11 @@ button:disabled{opacity:.45;cursor:default}
 <main class="wrap"><p id="msg" class="err" role="alert"></p>
 <section id="cal"><p class="mu" id="caldia" style="margin:8px 0 12px"></p>
 <div class="vp" id="cvp"><div class="snow" id="snow"></div><div class="stage" id="cs"><div class="house">
-<div class="roofw"><svg class="roof" viewBox="0 0 600 170" aria-hidden="true"><defs><pattern id="sil" width="100" height="62" patternUnits="userSpaceOnUse" x="10" y="78"><path d="M18 56 28 38h-5l8-14h-5l9-16 9 16h-5l8 14h-5l10 18z" fill="#f6efe0"/><path d="M62 56V38l14-12 14 12v18zM84 28v-8h5v13z" fill="#f6efe0"/></pattern><linearGradient id="wd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b4226"/><stop offset="1" stop-color="#43271a"/></linearGradient></defs><polygon points="0,170 56,26 544,26 600,170" fill="url(#wd)"/><polygon points="0,170 56,26 544,26 600,170" fill="url(#sil)"/><path d="M50 28H550" stroke="#f8fbff" stroke-width="24" stroke-linecap="round" stroke-dasharray="28 6"/></svg><div class="lights" id="lights"></div></div>
+<div class="roofw"><div class="chim"><i></i><i></i><i></i></div><svg class="roof" viewBox="0 0 600 215" aria-hidden="true"><defs><clipPath id="rc"><polygon points="0,190 70,36 530,36 600,190"/></clipPath><linearGradient id="wd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a4a2a"/><stop offset="1" stop-color="#43271a"/></linearGradient><pattern id="sh" width="44" height="18" patternUnits="userSpaceOnUse"><path d="M0 17H44M22 0V17" stroke="#0004" stroke-width="2" fill="none"/></pattern><path id="fir" d="M0-50 9-32H4L13-16H6L16 0H-16L-6-16h-7L-4-32h-5z" fill="#f6efe0"/><g id="hs"><path d="M-16 0V-16L0-30 16-16V0zM8-26v-10h6v16z" fill="#f6efe0"/><rect x="-9" y="-12" width="6" height="7" fill="#5a3520"/><rect x="3" y="-12" width="6" height="7" fill="#5a3520"/></g></defs>
+<polygon points="0,190 70,36 530,36 600,190" fill="url(#wd)"/><polygon points="0,190 70,36 530,36 600,190" fill="url(#sh)"/>
+<g clip-path="url(#rc)"><path d="M10 152H590" stroke="#f8fbff" stroke-width="10" stroke-linecap="round" stroke-dasharray="26 5"/><use href="#fir" transform="translate(38 152) scale(1.25)"/><use href="#hs" transform="translate(82 152) scale(1)"/><use href="#fir" transform="translate(125 152) scale(0.8)"/><use href="#fir" transform="translate(169 152) scale(1.1)"/><use href="#hs" transform="translate(213 152) scale(1.1)"/><use href="#fir" transform="translate(256 152) scale(0.9)"/><use href="#hs" transform="translate(300 152) scale(1)"/><use href="#fir" transform="translate(344 152) scale(1.3)"/><use href="#fir" transform="translate(387 152) scale(0.85)"/><use href="#hs" transform="translate(431 152) scale(1.05)"/><use href="#fir" transform="translate(475 152) scale(0.95)"/><use href="#hs" transform="translate(518 152) scale(1.2)"/><use href="#fir" transform="translate(562 152) scale(0.9)"/></g>
+<path d="M12 182 76 44H524L588 182" fill="none" stroke="#f8fbff" stroke-width="14" stroke-linejoin="round" stroke-dasharray="20 5" opacity=".95"/>
+<rect y="184" width="600" height="8" fill="#2f1a0e"/><path d="M24 190Q112 214 200 190M200 190Q300 214 400 190M400 190Q488 214 576 190" fill="none" stroke="#222" stroke-width="1.5"/><circle class="bl" cx="24" cy="193" r="4.5" style="color:#ff5a5f;fill:currentColor;animation-delay:0.0s"/><circle class="bl" cx="45" cy="198" r="4.5" style="color:#ffd86b;fill:currentColor;animation-delay:0.45s"/><circle class="bl" cx="77" cy="203" r="4.5" style="color:#6fe39a;fill:currentColor;animation-delay:0.9s"/><circle class="bl" cx="112" cy="205" r="4.5" style="color:#74c0ff;fill:currentColor;animation-delay:1.35s"/><circle class="bl" cx="147" cy="203" r="4.5" style="color:#ff5a5f;fill:currentColor;animation-delay:0.0s"/><circle class="bl" cx="179" cy="198" r="4.5" style="color:#ffd86b;fill:currentColor;animation-delay:0.45s"/><circle class="bl" cx="200" cy="193" r="4.5" style="color:#6fe39a;fill:currentColor;animation-delay:0.9s"/><circle class="bl" cx="224" cy="198" r="4.5" style="color:#74c0ff;fill:currentColor;animation-delay:1.35s"/><circle class="bl" cx="260" cy="203" r="4.5" style="color:#ff5a5f;fill:currentColor;animation-delay:0.0s"/><circle class="bl" cx="300" cy="205" r="4.5" style="color:#ffd86b;fill:currentColor;animation-delay:0.45s"/><circle class="bl" cx="340" cy="203" r="4.5" style="color:#6fe39a;fill:currentColor;animation-delay:0.9s"/><circle class="bl" cx="376" cy="198" r="4.5" style="color:#74c0ff;fill:currentColor;animation-delay:1.35s"/><circle class="bl" cx="400" cy="193" r="4.5" style="color:#ff5a5f;fill:currentColor;animation-delay:0.0s"/><circle class="bl" cx="421" cy="198" r="4.5" style="color:#ffd86b;fill:currentColor;animation-delay:0.45s"/><circle class="bl" cx="453" cy="203" r="4.5" style="color:#6fe39a;fill:currentColor;animation-delay:0.9s"/><circle class="bl" cx="488" cy="205" r="4.5" style="color:#74c0ff;fill:currentColor;animation-delay:1.35s"/><circle class="bl" cx="523" cy="203" r="4.5" style="color:#ff5a5f;fill:currentColor;animation-delay:0.0s"/><circle class="bl" cx="555" cy="198" r="4.5" style="color:#ffd86b;fill:currentColor;animation-delay:0.45s"/></svg></div>
 <div class="wall"><div class="plaque">Calendario de Kanto<small>30 puertas · una por día</small></div><div class="cg" id="cg"></div></div>
 </div></div><div class="rv" id="rv"></div></div><div id="stored"></div></section>
 <section id="perfil" hidden><div id="daily" class="card daily" hidden></div><section id="me"></section><h2>Los tres perfiles</h2><section id="all" class="row"></section></section>
@@ -144,9 +158,12 @@ function card(id,p,big){
 <img class="ch" src="personajes/personaje_${esc(a.character)}.png" alt="" onerror="this.hidden=true">
 <h3>${esc(NAMES[id]||id)}</h3><p class="ttl"><span>${'★'.repeat(t.stars)}</span> ${esc(t.name)}</p>
 <p class="st"><b>${+p.tickets||0}</b> tickets · <b>${+p.lives||0}</b>/20 vidas</p></article>`}
+function arena(){const ids=Object.keys(ps).sort(),st=k=>Math.max(0,+(ps[k]&&ps[k].stars)||0),mx=Math.max(0,...ids.map(st));
+  return `<div class="arena"><h2>Marcador de la arena</h2><p class="mu">Estrellas de combate</p><div class="ar">${ids.sort((a,b)=>st(b)-st(a)||a.localeCompare(b)).map(k=>{const n=st(k);
+  return `<div class="at${mx>0&&n===mx?' lead':''}"><b class="an">${n}</b><div class="as" role="img" aria-label="${n} estrellas">${n?'★'.repeat(Math.min(12,n))+(n>12?'+':''):'☆'}</div><div class="nm">${esc(NAMES[k]||k)}${k===me?'<small>Tú</small>':''}</div></div>`}).join('')}</div></div>`}
 function renderProfile(){
   const mine=ps[me];if(!mine)return;
-  $('#me').innerHTML=card(me,mine,true);
+  $('#me').innerHTML=arena();
   $('#all').innerHTML=Object.keys(ps).sort().map(k=>card(k,ps[k],false)).join('');
   const d=$('#daily'),can=mine.lastDaily!==today();
   d.hidden=!can;
@@ -195,8 +212,7 @@ const mini=p=>p.type==='tickets'?'+'+p.amount:p.type==='title'?'TÍT':p.type==='
 const pname=p=>p.type==='slots'?p.spins+' tiradas gratis':SP[p.type][1];
 let off=0,opened={},claims={},pz={},cbusy=false;const granting=new Set(),doors={};
 {const g=$('#cg');for(let d=1;d<=30;d++){const b=document.createElement('button');b.type='button';b.innerHTML=`<i class="rays"></i><span class="in"><span class="mn"></span></span><span class="lid"><b>${d}</b></span>`;b.onclick=()=>openDoor(d);g.appendChild(b);doors[d]=b}}
-{const L=$('#lights'),S=$('#snow'),C=['#ff5a5f','#ffd86b','#6fe39a','#74c0ff'];
-for(let i=0;i<16;i++){const b=document.createElement('i');b.style.cssText=`--b:${C[i%4]};animation-delay:${(i%4)*.45}s`;L.appendChild(b)}
+{const S=$('#snow');
 for(let i=0;i<46;i++){const f=document.createElement('i'),z=2+Math.random()*3.5;f.style.cssText=`left:${Math.random()*100}%;width:${z}px;height:${z}px;--dx:${Math.random()*80-40}px;animation-duration:${9+Math.random()*10}s;animation-delay:-${Math.random()*18}s;opacity:${.35+Math.random()*.5}`;S.appendChild(f)}}
 function dayNum(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid'}).format(new Date(Date.now()+off)).split('-').map(Number);
   return p[0]<2026||(p[0]===2026&&p[1]<12)?0:(p[0]===2026&&p[1]===12?Math.min(p[2],30):30)}
