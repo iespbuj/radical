@@ -1,0 +1,282 @@
+[
+  {
+    "id": 1,
+    "archivo": "paleta_1.png",
+    "nombre": "Medianoche",
+    "rareza": "Básica",
+    "nivel_rareza": 1,
+    "colores": {
+      "fondo": "#12151c",
+      "superficie": "#1c212b",
+      "primario": "#4f8cff",
+      "acento": "#8fb4ff",
+      "texto": "#e8ecf4"
+    }
+  },
+  {
+    "id": 2,
+    "archivo": "paleta_2.png",
+    "nombre": "Grafito",
+    "rareza": "Básica",
+    "nivel_rareza": 1,
+    "colores": {
+      "fondo": "#16171a",
+      "superficie": "#212328",
+      "primario": "#9aa3b2",
+      "acento": "#d0d5dd",
+      "texto": "#f2f4f7"
+    }
+  },
+  {
+    "id": 3,
+    "archivo": "paleta_3.png",
+    "nombre": "Océano",
+    "rareza": "Básica",
+    "nivel_rareza": 1,
+    "colores": {
+      "fondo": "#0e1a24",
+      "superficie": "#16293a",
+      "primario": "#2f9bd6",
+      "acento": "#6fd0e8",
+      "texto": "#e6f4fa"
+    }
+  },
+  {
+    "id": 4,
+    "archivo": "paleta_4.png",
+    "nombre": "Bosque",
+    "rareza": "Básica",
+    "nivel_rareza": 1,
+    "colores": {
+      "fondo": "#111a14",
+      "superficie": "#1b2a20",
+      "primario": "#3fae6a",
+      "acento": "#8ad99a",
+      "texto": "#e8f5ec"
+    }
+  },
+  {
+    "id": 5,
+    "archivo": "paleta_5.png",
+    "nombre": "Brasa suave",
+    "rareza": "Básica",
+    "nivel_rareza": 1,
+    "colores": {
+      "fondo": "#1a1614",
+      "superficie": "#2a2320",
+      "primario": "#d9893b",
+      "acento": "#f0b56e",
+      "texto": "#f7efe6"
+    }
+  },
+  {
+    "id": 6,
+    "archivo": "paleta_6.png",
+    "nombre": "Cereza",
+    "rareza": "Normal",
+    "nivel_rareza": 2,
+    "colores": {
+      "fondo": "#1c1114",
+      "superficie": "#2c1a1f",
+      "primario": "#e04d62",
+      "acento": "#ff9aa8",
+      "texto": "#fbeaed"
+    }
+  },
+  {
+    "id": 7,
+    "archivo": "paleta_7.png",
+    "nombre": "Amatista",
+    "rareza": "Normal",
+    "nivel_rareza": 2,
+    "colores": {
+      "fondo": "#17121f",
+      "superficie": "#241b31",
+      "primario": "#8a63e0",
+      "acento": "#bfa3ff",
+      "texto": "#efe9fb"
+    }
+  },
+  {
+    "id": 8,
+    "archivo": "paleta_8.png",
+    "nombre": "Lima",
+    "rareza": "Normal",
+    "nivel_rareza": 2,
+    "colores": {
+      "fondo": "#14170e",
+      "superficie": "#212713",
+      "primario": "#a4d233",
+      "acento": "#d6f27a",
+      "texto": "#f4f9e3"
+    }
+  },
+  {
+    "id": 9,
+    "archivo": "paleta_9.png",
+    "nombre": "Atardecer",
+    "rareza": "Normal",
+    "nivel_rareza": 2,
+    "colores": {
+      "fondo": "#1d1313",
+      "superficie": "#2e1d1a",
+      "primario": "#f0733a",
+      "acento": "#ffc46b",
+      "texto": "#fdf0e3"
+    }
+  },
+  {
+    "id": 10,
+    "archivo": "paleta_10.png",
+    "nombre": "Nieve",
+    "rareza": "Rara",
+    "nivel_rareza": 3,
+    "colores": {
+      "fondo": "#eef3f9",
+      "superficie": "#ffffff",
+      "primario": "#3b82f6",
+      "acento": "#7db3ff",
+      "texto": "#17212e"
+    }
+  },
+  {
+    "id": 11,
+    "archivo": "paleta_11.png",
+    "nombre": "Menta",
+    "rareza": "Rara",
+    "nivel_rareza": 3,
+    "colores": {
+      "fondo": "#0d1b1a",
+      "superficie": "#14302d",
+      "primario": "#2ed3b7",
+      "acento": "#8cf0dc",
+      "texto": "#e4fbf6"
+    }
+  },
+  {
+    "id": 12,
+    "archivo": "paleta_12.png",
+    "nombre": "Sakura",
+    "rareza": "Rara",
+    "nivel_rareza": 3,
+    "colores": {
+      "fondo": "#fdf0f4",
+      "superficie": "#ffffff",
+      "primario": "#e8588a",
+      "acento": "#ffa3c2",
+      "texto": "#3a1d29"
+    }
+  },
+  {
+    "id": 13,
+    "archivo": "paleta_13.png",
+    "nombre": "Neón",
+    "rareza": "Rara",
+    "nivel_rareza": 3,
+    "colores": {
+      "fondo": "#0a0b14",
+      "superficie": "#14152a",
+      "primario": "#00f0ff",
+      "acento": "#ff2fb9",
+      "texto": "#f0f2ff"
+    }
+  },
+  {
+    "id": 14,
+    "archivo": "paleta_14.png",
+    "nombre": "Lava",
+    "rareza": "Épica",
+    "nivel_rareza": 4,
+    "colores": {
+      "fondo": "#140a08",
+      "superficie": "#281410",
+      "primario": "#ff5a1f",
+      "acento": "#ffb02e",
+      "texto": "#fff1e0"
+    }
+  },
+  {
+    "id": 15,
+    "archivo": "paleta_15.png",
+    "nombre": "Aurora",
+    "rareza": "Épica",
+    "nivel_rareza": 4,
+    "colores": {
+      "fondo": "#0b1020",
+      "superficie": "#14203a",
+      "primario": "#35e0a1",
+      "acento": "#7a6cff",
+      "texto": "#eaf3ff"
+    }
+  },
+  {
+    "id": 16,
+    "archivo": "paleta_16.png",
+    "nombre": "Realeza",
+    "rareza": "Épica",
+    "nivel_rareza": 4,
+    "colores": {
+      "fondo": "#170d17",
+      "superficie": "#2a1530",
+      "primario": "#d4a53a",
+      "acento": "#8f3fb5",
+      "texto": "#faf0d8"
+    }
+  },
+  {
+    "id": 17,
+    "archivo": "paleta_17.png",
+    "nombre": "Galaxia",
+    "rareza": "Épica",
+    "nivel_rareza": 4,
+    "colores": {
+      "fondo": "#0a0716",
+      "superficie": "#170f33",
+      "primario": "#8f5bff",
+      "acento": "#ff6bd5",
+      "texto": "#f1ebff"
+    }
+  },
+  {
+    "id": 18,
+    "archivo": "paleta_18.png",
+    "nombre": "Oro puro",
+    "rareza": "Legendaria",
+    "nivel_rareza": 5,
+    "colores": {
+      "fondo": "#120e04",
+      "superficie": "#231b08",
+      "primario": "#ffd23f",
+      "acento": "#ff9f1c",
+      "texto": "#fff6d6"
+    }
+  },
+  {
+    "id": 19,
+    "archivo": "paleta_19.png",
+    "nombre": "Esmeralda real",
+    "rareza": "Legendaria",
+    "nivel_rareza": 5,
+    "colores": {
+      "fondo": "#04140f",
+      "superficie": "#0a2a20",
+      "primario": "#19e68c",
+      "acento": "#f5d76e",
+      "texto": "#e8fff4"
+    }
+  },
+  {
+    "id": 20,
+    "archivo": "paleta_20.png",
+    "nombre": "Eclipse",
+    "rareza": "Legendaria",
+    "nivel_rareza": 5,
+    "colores": {
+      "fondo": "#06060a",
+      "superficie": "#14121c",
+      "primario": "#ff4d6d",
+      "acento": "#4df0ff",
+      "texto": "#ffffff"
+    }
+  }
+]
