@@ -3066,7 +3066,7 @@ button.primary:active{ box-shadow:0 1px 0 #6d0f1c; }
 </div>
 
 <script>
-window.FBS = { legacy:{}, profiles:{} };
+window.FBS = { legacy:{}, profiles:{}, inventory:{} };
 window.LOGIN_ME = null;
 window.FBREADY = new Promise(r => { window._fbResolve = r; });
 window.FBP = (field, defv) => new Proxy({}, {
@@ -3479,17 +3479,30 @@ let trackerSnapshots = {};
 let trackerVersion = {};
 let trackerLives = {};
 let trackerBadgesAvailable = {};
-const GAME_LEVEL_CAPS = [
-  { leader:'Brock', cap:14, sprite:'https://play.pokemonshowdown.com/sprites/trainers/brock-gen3.png' },
-  { leader:'Misty', cap:23, sprite:'https://play.pokemonshowdown.com/sprites/trainers/misty-gen3.png' },
-  { leader:'Teniente Surge', cap:30, sprite:'https://play.pokemonshowdown.com/sprites/trainers/ltsurge-gen3.png' },
-  { leader:'Erika', cap:39, sprite:'https://play.pokemonshowdown.com/sprites/trainers/erika-gen3.png' },
-  { leader:'Koga y Sachiko', cap:49, sprite:'https://play.pokemonshowdown.com/sprites/trainers/koga-gen3.png' },
-  { leader:'Sabrina', cap:54, sprite:'https://play.pokemonshowdown.com/sprites/trainers/sabrina-gen3.png' },
-  { leader:'Blaine', cap:59, sprite:'https://play.pokemonshowdown.com/sprites/trainers/blaine-gen3.png' },
-  { leader:'Urano', cap:66, sprite:'URANO_SPRITE_PLACEHOLDER'}
+const GAME_LEVEL_CAPS = [ // en el orden de las medallas (Roca, Cascada, Trueno, Arcoíris, Alma, Pantano, Volcán, Tierra)
+  { leader:'Brock', cap:15, sprite:'https://play.pokemonshowdown.com/sprites/trainers/brock-gen3.png' },
+  { leader:'Misty', cap:27, sprite:'https://play.pokemonshowdown.com/sprites/trainers/misty-gen3.png' },
+  { leader:'Teniente Surge', cap:34, sprite:'https://play.pokemonshowdown.com/sprites/trainers/ltsurge-gen3.png' },
+  { leader:'Erika', cap:44, sprite:'https://play.pokemonshowdown.com/sprites/trainers/erika-gen3.png' },
+  { leader:'Koga', cap:68, sprite:'https://play.pokemonshowdown.com/sprites/trainers/koga-gen3.png' },
+  { leader:'Sabrina', cap:59, sprite:'https://play.pokemonshowdown.com/sprites/trainers/sabrina-gen3.png' },
+  { leader:'Blaine', cap:76, sprite:'https://play.pokemonshowdown.com/sprites/trainers/blaine-gen3.png' },
+  { leader:'Clair', cap:81, sprite:'https://play.pokemonshowdown.com/sprites/trainers/clair-gen4.png' }
 ];
-GAME_LEVEL_CAPS[7].sprite = 'data:image/png;base64,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';
+// Todos los hitos con tope de nivel (modo normal), en orden de aparición
+const GAME_CAP_MILESTONES = [
+  { name:'Brock', cap:15 }, { name:'Archer (Monte Moon)', cap:22 }, { name:'Misty', cap:27 }, { name:'Teniente Surge', cap:34 },
+  { name:'Erika', cap:44 }, { name:'Giovanni (Casino)', cap:47 }, { name:'Archer y Ariana (Silph Co.)', cap:56 },
+  { name:'Giovanni (Silph Co.)', cap:57 }, { name:'Sabrina', cap:59 }, { name:'Koga', cap:68 }, { name:'May', cap:73 },
+  { name:'Blaine', cap:76 }, { name:'Archer y Ariana (Cueva Celeste)', cap:79 }, { name:'Giovanni (Cueva Celeste)', cap:80 },
+  { name:'Clair', cap:81 }, { name:'Brendan', cap:82 }, { name:'Alto Mando', cap:85 }
+];
+function renderCapTable(){
+  return `<div class="normas-list">${GAME_CAP_MILESTONES.map(m=>`
+    <div class="norma-item" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <span class="n-text">${m.name}</span><b class="mono" style="color:var(--magma);white-space:nowrap;">Nv. ${m.cap}</b>
+    </div>`).join('')}</div>`;
+}
 let collections = {}; // idem: coleccion completa (equipo+cajas) por entrenador, para poder ver/ofertar cualquier Pokémon
 let graveyard = {}; // idem: cementerio (Pokémon caídos) por entrenador
 let manualFainted = {}; // override manual por si el watcher se equivoca: {trainer: [pids]}
@@ -3523,7 +3536,7 @@ const DEFAULT_NORMAS = [
   'Se tendrá que respetar el level cap.',
   'Solo se pueden usar las curas que se encuentran en el suelo. Está prohibido comprar pociones.',
   'Cada vez que se muera uno o más Pokémon se tendrá que guardar la partida.',
-  'No se pueden usar Pokémon legendarios ni singulares. Las Ultraentes sí están permitidas.',
+  'Se pueden usar Pokémon pseudolegendarios, legendarios y Ultraentes siempre que tengan 600 de BST (suma de estadísticas base) o menos.',
 ];
 let sancionState = { offender: null, prize: null };
 let sancionWheelSpinning = false;
@@ -3912,7 +3925,7 @@ let finalWheelRotationLoser = 0;
 let match1LoserWheelSpinning = false;
 let match1LoserWheelRotation = 0;
 let duelCountdownInterval = null;
-let view = 'calendar';
+let view = 'home';
 let currentTrainer = null;
 let loaded = false;
 let loadWarning = null;
@@ -3935,6 +3948,7 @@ const FINAL_CATEGORY_POOL = [
   { id:'tickets',   label:'El más rico en fichas',     icon:'🎟️', compute:(t)=> tickets[t]||0, unit:'tickets' },
   { id:'dex',       label:'El enciclopedista',         icon:'📖', compute:(t)=> new Set(allMonsOf(t).filter(m=>!m.isEgg).map(m=>(m.speciesName||'').toLowerCase())).size, unit:'especies distintas' },
   { id:'strongest', label:'El equipo más potente',     icon:'💪', compute:(t)=> Math.max(0, ...allMonsOf(t).filter(m=>m.inTeam && m.level!=null).map(m=>m.level), 0), unit:'nivel máximo' },
+  { id:'cosmetics', label:'El más cosmético',          icon:'🛍️', compute:(t)=> cosmeticsCountOf(t), unit:'cosméticos' },
 ];
 let lastLoadSignature = null; // para saber si el ultimo loadAll() trajo algo distinto de verdad
 
@@ -3994,6 +4008,7 @@ const STORE_FETCH_FAILED = Symbol('storeFetchFailed');
 async function storeGet(key, def){ const raw = FBS.legacy[key]; if(raw == null) return def; try{ return JSON.parse(raw); }catch(e){ return def; } }
 async function storeSet(key, val){ const raw = JSON.stringify(val); FBS.legacy[key] = raw; try{ await FBD.setLegacy(key, raw); return true; }catch(e){ return false; } }
 async function storeGetBatch(keyDefaults){ const out = {}; for(const {key, def} of keyDefaults) out[key] = await storeGet(key, def); return out; }
+function cosmeticsCountOf(t){ const inv = (FBS.inventory || {})[t] || {}; return Object.values(inv).reduce((n, k) => n + Object.keys(k || {}).length, 0); }
 async function fetchTrackerState(t){ return null; } // hasta que el script de BizHawk suba el estado de la partida
 
 
@@ -5472,6 +5487,7 @@ async function seedDefaultNormasIfMissing(){
   const existingTexts = new Set(normas.map(n => n.text));
   const toAdd = DEFAULT_NORMAS.filter(t => !existingTexts.has(t));
   let changed = false;
+  { const OLD = 'No se pueden usar Pokémon legendarios ni singulares. Las Ultraentes sí están permitidas.'; const n0 = normas.length; normas = normas.filter(n => n.text !== OLD); if(normas.length !== n0) changed = true; }
 
   // Si alguna de las normas por defecto ya se guardo antes con un entrenador
   // puesto (versiones previas de esta funcion), se lo quitamos.
@@ -5975,8 +5991,9 @@ function milestoneCountOf(t){ return badgeCountOf(t); }
 function currentLevelCap(t){
   if(!trackerBadgesAvailable[t]) return null;
   const badges = milestonesOf(t);
-  const nextGym = badges.findIndex(earned => !earned);
-  return nextGym < 0 ? null : GAME_LEVEL_CAPS[nextGym];
+  let best = null;
+  badges.forEach((earned, i) => { if(!earned){ const g = GAME_LEVEL_CAPS[i]; if(g && (!best || g.cap < best.cap)) best = g; } });
+  return best;
 }
 function levelCapLabelOf(t){
   if(!trackerBadgesAvailable[t]) return 'cap esperando medallas';
@@ -6473,6 +6490,7 @@ function renderProfile(app, t){
             ${trackerBadgeProgress(t)}
             <div class="capline">${trackerBadgesAvailable[t] ? 'El level cap se calcula con el nivel del Pokémon más alto del próximo líder.' : 'El level cap aparecerá cuando Tracker Sync publique las medallas de la partida.'}</div>
           </div>
+          <div class="kpi"><div class="kpi-label">🛍️ Cosméticos</div><div class="kpi-val">${cosmeticsCountOf(t)}<small> objetos</small></div></div>
           ${renderEloCard(t)}
         </div>
 
@@ -6779,7 +6797,7 @@ function pokedexSpriteUrl(dexId){
 function renderNormaText(text){
   if(!text.toLowerCase().includes('level cap')) return text;
   return text.replace(/level cap/ig, match =>
-    `<span title="Los niveles de cap de Pokémon Radical Red están pendientes de configurar">${match}</span>`
+    `<span title="Consulta la tabla de topes de nivel más abajo en esta página">${match}</span>`
   );
 }
 
@@ -6800,6 +6818,9 @@ function renderNormas(app){
         </div>
       `).join('')}
     </div>`}
+
+    <div class="section-sub">📈 Topes de nivel (modo normal)</div>
+    ${renderCapTable()}
 
     <div class="section-sub">⚖️ Sanciones</div>
     ${renderSancionSection()}
@@ -12143,6 +12164,15 @@ button:disabled{opacity:.45;cursor:default}
 @keyframes lkrise{from{opacity:0;transform:translateY(24px) scale(.92)}}
 @keyframes lkbur{to{transform:translate(var(--x),var(--y)) scale(.3);opacity:0}}
 .lk .mu{color:var(--mu);margin:0 0 10px}
+@media (min-width:901px){
+  .rail{ overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; gap:12px; padding:16px 12px 12px; }
+  .rail-brand{ padding-bottom:6px; }
+  .rail-nav{ gap:2px; }
+  .nav-btn{ padding:6px 10px; font-size:13px; }
+  .nav-btn .ni{ flex-basis:26px; height:26px; font-size:13px; }
+  .rail-status{ gap:5px; padding-top:8px; }
+}
+@media (min-width:901px) and (max-height:760px){ .nav-btn{ padding:3px 10px; } .rail{ gap:8px; } }
 </style>
 <div id="lk-login" style="position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#12060a;color:#f7efe6;font-family:system-ui,sans-serif">
 <form id="lk-f" style="width:min(92%,340px);display:grid;gap:14px;background:#2a1216;border:1px solid #d6283966;border-radius:18px;padding:24px">
@@ -12173,7 +12203,7 @@ onAuthStateChanged(auth,async user=>{
   if(!user){$('#lk-login').style.display='grid';return}
   me=user.email.split('@')[0];window.LOGIN_ME=me;
   cfg=(await get(ref(db,'config'))).val()||{};
-  await Promise.all([sub('legacy',v=>{FBS.legacy=v||{}}),sub('profiles',v=>{FBS.profiles=v||{}}),sub('inventory/'+me,v=>{inv=v||{}}),
+  await Promise.all([sub('legacy',v=>{FBS.legacy=v||{}}),sub('profiles',v=>{FBS.profiles=v||{}}),sub('inventory',v=>{FBS.inventory=v||{};inv=FBS.inventory[me]||{}}),
     sub('calendarOpened/'+me,v=>{opened=v||{};syncCal()}),sub('claims/'+me,v=>{claims=v||{};syncCal()}),sub('.info/serverTimeOffset',v=>{off=v||0})]);
   $('#lk-login').style.display='none';window._fbResolve();
 });
