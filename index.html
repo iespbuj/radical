@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#12060a">
 <title>Locke Navideño · Radical Red</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎄%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet">
 <style>
@@ -12073,7 +12074,6 @@ let dashboardPolling = false;
   showMedalPopupIfAny();
   showNewsPopupIfAny();
   showTombPopupIfAny();
-  try{ Promise.resolve(checkDailyBonus(LOGIN_ME)).catch(()=>{}); }catch(e){}
   reconcileDailyContestReward().catch(()=>{});
   seedDefaultNormasIfMissing().then(()=>render()).catch(()=>{});
   setInterval(updateSinJoel, 1000);
@@ -12302,8 +12302,11 @@ window.LK={
   pal(a){const c=cfg.palettes&&a&&cfg.palettes[a.palette];return c&&c.colors?`--bg:${esc(c.colors.fondo)};--sf:${esc(c.colors.superficie)};--pr:${esc(c.colors.primario)};--ac:${esc(c.colors.acento)};--tx:${esc(c.colors.texto)}`:''},
   title(a){return (cfg.titles&&a&&cfg.titles[a.title])||null},
   today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid'}).format(new Date(Date.now()+off))},
-  daily(){act(async()=>{const r=await runTransaction(ref(db,'profiles/'+me),c=>{if(!c||c.lastDaily===LK.today())return;c.tickets=(+c.tickets||0)+(+cfg.dailyBonus||10);c.lastDaily=LK.today();return c});
-    if(r.committed)say('🎁 +'+(+cfg.dailyBonus||10)+' tickets');dirty()})}
+  daily(){act(async()=>{const day=LK.today(),n=+cfg.dailyBonus||10;
+    const r=await runTransaction(ref(db,'profiles/'+me+'/lastDaily'),c=>c===day?undefined:day);
+    if(!r.committed){say('Hoy ya has cobrado el bonus.');return}
+    await runTransaction(ref(db,'profiles/'+me+'/tickets'),c=>(+c||0)+n);
+    say('🎁 +'+n+' tickets');dirty()})}
 };
 window.renderLocker=a=>{
   const [,kind,field]=TABS[tab],own=inv[kind]||{},av=(FBS.profiles[me]||{}).avatar||{},cur=String(av[field]);
