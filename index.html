@@ -3430,8 +3430,8 @@ const NAMES = { iker:'Iker', joel:'Joel', alex:'Alex' };
 // comparar) y llevan un cartel bien visible en su tarjeta de la portada.
 const RETIRED_TRAINERS = new Set(); // vacío: ahora juegan los tres. (Si alguien vuelve a abandonar: new Set(['nombre']))
 
-const LOSER_PRIZES = ['1 captura extra', '1 Menta de Naturaleza', '5 tickets', '10 tickets', 'Banda Focus', 'Pesa Recia', 'Baya Meloc', 'Pierde 3 vidas', 'Pierde 1 vida', '1 Cápsula Habilidad', '1 Cápsula Habilidad', 'Nada'];
-const WINNER_PRIZES = ['2 capturas extra', 'Elegir entre 3 huevos', '2 Mentas de Naturaleza', '10 tickets', '20 tickets', 'Permiso para una ilegalidad', 'Cambiar un Pokémon por otro que quiera de otro equipo', '3 Cápsulas Habilidad'];
+const LOSER_PRIZES = ['1 captura extra', '1 Menta de Naturaleza', '5 tickets', '10 tickets', 'Banda Focus', 'Pesa Recia', 'Baya Meloc', 'Pierde 3 vidas', 'Pierde 1 vida', '1 Cápsula Habilidad', '1 Cápsula Habilidad', 'Un fondo aleatorio', 'Una paleta aleatoria', 'Nada'];
+const WINNER_PRIZES = ['2 capturas extra', 'Elegir entre 3 huevos', '2 Mentas de Naturaleza', '10 tickets', '20 tickets', 'Permiso para una ilegalidad', 'Cambiar un Pokémon por otro que quiera de otro equipo', '3 Cápsulas Habilidad', 'Una skin aleatoria', 'Un título aleatorio', 'Un cosmético aleatorio'];
 const WHEEL_COLORS = ['#9fb2da','#c9a86a','#c9cfdd','#7d97c9','#e0c68a','#b8bfd1','#8fa8d6','#d18aa0'];
 
 const SANCION_WHEEL = [
@@ -5825,7 +5825,19 @@ async function addTickets(t, amount, reason){
   }
 }
 
+const COSMETIC_PRIZES = { 'Una skin aleatoria':'characters', 'Un fondo aleatorio':'backgrounds', 'Una paleta aleatoria':'palettes', 'Un título aleatorio':'titles', 'Un cosmético aleatorio':'any' };
+async function grantCosmeticPrize(t, text, source){
+  try{
+    const got = await FBD.grantCosmetic(t, COSMETIC_PRIZES[text]);
+    if(!got){ await addTickets(t, 30, source + ' · ya lo tenía todo'); toast('Ya tenías todo lo de esa categoría: +30 tickets'); return true; }
+    const nm = FBD.cosmeticName(got.kind, got.id);
+    pushHistory(`🎁 ${NAMES[t]} ha ganado un cosmético: ${nm} (${source})`);
+    toast(`🎁 ${NAMES[t]} gana: ${nm}. Míralo en la taquilla, sale con brillo.`);
+    return true;
+  }catch(e){ return false; }
+}
 async function addPendingPrize(t, text, source){
+  if(COSMETIC_PRIZES[text] && await grantCosmeticPrize(t, text, source)) return;
   pendingPrizes[t] = pendingPrizes[t] || [];
   pendingPrizes[t].unshift({ id: crypto.randomUUID(), text, source, ts: Date.now() });
   pushHistory(`🎁 ${NAMES[t]} tiene un premio pendiente de entregar: ${text} (${source})`);
@@ -6398,6 +6410,20 @@ function openLockerAnim(el){
   setTimeout(()=>el.classList.add('lkr-open'), 650);            // la puerta se abre
   setTimeout(()=>{ window.__lockerAnim = false; go('locker'); }, 2100);
 }
+function __profPalVars(t){
+  const K = window.LK; const raw = K ? K.pal(((window.FBS && FBS.profiles[t]) || {}).avatar || {}) : ''; if(!raw) return '';
+  const m = {}; raw.split(';').forEach(x => { const i = x.indexOf(':'); if(i > 0) m[x.slice(0, i).trim()] = x.slice(i + 1).trim(); });
+  const bg = m['--bg'], sf = m['--sf'], pr = m['--pr'], ac = m['--ac'], tx = m['--tx']; if(!(bg && sf && pr && ac && tx)) return '';
+  return `--bg:${bg};--bg-elev:color-mix(in srgb,${bg} 55%,${sf});--panel:${sf};--panel-2:color-mix(in srgb,${sf} 90%,${tx});--border:color-mix(in srgb,${pr} 38%,${sf});--ruby:${pr};--ruby-deep:color-mix(in srgb,${pr} 60%,#000);--magma:${ac};--sapphire:${ac};--sapphire-deep:color-mix(in srgb,${ac} 70%,#000);--silver-bright:${tx};--silver-dim:color-mix(in srgb,${tx} 62%,${bg});`;
+}
+function renderProfile(app, t){
+  __renderProfileBase(app, t);
+  const v = __profPalVars(t); if(!v) return;
+  const w = document.createElement('div'); w.className = 'pal-scope';
+  w.setAttribute('style', v + 'background:var(--bg);color:var(--silver-bright);border-radius:16px;padding:18px;');
+  while(app.firstChild) w.appendChild(app.firstChild);
+  app.appendChild(w);
+}
 function renderHome(app){
   if(window.__lockerAnim) return; // no reconstruir la home mientras se abre la taquilla
   const rankOf = getMedalRanking();
@@ -6433,7 +6459,7 @@ function renderHome(app){
 
 
 /* ===================== PERFIL ===================== */
-function renderProfile(app, t){
+function __renderProfileBase(app, t){
   const h = hearts[t];
   const myTickets = tickets[t]||0;
   const myPending = pendingPrizes[t]||[];
@@ -9770,13 +9796,18 @@ const ELO_TIERS = [
   { min: 1400,      max: 1499, name: 'Inmortal',    color: '#d64f68', iconId: 24 },
   { min: 1500,      max: Infinity, name: 'Radiante', color: '#f6d76e', iconId: 27 },
 ];
+function eloEmblem(tier, hidden){
+  const i = ELO_TIERS.indexOf(tier), n = 1 + Math.floor(i / 3), c = tier.color;
+  const chev = Array.from({length:n}).map((_, k) => `<path d="M22 ${30 + k*9} 32 ${23 + k*9} 42 ${30 + k*9}" fill="none" stroke="#0e0a0b" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>`).join('');
+  return `<svg viewBox="0 0 64 64" aria-hidden="true" style="display:${hidden ? 'none' : 'block'};width:100%;height:100%;filter:drop-shadow(0 0 4px ${c}88)"><path d="M32 3 57 13v21c0 14-11 23-25 27C18 57 7 48 7 34V13z" fill="#10141c" stroke="${c}" stroke-width="3" stroke-linejoin="round"/><path d="M32 10 50 18v16c0 10-7 17-18 20-11-3-18-10-18-20V18z" fill="${c}"/><path d="M32 10 50 18v10L32 22 14 28V18z" fill="#fff" opacity=".22"/>${chev}</svg>`;
+}
 function eloTier(r){ return ELO_TIERS.find(t => r >= t.min && r <= t.max) || ELO_TIERS[0]; }
 function eloRankBadge(trainer, compact=false){
   const rating = eloOf(trainer);
   const tier = eloTier(rating);
   const sizeClass = compact ? ' compact' : '';
   return `<button type="button" class="elo-rank-badge${sizeClass}" style="--tier-color:${tier.color}" aria-label="Ver rango ${tier.name} de ${NAMES[trainer]}" title="${tier.name} · ${rating} ELO" onclick="event.stopPropagation(); showEloRank('${trainer}')">
-    <img src="https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/${tier.iconId}/largeicon.png" alt="" loading="lazy" decoding="async">
+    <img src="https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/${tier.iconId}/largeicon.png" alt="" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">${eloEmblem(tier, true)}
   </button>`;
 }
 function eloTierRange(tier){
@@ -12164,15 +12195,7 @@ button:disabled{opacity:.45;cursor:default}
 @keyframes lkrise{from{opacity:0;transform:translateY(24px) scale(.92)}}
 @keyframes lkbur{to{transform:translate(var(--x),var(--y)) scale(.3);opacity:0}}
 .lk .mu{color:var(--mu);margin:0 0 10px}
-@media (min-width:901px){
-  .rail{ overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; gap:12px; padding:16px 12px 12px; }
-  .rail-brand{ padding-bottom:6px; }
-  .rail-nav{ gap:2px; }
-  .nav-btn{ padding:6px 10px; font-size:13px; }
-  .nav-btn .ni{ flex-basis:26px; height:26px; font-size:13px; }
-  .rail-status{ gap:5px; padding-top:8px; }
-}
-@media (min-width:901px) and (max-height:760px){ .nav-btn{ padding:3px 10px; } .rail{ gap:8px; } }
+@media (min-width:901px){ .rail{ overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; } }
 </style>
 <div id="lk-login" style="position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#12060a;color:#f7efe6;font-family:system-ui,sans-serif">
 <form id="lk-f" style="width:min(92%,340px);display:grid;gap:14px;background:#2a1216;border:1px solid #d6283966;border-radius:18px;padding:24px">
@@ -12284,7 +12307,7 @@ window.renderShop=a=>{
   const cards=items.map(it=>{const has=!!own[it.id],now=cur===it.id;
     const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" alt="">`;
     const btn=has?`<button class="sm" data-eq="${it.id}" ${now?'disabled':''} type="button">${now?'Puesto':'Ponerme'}</button>`:`<button class="btn" data-buy="${it.id}" data-price="${it.price}" ${tk<it.price?'disabled':''} type="button">Comprar ${it.price}</button>`;
-    return `<div class="it${has?' own':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div>${btn}</div>`}).join('');
+    return `<div class="it${has?' own':''}${has&&isNew(kind,it.id)?' lk-new':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div>${btn}</div>`}).join('');
   a.innerHTML=`<div class="lk"><h2>Tienda</h2><p class="mu">Tienes <b>${tk} tickets</b></p><div style="display:flex;gap:8px;flex-wrap:wrap">${Object.keys(TABS).map(k=>`<button class="sm${k===tab?' on':''}" data-tab="${k}" type="button">${TABS[k][0]}</button>`).join('')}</div><div class="shop">${cards}</div></div>`};
 async function act(fn){if(busy)return;busy=true;try{await fn()}catch{say('Error de conexión. Inténtalo otra vez.')}finally{busy=false}}
 document.addEventListener('click',e=>{const b=e.target.closest('.lk button');if(!b)return;
@@ -12319,7 +12342,7 @@ window.renderLocker=a=>{
   if(kind==='titles')items=ids.filter(i=>cfg.titles&&cfg.titles[i]).sort((x,y)=>cfg.titles[x].stars-cfg.titles[y].stars).map(id=>{const t=cfg.titles[id];return{id,nm:`${'★'.repeat(t.stars)}<small>${esc(t.name)}</small>`,tt:esc(t.name)}});
   const cards=items.map(it=>{const now=cur===String(it.id);
     const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" alt="">`;
-    return `<div class="it own">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div><button class="sm${now?' on':''}" data-eq="${it.id}" ${now?'disabled':''} type="button">${now?'Puesto ✓':'Ponerme'}</button></div>`}).join('');
+    return `<div class="it own${isNew(kind,it.id)?' lk-new':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div><button class="sm${now?' on':''}" data-eq="${it.id}" ${now?'disabled':''} type="button">${now?'Puesto ✓':'Ponerme'}</button></div>`}).join('');
   a.innerHTML=`<div class="lk lk-locker" style="max-width:1000px"><button class="sm" type="button" onclick="go('home')">← Volver al inicio</button>
     <h2>🔐 Tu taquilla</h2><p class="mu">Todo lo que has conseguido. Lo que te pongas se ve en tu perfil.</p>
     <div class="pf-wrap">${window.lkProfileCard(me,true)}</div>
@@ -12327,6 +12350,25 @@ window.renderLocker=a=>{
     ${items.length?`<div class="shop">${cards}</div>`:`<p class="mu" style="margin-top:16px">Aún no tienes nada en esta categoría. <a href="#" onclick="go('shop');return false" style="color:var(--ac)">Ir a la tienda</a> o abre las puertas del calendario.</p>`}</div>`};
 
 setInterval(()=>{if(me&&$('#cg'))paintCal()},30000);
+
+/* ---------- cosméticos de las ruedas y brillo de lo nuevo ---------- */
+Object.assign(window.FBD,{
+  async grantCosmetic(t,kind){
+    const kinds=kind==='any'?['characters','backgrounds','palettes','titles']:[kind],owned=(FBS.inventory||{})[t]||{},pool=[];
+    const range=n=>Array.from({length:n},(_,i)=>String(i+1));
+    for(const k of kinds){
+      const all=k==='characters'?range(cfg.counts?.characters||0):k==='backgrounds'?range(cfg.counts?.backgrounds||0):k==='palettes'?Object.keys(cfg.palettes||{}):Object.keys(cfg.titles||{});
+      all.forEach(id=>{if(!(owned[k]&&owned[k][id]))pool.push([k,String(id)])})}
+    if(!pool.length)return null;
+    const [k,id]=pool[Math.floor(Math.random()*pool.length)];
+    await set(ref(db,`inventory/${t}/${k}/${id}`),true);return{kind:k,id}},
+  cosmeticName(k,id){return k==='characters'?'Personaje '+id:k==='backgrounds'?'Fondo '+id:k==='palettes'?'Paleta '+((cfg.palettes[id]||{}).name||id):'Título '+((cfg.titles[id]||{}).name||id)}});
+function seenSet(){let s=null;try{s=JSON.parse(localStorage.getItem('locke_seen_'+me)||'null')}catch{}
+  if(!s){s={};for(const k of Object.keys(inv))for(const id of Object.keys(inv[k]||{}))(s[k]=s[k]||{})[id]=1;localStorage.setItem('locke_seen_'+me,JSON.stringify(s))}return s}
+function isNew(k,id){return !((seenSet()[k]||{})[id])}
+let seenT=null;
+function scheduleSeen(){clearTimeout(seenT);seenT=setTimeout(()=>{const s={};for(const k of Object.keys(inv))for(const id of Object.keys(inv[k]||{}))(s[k]=s[k]||{})[id]=1;localStorage.setItem('locke_seen_'+me,JSON.stringify(s))},6000)}
+for(const n of ['renderLocker','renderShop']){const f=window[n];window[n]=a=>{f(a);scheduleSeen()}}
 
 </script>
 <script>
@@ -12344,5 +12386,14 @@ setInterval(()=>{if(me&&$('#cg'))paintCal()},30000);
 })();
 </script>
 
+<style>
+.lk .it{ position:relative; }
+.lk .it.lk-new{ overflow:hidden; border-color:var(--ac); animation:lknew 1.6s ease-in-out infinite; }
+.lk .it.lk-new::before{ content:""; position:absolute; top:-50%; bottom:-50%; left:-60%; width:40%; transform:rotate(20deg); pointer-events:none; background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); animation:lksweep 2.2s ease-in-out infinite; }
+.lk .it.lk-new::after{ content:"NUEVO"; position:absolute; top:6px; right:6px; font:700 10px system-ui,sans-serif; background:var(--ac); color:var(--bg); padding:2px 7px; border-radius:999px; }
+@keyframes lknew{ 0%,100%{ box-shadow:0 0 6px color-mix(in srgb,var(--ac) 40%,transparent); } 50%{ box-shadow:0 0 22px 4px color-mix(in srgb,var(--ac) 85%,transparent); } }
+@keyframes lksweep{ to{ left:130%; } }
+@media (prefers-reduced-motion:reduce){ .lk .it.lk-new,.lk .it.lk-new::before{ animation:none; } }
+</style>
 </body>
 </html>
