@@ -3050,7 +3050,7 @@ button.primary:active{ box-shadow:0 1px 0 #6d0f1c; }
     <main id="app">
       <div class="empty-state">Cargando…</div>
     </main>
-    <footer>hola soy un fracasado</footer>
+    <footer>Una aventura compartida en Pokémon Radical Red · Locke Navideño</footer>
   </div>
 </div>
 
@@ -3572,7 +3572,7 @@ const SLOT_OUTCOMES = [
   { type:'nothing', symbol:null, chance:0.945, label:'Nada, sigue intentándolo' }
 ];
 
-// Frases del crupier (Charizard) al entrar al casino — se elige una al azar cada vez
+// Frases de Slaking al entrar al casino — se elige una al azar cada vez
 const CROUPIER_LINES = [
   'Eres un ludópata.',
   'Estoy harto de esto. Podríamos estar jugando al Valorant...',
@@ -3585,13 +3585,13 @@ const CROUPIER_LINES = [
   'Relájate, tío, solo son unos tickets... de momento.',
   'Bienvenido. Deja tu dignidad en la puerta.',
   'Como pierdas otra vez te cambio el mote a "el que siempre pierde".',
-  'Las llamas de mi cola me dicen que hoy no es tu día.',
+  'Slaking dice que hoy no es tu día. Y Slaking casi nunca se equivoca.',
   '¿Sabes lo que mola más que las tragaperras? Nada. Absolutamente nada.',
-  'Cuidado, que aquí las llamas no son lo único que arde.',
+  'Cuidado: aquí también se queman tickets.',
   'Fírmame aquí que renuncias a tus tickets, es más rápido.',
   'Otra vez tú. Empiezo a pensar que vives aquí.',
-  'Confía en mí, soy un dragón de fuego con corbata, ¿qué podría salir mal?',
-  'El casino nunca duerme. Yo tampoco, la verdad, la llama de mi cola no se apaga ni de noche.',
+  'Confía en mí, soy un Slaking con corbata. ¿Qué podría salir mal?',
+  'El casino nunca duerme. Yo sí, entre tirada y tirada.',
   'Hoy me siento generoso... es broma, entra y juega.',
   'Vamos, no seas Magikarp.',
   'Aquí no se juega con Pokébolas, se juega con tickets. Suerte con eso.',
@@ -4649,7 +4649,7 @@ const DAILY_CONTEST_PUZZLES = [
   { title:'El primer gimnasio', mode:'binary', prompt:'Verdadero o falso: el equipo de Brock en Kanto se especializa en Pokémon de tipo Roca.', options:['Verdadero','Falso'], answer:0 },
   { title:'Una categoría Pokédex', mode:'typed', prompt:'Sin opciones: escribe la categoría Pokédex de Pikachu (una palabra).', answer:'raton' },
   { title:'Otra piedra, otra evolución', prompt:'Eevee + Piedra Agua da lugar a…', options:['Leafeon','Vaporeon','Glaceon','Jolteon'], answer:1 },
-  { title:'Doble tipo', prompt:'¿Qué combinación de tipos tiene Charizard?', options:['Fuego / Dragón','Fuego / Volador','Volador / Normal','Fuego / Lucha'], answer:1 },
+  { title:'Habilidad singular', prompt:'¿Qué habilidad tiene Slaking?', options:['Ausente','Gula','Agallas','Pereza'], answer:0 },
   { title:'Pista de combate', prompt:'¿Qué tipo de movimiento es supereficaz contra Pokémon de tipo Agua?', options:['Eléctrico','Hielo','Acero','Fuego'], answer:0 },
   { title:'El fósil espiral', mode:'typed', prompt:'Responde escribiendo el Pokémon que se obtiene del Fósil Helix.', answer:'omanyte' },
   { title:'Evolución eléctrica', prompt:'¿Qué objeto se usa para evolucionar a Pikachu en Raichu?', options:['Piedra Lunar','Piedra Trueno','Piedra Alba','Piedra Solar'], answer:1 },
@@ -6357,10 +6357,10 @@ window.lkProfileCard = function(t, big){
   const pal = K ? K.pal(a) : '';
   const ti = K ? K.title(a) : null;
   const ret = (typeof RETIRED_TRAINERS !== 'undefined') && RETIRED_TRAINERS.has(t);
-  const bg = a.background ? `background-image:url(fondos/fondo_${lkEsc(a.background)}.png),var(--pf-fb);` : '';
+  const bg = a.background ? `background-image:url(recompensas/recompensas/fondos/fondo_${lkEsc(a.background)}.png),var(--pf-fb);` : '';
   return `<article class="pf-card${big?' big':''}${t===LOGIN_ME?' me':''}" style="${pal}" ${big?'':`onclick="go('profile','${t}')"`}>
     <div class="pf-ban" style="${bg}"></div>
-    ${a.character ? `<img class="pf-ch" src="personajes/personaje_${lkEsc(a.character)}.png" alt="" onerror="this.hidden=true">` : `<div class="pf-ch pf-ph">🎅</div>`}
+    ${a.character ? `<img class="pf-ch" src="recompensas/recompensas/personajes/personaje_${lkEsc(a.character)}.png" alt="" onerror="this.hidden=true">` : `<div class="pf-ch pf-ph">🎅</div>`}
     ${ret ? '<div class="pf-stamp">🚩 ABANDONÓ</div>' : ''}
     <div class="pf-txt"><h3>${NAMES[t]}</h3><p class="pf-ttl">${ti ? `<span>${'★'.repeat(+ti.stars||0)}</span> ${lkEsc(ti.name)}` : '<em>Sin título</em>'}</p></div>
   </article>`;
@@ -6433,7 +6433,7 @@ function renderHome(app){
   app.innerHTML = `
     <section class="rr-hero">
       <div class="rr-lights" aria-hidden="true"></div>
-      <img class="rr-art l" src="${ART_URL}6.png" alt="">
+      <img class="rr-art l" src="${SLACKING_ART.hall}" alt="">
       <img class="rr-art r" src="${ART_URL}3.png" alt="">
       <div class="rr-center">
         <div class="rr-kicker">Liga Permalocke · Locke Navideño</div>
@@ -6444,6 +6444,18 @@ function renderHome(app){
         <path d="M0 10 Q50 0 100 10 T200 10 T300 10 T400 10 T500 10 T600 10 T700 10 T800 10 T900 10 T1000 10 T1100 10 T1200 10 V22 H0Z" fill="rgba(248,251,255,.32)"/>
         <path d="M0 15 Q50 7 100 15 T200 15 T300 15 T400 15 T500 15 T600 15 T700 15 T800 15 T900 15 T1000 15 T1100 15 T1200 15 V22 H0Z" fill="rgba(18,6,10,.95)"/>
       </svg>
+    </section>
+    <section class="home-commandbar" aria-label="Accesos rápidos">
+      <div class="home-command-copy">
+        <span class="home-command-kicker">TU AVENTURA, EN MARCHA</span>
+        <h2>Cada ruta cuenta. Cada vida también.</h2>
+        <p>Consulta el estado de la run y vuelve a la acción.</p>
+      </div>
+      <div class="home-quicklinks">
+        <button type="button" onclick="go('routes')"><span>🗺️</span><b>Explorar rutas</b><small>Encuentros y progreso</small></button>
+        <button type="button" onclick="go('duel')"><span>⚔️</span><b>Ir a la arena</b><small>Retos y combates</small></button>
+        <button type="button" onclick="go('casino')"><span>🎰</span><b>Visitar el casino</b><small>Juega con tus tickets</small></button>
+      </div>
     </section>
     ${canDaily ? `<div class="kpi brk rr-daily"><div><strong style="color:var(--silver-bright)">🎁 Bonus de hoy</strong><br><span style="font-size:12px;color:var(--silver-dim)">Cobra tus tickets diarios.</span></div><button class="primary" onclick="LK.daily()">Cobrar</button></div>` : ''}
     <div class="rr-board">
@@ -6855,20 +6867,21 @@ function renderNormas(app){
 }
 
 /* ================= CASINO ================= */
-// Imágenes del crupier: Charizard, la cara de Radical Red (normal, shiny y megas).
-const CROUPIER_ART = (id, shiny) => ART_URL + (shiny ? 'shiny/' : '') + id + '.png';
-const GIOVANNI_IMAGES = {
-  hall: CROUPIER_ART(6),
-  slots: CROUPIER_ART(10034),
-  volcan: CROUPIER_ART(10035),
-  cumbre: CROUPIER_ART(6, true),
-  central: CROUPIER_ART(6),
-  cueva: CROUPIER_ART(10034),
-  roulette: CROUPIER_ART(10035),
-  loteria: CROUPIER_ART(6, true),
-  blackjack: CROUPIER_ART(6),
-  nueve: CROUPIER_ART(10034),
-  default: CROUPIER_ART(6),
+// Slaking tiene una pose distinta en cada espacio para dar personalidad al casino.
+const SLACKING_SPRITES_URL='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
+const SLACKING_ART = {
+  hall: `${SLACKING_SPRITES_URL}other/official-artwork/289.png`,
+  slots: `${SLACKING_SPRITES_URL}other/home/289.png`,
+  volcan: `${SLACKING_SPRITES_URL}versions/generation-iv/diamond-pearl/289.png`,
+  cumbre: `${SLACKING_SPRITES_URL}other/official-artwork/shiny/289.png`,
+  central: `${SLACKING_SPRITES_URL}versions/generation-iii/emerald/289.png`,
+  cueva: `${SLACKING_SPRITES_URL}other/home/shiny/289.png`,
+  roulette: `${SLACKING_SPRITES_URL}versions/generation-iv/diamond-pearl/289.png`,
+  loteria: `${SLACKING_SPRITES_URL}other/official-artwork/shiny/289.png`,
+  blackjack: `${SLACKING_SPRITES_URL}other/official-artwork/289.png`,
+  nueve: `${SLACKING_SPRITES_URL}versions/generation-iii/emerald/289.png`,
+  emerald: `${SLACKING_SPRITES_URL}other/home/289.png`,
+  default: `${SLACKING_SPRITES_URL}other/home/shiny/289.png`,
 };
 
 
@@ -6888,7 +6901,7 @@ const CZ_GAMES = [
 ];
 const CZ_ZONES = {
   maquinas: { title: 'Máquinas',  sub: 'Arcade · pulsa y a ver qué sale' },
-  mesas:    { title: 'Mesas',     sub: 'Con crupier de plumas' },
+  mesas:    { title: 'Mesas',     sub: 'Slaking te vigila mientras juegas' },
   extras:   { title: 'Sorteos y extras', sub: 'El bote, los huevos y el botón prohibido' },
 };
 function czBulbs(n){ return Array.from({length:n}).map((_,i)=>`<i style="animation-delay:${(i*0.18).toFixed(2)}s"></i>`).join(''); }
@@ -6923,8 +6936,8 @@ function renderCasinoFloor(){
       <div class="cz-hero">
         <div class="cz-croupier">
           <div class="cz-bubble comic-bubble">${casinoGreetingLine}</div>
-          <img class="cz-croupier-img" src="${GIOVANNI_IMAGES.hall}" alt="Charizard, el crupier del casino">
-          <div class="cz-nameplate">CHARIZARD · CRUPIER</div>
+          <img class="cz-croupier-img" src="${SLACKING_ART.hall}" alt="Slaking, el crupier del casino">
+          <div class="cz-nameplate">SLAKING · CRUPIER</div>
         </div>
         <div class="cz-desk">
           <div class="cz-desk-label">Jugador en sala</div>
@@ -7020,14 +7033,14 @@ function mascotContext(){
       return { img: ART_URL + '150.png', line: casinoModeLine };
     }
     const machine = SLOT_MACHINES.find(m=>m.id===casinoMachine);
-    return { img: GIOVANNI_IMAGES[machine ? machine.id : 'slots'], line: casinoModeLine };
+    return { img: SLACKING_ART[machine ? machine.id : 'slots'], line: casinoModeLine };
   }
-  if(casinoTab==='roulette') return { img: GIOVANNI_IMAGES.roulette, line: casinoModeLine };
-  if(casinoTab==='loteria')  return { img: GIOVANNI_IMAGES.loteria, line: casinoModeLine };
-  if(casinoTab==='blackjack') return { img: GIOVANNI_IMAGES.blackjack, line: casinoModeLine };
-  if(casinoTab==='nueve')     return { img: GIOVANNI_IMAGES.nueve, line: casinoModeLine };
+  if(casinoTab==='roulette') return { img: SLACKING_ART.roulette, line: casinoModeLine };
+  if(casinoTab==='loteria')  return { img: SLACKING_ART.loteria, line: casinoModeLine };
+  if(casinoTab==='blackjack') return { img: SLACKING_ART.blackjack, line: casinoModeLine };
+  if(casinoTab==='nueve')     return { img: SLACKING_ART.nueve, line: casinoModeLine };
   if(casinoTab==='eggwheel' || casinoTab==='grieta' || casinoTab==='mines' || casinoTab==='crash' || casinoTab==='plinko'){
-    return { img: GIOVANNI_IMAGES.default, line: casinoModeLine };
+    return { img: SLACKING_ART.default, line: casinoModeLine };
   }
   return null;
 }
@@ -7038,7 +7051,7 @@ function renderMascot(){
   return `
     <div class="mascot">
       <div class="mascot-bubble comic-bubble">${mc.line}</div>
-      <img class="mascot-img" src="${mc.img}" alt="${mc.img === ART_URL + '150.png' ? 'Mewtwo, premio legendario' : 'Charizard, el crupier'}">
+      <img class="mascot-img" src="${mc.img}" alt="${mc.img === ART_URL + '150.png' ? 'Mewtwo, premio legendario' : 'Slaking, el crupier'}">
     </div>
   `;
 }
@@ -7083,7 +7096,7 @@ function openCasinoProfileModal(){
   `, false);
 }
 
-/* ---------------- Cuestionario sorpresa de Charizard ---------------- */
+/* ---------------- Cuestionario sorpresa de Slaking ---------------- */
 const GIOVANNI_QUIZ_TICKETS = 5; // premio por acertar una de cultura general
 const GIOVANNI_QUIZ_CHANCE = 0.1; // 1 de cada 10, con UNA sola tirada al día por perfil
 const GIOVANNI_QUIZ = [
@@ -7100,7 +7113,7 @@ const GIOVANNI_QUIZ = [
   { id:'cg10', type:'cultura', q:'¿Qué tratado de 1648 puso fin a la Guerra de los Treinta Años?', o:['Paz de Westfalia','Tratado de Utrecht','Congreso de Viena','Paz de Augsburgo'], c:0 },
   // --- ¿Cuánto conoces a Iker? (+5 si aciertas, -5 si fallas) ---
   { id:'ik1', type:'iker', q:'¿Cuál es la comida favorita de Iker?', o:['Pizza','Hamburguesa','Pasta','Sushi'], c:2 },
-  { id:'ik2', type:'iker', q:'¿Cuál es el Pokémon favorito de Iker?', o:['Charizard','Gengar','Claydol','Mewtwo'], c:2 },
+  { id:'ik2', type:'iker', q:'¿Cuál es el Pokémon favorito de Iker?', o:['Slaking','Gengar','Claydol','Mewtwo'], c:2 },
   { id:'ik3', type:'iker', q:'¿Cuál es el videojuego favorito de Iker, dejando aparte Pokémon?', o:['The Last of Us 2','Red Dead Redemption 2','Valorant','Road 96'], c:3 },
   { id:'ik4', type:'iker', q:'¿Cómo cree Iker que le va a ir el Nuzlocke?', o:['Ganando los combates ez','Perdiendo en la primera ruta','Sufriendo hasta la última vida','Con el equipo lleno de shinies'], c:0 },
   { id:'ik5', type:'iker', q:'¿Qué hace Iker cuando pierde un Pokémon?', o:['Se ríe','Se enfada','Se queda en silencio','Culpa a Alex o a Joel'], c:3 },
@@ -7135,7 +7148,7 @@ function injectGiovanniQuizStyle(){
   s.id = 'gq-style';
   s.textContent = `
   #gq-overlay{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;overflow-y:auto;
-    background:radial-gradient(circle at 50% 30%,#2a1060,#0a0418 75%);color:#fff;font-family:inherit;text-align:center}
+    background:radial-gradient(circle at 50% 30%,#67232a,#14090f 75%);color:#fff;font-family:inherit;text-align:center}
   #gq-overlay img{height:min(38vh,320px);width:auto;object-fit:contain;filter:drop-shadow(0 12px 26px rgba(0,0,0,.7))}
   #gq-overlay .gq-tag{font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.7}
   #gq-overlay .gq-q{font-size:clamp(18px,3.4vw,26px);font-weight:700;max-width:640px;line-height:1.3}
@@ -7188,8 +7201,8 @@ async function maybeShowGiovanniQuiz(t){
   const el = document.createElement('div');
   el.id = 'gq-overlay';
   el.innerHTML = `
-    <img src="${GIOVANNI_IMAGES.hall}" alt="Charizard, el crupier">
-    <div class="gq-tag">Charizard quiere saber una cosa</div>
+    <img src="${SLACKING_ART.hall}" alt="Slaking, el crupier">
+    <div class="gq-tag">Slaking quiere saber una cosa</div>
     <div class="gq-q">${q.q}</div>
     ${q.type==='cultura' ? `<div class="gq-tag">Sin IA ni buscadores · si aciertas +${GIOVANNI_QUIZ_TICKETS} tickets, si fallas -${GIOVANNI_QUIZ_TICKETS}</div>` : q.type==='joel' ? `<div class="gq-tag">¿Cuánto conoces a Joel? · si aciertas +${GIOVANNI_QUIZ_TICKETS} tickets, si fallas -${GIOVANNI_QUIZ_TICKETS}</div>` : q.type==='iker' ? `<div class="gq-tag">¿Cuánto conoces a Iker? · si aciertas +${GIOVANNI_QUIZ_TICKETS} tickets, si fallas -${GIOVANNI_QUIZ_TICKETS}</div>` : ''}
     <div class="gq-opts">${q.o.map((o,i)=>`<button onclick="answerGiovanniQuiz(${i})">${o}</button>`).join('')}</div>`;
@@ -7215,7 +7228,7 @@ async function answerGiovanniQuiz(i){
   const trainer = giovanniQuizTrainer;
   try{ await storeSet('locke:quiz:' + trainer, [...giovanniQuizDone, record]); }catch(e){}
   if(won || lost){
-    try{ await addTickets(trainer, won ? GIOVANNI_QUIZ_TICKETS : -GIOVANNI_QUIZ_TICKETS, (won ? 'acierto' : 'fallo') + ' en el cuestionario de Charizard'); render(); }catch(e){}
+    try{ await addTickets(trainer, won ? GIOVANNI_QUIZ_TICKETS : -GIOVANNI_QUIZ_TICKETS, (won ? 'acierto' : 'fallo') + ' en el cuestionario de Slaking'); render(); }catch(e){}
   }
 }
 
@@ -12196,6 +12209,83 @@ button:disabled{opacity:.45;cursor:default}
 @keyframes lkbur{to{transform:translate(var(--x),var(--y)) scale(.3);opacity:0}}
 .lk .mu{color:var(--mu);margin:0 0 10px}
 @media (min-width:901px){ .rail{ overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; } }
+.home-commandbar{
+  display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,1.5fr);gap:22px;align-items:center;
+  margin:0 0 22px;padding:22px 24px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border));
+  border-radius:16px;background:linear-gradient(120deg,color-mix(in srgb,var(--panel) 95%,var(--accent)),var(--bg-elev));
+  box-shadow:0 14px 34px rgba(0,0,0,.2)
+}
+.home-command-kicker,.lk-eyebrow{font:700 10px var(--f-mono);letter-spacing:.18em;color:var(--ember)}
+.home-command-copy h2{margin:8px 0 5px;color:var(--silver-bright);font:700 clamp(18px,2.4vw,25px) var(--f-ui)}
+.home-command-copy p{margin:0;color:var(--silver-dim);font-size:13px}
+.home-quicklinks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.home-quicklinks button{
+  display:grid;grid-template-columns:auto 1fr;column-gap:9px;align-items:center;text-align:left;
+  min-height:68px;padding:12px;border:1px solid var(--border);border-radius:11px;
+  background:rgba(0,0,0,.14);color:var(--silver-bright);cursor:pointer;transition:transform .18s,border-color .18s,background .18s
+}
+.home-quicklinks button:hover{transform:translateY(-3px);border-color:var(--accent);background:color-mix(in srgb,var(--panel) 70%,var(--accent))}
+.home-quicklinks button>span{grid-row:span 2;font-size:23px}
+.home-quicklinks button b{font:700 12px var(--f-ui)}
+.home-quicklinks button small{color:var(--silver-dim);font-size:10px}
+.lk-shop{max-width:1080px}
+.lk-shop-head{display:flex;justify-content:space-between;align-items:center;gap:18px;margin:6px 0 20px}
+.lk-shop-head h2{margin:5px 0;color:var(--silver-bright);font:800 clamp(26px,4vw,36px) var(--f-ui)}
+.lk-shop-head .mu{margin:0;color:var(--silver-dim)}
+.lk-shop-balance{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid color-mix(in srgb,var(--ac) 45%,var(--pr));border-radius:14px;background:linear-gradient(135deg,color-mix(in srgb,var(--sf) 78%,var(--pr)),var(--bg))}
+.lk-shop-balance>span{font-size:24px}
+.lk-shop-balance div{display:grid;gap:3px}
+.lk-shop-balance small,.lk-shop-count{color:var(--mu);font-size:11px}
+.lk-shop-balance b{color:var(--tx);font:700 15px var(--f-mono)}
+.lk-shop-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border:1px solid color-mix(in srgb,var(--pr) 26%,transparent);border-radius:13px;background:color-mix(in srgb,var(--sf) 82%,transparent)}
+.lk-shop-tabs{display:flex;gap:7px;flex-wrap:wrap}
+.lk-shop .shop{grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:14px;margin-top:16px}
+.lk-shop .it{min-height:188px;padding:13px;background:linear-gradient(155deg,color-mix(in srgb,var(--sf) 95%,var(--pr)),var(--bg));border-color:color-mix(in srgb,var(--pr) 26%,transparent);transition:transform .18s,border-color .18s,box-shadow .18s}
+.lk-shop .it:hover{transform:translateY(-4px);border-color:var(--ac);box-shadow:0 14px 26px rgba(0,0,0,.25)}
+.lk-shop .it.own{border-color:color-mix(in srgb,var(--ac) 38%,var(--pr))}
+.lk-shop .it .vis{height:112px;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(0,0,0,.3))}
+.lk-shop .it .sw{height:112px;align-content:center;justify-content:center;gap:8px;padding:14px;border:1px solid color-mix(in srgb,var(--pr) 24%,transparent);border-radius:10px;background:radial-gradient(circle at 50% 20%,color-mix(in srgb,var(--sf) 90%,var(--pr)),var(--bg))}
+.lk-shop .it .sw i{width:26px;height:26px;border:2px solid rgba(255,255,255,.55);box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.lk-shop .it .nm{color:var(--tx);font-weight:700}
+.lk-shop .it .nm small{display:block;margin-top:4px;color:var(--mu);font-weight:500}
+.lk-shop-empty{grid-column:1/-1;padding:25px;border:1px dashed var(--pr);border-radius:12px;text-align:center}
+.cz-hall{overflow:hidden;padding:clamp(12px,2vw,24px);border:1px solid rgba(255,190,92,.2);border-radius:22px;background:radial-gradient(ellipse at 50% 0%,#4b1a23 0%,#1b0b13 42%,#0d090d 100%);box-shadow:0 22px 60px rgba(0,0,0,.35)}
+.cz-marquee{margin-bottom:26px;border:1px solid rgba(255,206,117,.28);border-radius:14px;background:linear-gradient(100deg,#310e19,#7a2430 50%,#310e19);box-shadow:0 10px 32px #0006}
+.cz-marquee-title b{font-size:clamp(22px,4vw,40px);letter-spacing:.08em;text-shadow:0 0 24px #ffd17a77}
+.cz-zone{margin:20px 0 28px;padding:16px;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(5,3,6,.35)}
+.cz-zone-head{margin-bottom:14px}
+.cz-zone-head b{font:800 17px var(--f-ui);letter-spacing:.06em;color:#ffe0a2}
+.cz-zone-head span{color:#c8afb2}
+.cz-floor-grid{gap:16px}
+.cz-cab{border-color:color-mix(in srgb,var(--hue,#efb34d) 44%,#ffffff22);box-shadow:0 14px 28px #0005, inset 0 1px #ffffff18;transition:transform .2s,filter .2s,box-shadow .2s}
+.cz-cab:hover{transform:translateY(-6px) scale(1.015);filter:saturate(1.15);box-shadow:0 20px 36px #0008,0 0 22px color-mix(in srgb,var(--hue,#efb34d) 35%,transparent)}
+.cz-croupier{min-height:330px;overflow:hidden;border:1px solid rgba(255,211,142,.2);border-radius:18px;background:radial-gradient(ellipse at 52% 58%,#682d30 0%,#31121b 48%,#180a12 100%);box-shadow:inset 0 0 45px #0005,0 16px 38px #0006}
+.cz-croupier::before{content:"";position:absolute;inset:15px 15px 42px;border:1px solid rgba(255,214,155,.1);border-radius:14px;pointer-events:none}
+.cz-croupier::after{left:15px;right:15px;bottom:15px;height:30px;border-radius:5px}
+.cz-croupier-img{height:290px;max-width:75%;filter:drop-shadow(0 15px 20px #0009) drop-shadow(0 0 28px #ffbd6a55);animation:czFloat 5.2s ease-in-out infinite}
+.cz-croupier-img[src$="dp.png"],.cz-croupier-img[src$="emerald.png"]{image-rendering:pixelated;image-rendering:crisp-edges}
+.cz-nameplate{z-index:4;bottom:18px;padding:7px 17px;border:1px solid #ffd17866;border-radius:999px;background:#1a0b10;color:#ffd88a;letter-spacing:.18em}
+.cz-desk{align-self:stretch;border-color:#ffc86b33;background:linear-gradient(160deg,#2c151c,#140b10);box-shadow:0 14px 35px #0006}
+.cz-desk-note{color:#c7aeb1}
+.cz-hero{gap:18px}
+.cz-head .mascot{border:1px solid #ffd17844;border-radius:14px;background:linear-gradient(145deg,#32141d,#160b11);box-shadow:0 10px 24px #0005}
+.cz-head .mascot-img{max-height:120px;object-fit:contain}
+.cz-foot{margin:24px 0 4px;color:#c9afb1}
+@media(max-width:760px){
+  .home-commandbar{grid-template-columns:1fr;padding:18px}
+  .home-quicklinks{grid-template-columns:1fr}
+  .home-quicklinks button{min-height:58px}
+  .lk-shop-head{align-items:flex-start;flex-direction:column}
+  .lk-shop-balance{width:100%}
+  .cz-hall{padding:10px;border-radius:15px}
+  .cz-zone{padding:11px}
+  .cz-croupier{min-height:270px}
+  .cz-croupier-img{height:235px;max-width:86%}
+}
+@media(prefers-reduced-motion:reduce){
+  .home-quicklinks button,.lk-shop .it,.cz-cab{transition:none}
+  .home-quicklinks button:hover,.lk-shop .it:hover,.cz-cab:hover{transform:none}
+}
 </style>
 <div id="lk-login" style="position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#12060a;color:#f7efe6;font-family:system-ui,sans-serif">
 <form id="lk-f" style="width:min(92%,340px);display:grid;gap:14px;background:#2a1216;border:1px solid #d6283966;border-radius:18px;padding:24px">
@@ -12233,6 +12323,32 @@ onAuthStateChanged(auth,async user=>{
 /* ---------- calendario ---------- */
 const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Se entregará al juego con el botón Recibir.'],illegality:['ILEG','Una ilegalidad','Sí, se llama así. Úsala cuando quieras.'],sanction:['SANC','Derecho a una sanción','Eliges a quién y puedes girar la ruleta de sanciones.'],steal:['ROBO','Derecho a un robo','Eliges a la persona y gira una ruleta con su equipo.'],operator:['OPER','Un Operator','Quien elijas te compra un Operator en Valorant.'],casino:['CASINO','Ruleta de casino','Te invita a una tirada gratis quien elijas.'],slots:['777','Tiradas gratis','Para las tragaperras de la web.'],shield:['ESCUDO','Un escudo','Bloquea un robo o una sanción.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis de la lotería.'],reroll:['REPITE','Repetir una tirada','Vuelves a girar cualquier ruleta.'],nickname:['MOTE','Mote forzado','Eliges un Pokémon de otro y le pones el mote.']};
 const KIND={title:'titles',palette:'palettes',character:'characters',background:'backgrounds'};
+const REWARD_ASSET_ROOT='recompensas/recompensas/';
+function paletteById(id){
+  const palettes=cfg.palettes;
+  if(Array.isArray(palettes))return palettes.find(p=>p&&String(p.id)===String(id))||palettes[Number(id)-1]||null;
+  return palettes&&palettes[String(id)]||null;
+}
+function paletteIds(){
+  const palettes=cfg.palettes;
+  return Array.isArray(palettes)
+    ? palettes.map((p,i)=>p&&p.id!=null?String(p.id):String(i+1))
+    : Object.keys(palettes||{});
+}
+function paletteColorsOf(p){
+  const c=p&&(p.colors||p.colores);
+  if(!c||typeof c!=='object')return null;
+  const colors={
+    fondo:c.fondo||c.background,
+    superficie:c.superficie||c.surface,
+    primario:c.primario||c.primary,
+    acento:c.acento||c.accent,
+    texto:c.texto||c.text,
+  };
+  return Object.values(colors).every(v=>typeof v==='string'&&v.trim())?colors:null;
+}
+function paletteNameOf(p){return p&&(p.name||p.nombre)||'Paleta';}
+function paletteRarityOf(p){return p&&(p.rarity||p.rareza)||'Especial';}
 const AUTO=t=>t==='tickets'||!!KIND[t];
 const mini=p=>p.type==='tickets'?'+'+p.amount:p.type==='title'?'TÍT':p.type==='palette'?'PAL':p.type==='character'?'SKIN':p.type==='background'?'FONDO':SP[p.type][0];
 const pname=p=>p.type==='slots'?p.spins+' tiradas gratis':SP[p.type][1];
@@ -12285,9 +12401,9 @@ async function openDoor(d){
   reveal(d,true,p,note)}
 function reveal(d,fresh,p,note){const rv=$('#rv');if(!rv)return;let h='',t=p.type;
   if(t==='character'||t==='background'){const ch=t==='character',n=p.id,nm=(ch?'Personaje ':'Fondo ')+n;
-    h=`<div class="rvis ${ch?'':'w'}${fresh?' hid':''}"><img src="${ch?`personajes_siluetas/personaje_${n}_silueta.png`:`fondos_siluetas/fondo_${n}_silueta.png`}" alt=""><img src="${ch?`personajes/personaje_${n}.png`:`fondos/fondo_${n}.png`}" alt="${nm}"></div><h2>${nm}</h2>`}
+    h=`<div class="rvis ${ch?'':'w'}${fresh?' hid':''}"><img src="${ch?`${REWARD_ASSET_ROOT}personajes_siluetas/personaje_${n}_silueta.png`:`${REWARD_ASSET_ROOT}fondos_siluetas/fondo_${n}_silueta.png`}" alt=""><img src="${ch?`${REWARD_ASSET_ROOT}personajes/personaje_${n}.png`:`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`}" alt="${nm}"></div><h2>${nm}</h2>`}
   else if(t==='title'){const x=cfg.titles[p.id]||{name:p.id,stars:0};h=`<div class="emb">${'★'.repeat(x.stars)}</div><h2>${esc(x.name)}</h2><p>Título de ${x.stars}★. Ya puedes ponértelo.</p>`}
-  else if(t==='palette'){const x=cfg.palettes[p.id];h=`<div style="display:flex;gap:8px;justify-content:center;margin:14px 0">${Object.values(x.colors).map(c=>`<i style="width:34px;height:34px;border-radius:50%;background:${esc(c)};border:2px solid #fff4"></i>`).join('')}</div><h2>${esc(x.name)}</h2><p>Paleta ${esc(x.rarity.toLowerCase())}.</p>`}
+  else if(t==='palette'){const x=paletteById(p.id),colors=paletteColorsOf(x)||{},name=paletteNameOf(x),rarity=paletteRarityOf(x);h=`<div style="display:flex;gap:8px;justify-content:center;margin:14px 0">${Object.values(colors).map(c=>`<i style="width:34px;height:34px;border-radius:50%;background:${esc(c)};border:2px solid #fff4"></i>`).join('')}</div><h2>${esc(name)}</h2><p>Paleta ${esc(String(rarity).toLowerCase())}.</p>`}
   else if(t==='tickets')h=`<div class="emb">+${p.amount}</div><h2>${p.amount} tickets</h2>`;
   else h=`<div class="emb">${SP[t][0]}</div><h2>${esc(pname(p))}</h2><p>${SP[t][2]} Queda guardado en tu perfil.</p>`;
   rv.innerHTML=`<div class="cd" role="dialog" aria-modal="true" aria-label="Premio de la puerta ${d}"><div class="kick">Puerta ${d}</div>${h}${note?`<p>${esc(note)}</p>`:''}<button class="sm" id="ok" type="button">${fresh?'Genial':'Cerrar'}</button></div>`;
@@ -12300,29 +12416,30 @@ const TABS={skins:['Skins','characters','character'],fondos:['Fondos','backgroun
 window.renderShop=a=>{
   const [,kind,field]=TABS[tab],own=inv[kind]||{},av=(FBS.profiles[me]||{}).avatar||{},cur=String(av[field]),P=cfg.prices||{},tk=+((FBS.profiles[me]||{}).tickets)||0;
   let items=[];
-  if(kind==='characters')items=Array.from({length:cfg.counts?.characters||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.characters,nm:'Personaje '+n,vis:own[n]?`personajes/personaje_${n}.png`:`personajes_siluetas/personaje_${n}_silueta.png`}});
-  if(kind==='backgrounds')items=Array.from({length:cfg.counts?.backgrounds||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.backgrounds,nm:'Fondo '+n,w:1,vis:own[n]?`fondos/fondo_${n}.png`:`fondos_siluetas/fondo_${n}_silueta.png`}});
-  if(kind==='palettes')items=Object.keys(cfg.palettes||{}).sort((x,y)=>x-y).map(id=>{const p=cfg.palettes[id];return{id,price:P.palettes,nm:`${esc(p.name)}<small>${esc(p.rarity)}</small>`,sw:p.colors}});
+  if(kind==='characters')items=Array.from({length:cfg.counts?.characters||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.characters,nm:'Personaje '+n,vis:own[n]?`${REWARD_ASSET_ROOT}personajes/personaje_${n}.png`:`${REWARD_ASSET_ROOT}personajes_siluetas/personaje_${n}_silueta.png`}});
+  if(kind==='backgrounds')items=Array.from({length:cfg.counts?.backgrounds||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.backgrounds,nm:'Fondo '+n,w:1,vis:own[n]?`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`:`${REWARD_ASSET_ROOT}fondos_siluetas/fondo_${n}_silueta.png`}});
+  if(kind==='palettes')items=paletteIds().sort((x,y)=>x-y).map(id=>{const p=paletteById(id);return{id,price:P.palettes,nm:`${esc(paletteNameOf(p))}<small>${esc(paletteRarityOf(p))}</small>`,sw:paletteColorsOf(p)}});
   if(kind==='titles')items=Object.keys(cfg.titles||{}).sort((x,y)=>cfg.titles[x].stars-cfg.titles[y].stars).map(id=>{const t=cfg.titles[id];return{id,price:(P.titleByStars||{})[t.stars],nm:`${'★'.repeat(t.stars)}<small>${esc(t.name)}</small>`,tt:esc(t.name)}});
   const cards=items.map(it=>{const has=!!own[it.id],now=cur===it.id;
     const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" alt="">`;
     const btn=has?`<button class="sm" data-eq="${it.id}" ${now?'disabled':''} type="button">${now?'Puesto':'Ponerme'}</button>`:`<button class="btn" data-buy="${it.id}" data-price="${it.price}" ${tk<it.price?'disabled':''} type="button">Comprar ${it.price}</button>`;
     return `<div class="it${has?' own':''}${has&&isNew(kind,it.id)?' lk-new':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div>${btn}</div>`}).join('');
-  a.innerHTML=`<div class="lk"><h2>Tienda</h2><p class="mu">Tienes <b>${tk} tickets</b></p><div style="display:flex;gap:8px;flex-wrap:wrap">${Object.keys(TABS).map(k=>`<button class="sm${k===tab?' on':''}" data-tab="${k}" type="button">${TABS[k][0]}</button>`).join('')}</div><div class="shop">${cards}</div></div>`};
+  const ownedCount=Object.keys(own).filter(id=>own[id]).length;
+  a.innerHTML=`<div class="lk lk-shop"><header class="lk-shop-head"><div><span class="lk-eyebrow">PERSONALIZA TU AVENTURA</span><h2>Tienda</h2><p class="mu">Elige un cosmético, equípalo y dale tu estilo a la run.</p></div><div class="lk-shop-balance"><span>🎟️</span><div><small>Tu saldo</small><b>${tk} tickets</b></div></div></header><div class="lk-shop-toolbar"><div class="lk-shop-tabs">${Object.keys(TABS).map(k=>`<button class="sm${k===tab?' on':''}" data-tab="${k}" type="button">${TABS[k][0]}</button>`).join('')}</div><span class="lk-shop-count">${ownedCount} de ${items.length} disponibles</span></div><div class="shop">${cards||'<p class="mu lk-shop-empty">No hay artículos disponibles en esta categoría todavía.</p>'}</div></div>`};
 async function act(fn){if(busy)return;busy=true;try{await fn()}catch{say('Error de conexión. Inténtalo otra vez.')}finally{busy=false}}
 document.addEventListener('click',e=>{const b=e.target.closest('.lk button');if(!b)return;
   if(b.dataset.tab){tab=b.dataset.tab;window.render()}
-  if(b.dataset.eq)act(()=>set(ref(db,`profiles/${me}/avatar/${TABS[tab][2]}`),b.dataset.eq));
+  if(b.dataset.eq)act(async()=>{const field=TABS[tab][2],profile=FBS.profiles[me]||(FBS.profiles[me]={});profile.avatar={...(profile.avatar||{}),[field]:b.dataset.eq};await set(ref(db,`profiles/${me}/avatar/${field}`),b.dataset.eq);dirty();window.render();say('Cosmético equipado.');});
   if(b.dataset.buy)act(async()=>{const id=b.dataset.buy,pr=+b.dataset.price,kind=TABS[tab][1],tk=ref(db,`profiles/${me}/tickets`);
     const r=await runTransaction(tk,c=>(+c||0)>=pr?(+c||0)-pr:undefined);
     if(!r.committed){say('No tienes tickets suficientes.');return}
-    try{await set(ref(db,`inventory/${me}/${kind}/${id}`),true)}catch{await runTransaction(tk,c=>(+c||0)+pr);say('No se pudo completar la compra. Te hemos devuelto los tickets.')}});
+    try{await set(ref(db,`inventory/${me}/${kind}/${id}`),true);inv[kind]=inv[kind]||{};inv[kind][id]=true;FBS.inventory[me]=inv;dirty();say('Compra realizada. Ya puedes equiparlo desde tu taquilla.');window.render()}catch{await runTransaction(tk,c=>(+c||0)+pr);say('No se pudo completar la compra. Te hemos devuelto los tickets.')}});
   if(b.dataset.life)act(async()=>{const k=b.dataset.life;if(((FBS.profiles[me]||{}).lives??20)>=20){say('Ya tienes 20 vidas. Cóbrala cuando pierdas alguna.');return}
     await set(ref(db,`claims/${me}/${k}`),{at:serverTimestamp()});await runTransaction(ref(db,`profiles/${me}/lives`),c=>Math.min(20,(+c||0)+1))})});
 addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#rv')&&$('#rv').classList.contains('on'))closeCard()});
 /* ---------- helpers de perfil / taquilla / bonus diario ---------- */
 window.LK={
-  pal(a){const c=cfg.palettes&&a&&cfg.palettes[a.palette];return c&&c.colors?`--bg:${esc(c.colors.fondo)};--sf:${esc(c.colors.superficie)};--pr:${esc(c.colors.primario)};--ac:${esc(c.colors.acento)};--tx:${esc(c.colors.texto)}`:''},
+  pal(a){const p=a&&paletteById(a.palette),c=paletteColorsOf(p);return c?`--bg:${esc(c.fondo)};--sf:${esc(c.superficie)};--pr:${esc(c.primario)};--ac:${esc(c.acento)};--tx:${esc(c.texto)};--pf-fb:linear-gradient(135deg,${esc(c.fondo)} 0%,${esc(c.superficie)} 100%)`:''},
   title(a){return (cfg.titles&&a&&cfg.titles[a.title])||null},
   today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid'}).format(new Date(Date.now()+off))},
   daily(){act(async()=>{const day=LK.today(),n=+cfg.dailyBonus||10;
@@ -12333,12 +12450,12 @@ window.LK={
 };
 window.renderLocker=a=>{
   const [,kind,field]=TABS[tab],own=inv[kind]||{},av=(FBS.profiles[me]||{}).avatar||{},cur=String(av[field]);
-  const total={characters:cfg.counts?.characters||0,backgrounds:cfg.counts?.backgrounds||0,palettes:Object.keys(cfg.palettes||{}).length,titles:Object.keys(cfg.titles||{}).length};
+  const total={characters:cfg.counts?.characters||0,backgrounds:cfg.counts?.backgrounds||0,palettes:paletteIds().length,titles:Object.keys(cfg.titles||{}).length};
   const nOwn=k=>Object.keys(inv[k]||{}).filter(i=>(inv[k]||{})[i]).length;
   const ids=Object.keys(own).filter(i=>own[i]);let items=[];
-  if(kind==='characters')items=ids.sort((x,y)=>x-y).map(n=>({id:n,nm:'Personaje '+n,vis:`personajes/personaje_${n}.png`}));
-  if(kind==='backgrounds')items=ids.sort((x,y)=>x-y).map(n=>({id:n,nm:'Fondo '+n,w:1,vis:`fondos/fondo_${n}.png`}));
-  if(kind==='palettes')items=ids.filter(i=>cfg.palettes&&cfg.palettes[i]).map(id=>{const p=cfg.palettes[id];return{id,nm:`${esc(p.name)}<small>${esc(p.rarity)}</small>`,sw:p.colors}});
+  if(kind==='characters')items=ids.sort((x,y)=>x-y).map(n=>({id:n,nm:'Personaje '+n,vis:`${REWARD_ASSET_ROOT}personajes/personaje_${n}.png`}));
+  if(kind==='backgrounds')items=ids.sort((x,y)=>x-y).map(n=>({id:n,nm:'Fondo '+n,w:1,vis:`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`}));
+  if(kind==='palettes')items=ids.filter(i=>paletteById(i)).map(id=>{const p=paletteById(id);return{id,nm:`${esc(paletteNameOf(p))}<small>${esc(paletteRarityOf(p))}</small>`,sw:paletteColorsOf(p)}});
   if(kind==='titles')items=ids.filter(i=>cfg.titles&&cfg.titles[i]).sort((x,y)=>cfg.titles[x].stars-cfg.titles[y].stars).map(id=>{const t=cfg.titles[id];return{id,nm:`${'★'.repeat(t.stars)}<small>${esc(t.name)}</small>`,tt:esc(t.name)}});
   const cards=items.map(it=>{const now=cur===String(it.id);
     const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" alt="">`;
@@ -12357,12 +12474,12 @@ Object.assign(window.FBD,{
     const kinds=kind==='any'?['characters','backgrounds','palettes','titles']:[kind],owned=(FBS.inventory||{})[t]||{},pool=[];
     const range=n=>Array.from({length:n},(_,i)=>String(i+1));
     for(const k of kinds){
-      const all=k==='characters'?range(cfg.counts?.characters||0):k==='backgrounds'?range(cfg.counts?.backgrounds||0):k==='palettes'?Object.keys(cfg.palettes||{}):Object.keys(cfg.titles||{});
+      const all=k==='characters'?range(cfg.counts?.characters||0):k==='backgrounds'?range(cfg.counts?.backgrounds||0):k==='palettes'?paletteIds():Object.keys(cfg.titles||{});
       all.forEach(id=>{if(!(owned[k]&&owned[k][id]))pool.push([k,String(id)])})}
     if(!pool.length)return null;
     const [k,id]=pool[Math.floor(Math.random()*pool.length)];
     await set(ref(db,`inventory/${t}/${k}/${id}`),true);return{kind:k,id}},
-  cosmeticName(k,id){return k==='characters'?'Personaje '+id:k==='backgrounds'?'Fondo '+id:k==='palettes'?'Paleta '+((cfg.palettes[id]||{}).name||id):'Título '+((cfg.titles[id]||{}).name||id)}});
+  cosmeticName(k,id){return k==='characters'?'Personaje '+id:k==='backgrounds'?'Fondo '+id:k==='palettes'?'Paleta '+paletteNameOf(paletteById(id)):'Título '+((cfg.titles[id]||{}).name||id)}});
 function seenSet(){let s=null;try{s=JSON.parse(localStorage.getItem('locke_seen_'+me)||'null')}catch{}
   if(!s){s={};for(const k of Object.keys(inv))for(const id of Object.keys(inv[k]||{}))(s[k]=s[k]||{})[id]=1;localStorage.setItem('locke_seen_'+me,JSON.stringify(s))}return s}
 function isNew(k,id){return !((seenSet()[k]||{})[id])}
