@@ -3897,10 +3897,14 @@ const LOTERIA_COLORS = { iker: 'var(--neon-cyan)', joel: 'var(--neon-pink)', ale
 function loteriaColorFor(t){ return LOTERIA_COLORS[t] || WHEEL_COLORS[TRAINERS.indexOf(t)%WHEEL_COLORS.length]; }
 
 let duelState = { scheduled:null, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
+let duelStateBase = null;
+let duelStateWriteQueue = Promise.resolve();
 let duelLastArenaPhase = '';
 let duelHistory = [];
 let duelBets = { match1: [], final: [] }; // {trainer, pick, amount}[] por combate
 let arenaJourneyState = { completed:[], winners:{}, postLeagueDone:false, postLeagueWinner:null, votes:{} };
+let arenaJourneyStateBase = null;
+let arenaJourneyWriteQueue = Promise.resolve();
 let duelScheduleProgressionKey = null;
 let challengeState = null; // {challenger, opponent, stakeId, stakeMonPid, stakeMonLabel, games:[], narration} o null si no hay ninguno activo
 let challengeActionInFlight = false;
@@ -4332,7 +4336,7 @@ function renderWorldMapWidget(){
           <div class="world-map-heading">POSICIÓN EN TIEMPO REAL <button type="button" onclick="toggleWorldMap()" aria-label="Cerrar mapa">×</button></div>
           <div class="world-map-canvas" role="img" aria-label="Mapa de Kanto con la ubicación actual de los jugadores" style="background-image:url('${GAME_KANTO_MAP}')">${markers || '<div class="world-map-empty">Esperando coordenadas de Kanto</div>'}</div>
           <div class="world-map-players">${locations}</div>
-          <small>Posiciones actualizadas cada pocos segundos desde Tracker Sync.</small>
+          <small>Posiciones actualizadas automáticamente.</small>
         </div>` : ''}
     </section>`;
 }
@@ -4362,7 +4366,10 @@ function pushHistoryEvents(list){
   if(!fresh.length) return;
   fresh.forEach(e => history.unshift({ id:e.id, text:e.text, ts:Date.now() }));
   history = history.slice(0, 300);
-  trackedStoreSet('history', 'locke:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>trackedStoreSet('history', 'locke:history', history)); });
+  const events = fresh.map(e => ({ id:e.id, text:e.text, ts:Date.now() }));
+  window.FBD.appendHistoryEvents(events).then(ok=>{
+    if(!ok) queueRetry('history-events', ()=>window.FBD.appendHistoryEvents(events));
+  });
 }
 function syncTrackerEvents(t, snapshot, team){
   try{
@@ -4589,11 +4596,15 @@ async function loadAll(){
     });
   }
   if(!saveInFlight['trades']){ tradesActive = tradesResult.active; tradesHistory = tradesResult.history; }
-  if(!saveInFlight['duel']) duelState = duelResult;
+  if(!saveInFlight['duel']){
+    duelState = duelResult;
+    duelStateBase = JSON.parse(JSON.stringify(duelResult));
+  }
   if(!saveInFlight['duelHistory']) duelHistory = duelHistoryResult;
   if(!saveInFlight['duelBets']) duelBets = duelBetsResult;
   if(!saveInFlight['arenaJourney'] && !pendingSaves.has('arenaJourney')){
     arenaJourneyState = normalizeArenaJourney(arenaJourneyResult);
+    arenaJourneyStateBase = JSON.parse(JSON.stringify(arenaJourneyState));
   }
   if(challengeRevisionAtRead === challengeRevision
       && !saveInFlight['challenge'] && !challengeActionInFlight && !pendingSaves.has('challenge')){
@@ -4630,6 +4641,7 @@ async function loadAll(){
   });
   const changed = signature !== lastLoadSignature || hadLoadWarning;
   lastLoadSignature = signature;
+  if(!saveInFlight['duelBets']) setTimeout(resumeUnpaidDuelBetPayouts,0);
   return changed;
 }
 async function saveProfile(t){
@@ -4768,6 +4780,8 @@ function contestOptionOrder(puzzle, dayKey){
   return order;
 }
 function renderContest(app){
+  app.innerHTML='<section class="contest-page"><div class="contest-intro"><div class="contest-head"><div><div class="contest-kicker">ACTIVIDAD RETIRADA</div><h1 class="contest-title">El Enigma ya no está disponible</h1><div class="contest-subtitle">Las estrellas se consiguen al ganar torneos; la Final mantiene sus premios propios.</div></div></div></div></section>';
+  return;
   if(!contestCountdownInterval) contestCountdownInterval = setInterval(updateContestCountdown, 1000);
   if(new Date() < DAILY_CONTEST_START){
     app.innerHTML = `<section class="contest-page"><div class="contest-countdown" id="contest-countdown">
@@ -4831,6 +4845,8 @@ function renderContest(app){
   updateContestCountdown();
 }
 async function selectDailyContestTrainer(trainer){
+  toast('El Enigma ya no está disponible.');
+  return;
   if(trainer !== '' && !TRAINERS.includes(trainer)) return;
   if(trainer === ''){ window.dailyContestSelections = {}; render(); return; }
   if(dailyContestState.winner || dailyContestState.attempts[trainer]) return;
@@ -4859,6 +4875,8 @@ async function expireDailyContestAttempt(trainer){
   render();
 }
 async function submitDailyContest(trainer, answer){
+  toast('El Enigma ya no está disponible.');
+  return;
   if(contestSubmitting || !TRAINERS.includes(trainer) || new Date() < DAILY_CONTEST_START) return;
   ensureContestDay();
   const attempt = dailyContestState.attempts[trainer];
@@ -4926,26 +4944,10 @@ async function submitDailyContest(trainer, answer){
   render();
 }
 async function grantDailyContestReward(trainer, date, starAwarded){
-  if(!TRAINERS.includes(trainer) || !/^\d{4}-\d{2}-\d{2}$/.test(date||'')) return false;
-  const claimId = `daily-contest:${date}`;
-  dailyContestRewardClaims[trainer] = dailyContestRewardClaims[trainer] || [];
-  if(dailyContestRewardClaims[trainer].includes(claimId)) return true;
-  const amount = DAILY_CONTEST_TICKETS + (starAwarded ? DAILY_CONTEST_SECRET_TICKETS : 0);
-  tickets[trainer] = (tickets[trainer]||0) + amount;
-  dailyContestRewardClaims[trainer] = [...dailyContestRewardClaims[trainer], claimId].slice(-200);
-  const ok = await saveProfile(trainer);
-  if(!ok){
-    queueRetry('profile:'+trainer, ()=>saveProfile(trainer));
-    toast(`No se pudo confirmar el premio del concurso (+${amount} tickets). Se reintentará automáticamente.`);
-    return false;
-  }
-  pushHistory(`🎟️ ${NAMES[trainer]} recibió ${amount} tickets por el concurso diario${starAwarded?' y la estrella':''}`);
-  return true;
+  return false;
 }
 async function reconcileDailyContestReward(){
-  const state = normalizeDailyContestState(dailyContestState);
-  if(!state.winner || !state.date || dailyContestRewardClaims[state.winner]?.includes(`daily-contest:${state.date}`)) return;
-  await grantDailyContestReward(state.winner, state.date, state.starAwarded);
+  return false;
 }
 
 
@@ -4967,16 +4969,69 @@ async function saveTrades(){
   return await trackedStoreSet('trades', 'locke:trades', { active: tradesActive, history: tradesHistory });
 }
 async function saveDuelState(){
-  return await trackedStoreSet('duel', 'locke:duel', duelState);
+  const snapshot = JSON.parse(JSON.stringify(duelState));
+  const write = async()=>{
+    saveInFlight['duel'] = (saveInFlight['duel']||0) + 1;
+    try{
+      const result = await FBD.compareAndSetLegacy('duel', duelStateBase, snapshot);
+      if(result.committed){
+        duelStateBase = snapshot;
+        return true;
+      }
+      duelState = result.value || duelState;
+      duelStateBase = JSON.parse(JSON.stringify(duelState));
+      render();
+      toast('El torneo cambió desde otra sesión. Se ha conservado el estado del servidor; vuelve a comprobarlo antes de seguir.');
+      return true;
+    }catch(error){
+      console.error('No se pudo guardar el torneo con control de concurrencia.',error);
+      toast('No se pudo guardar el torneo. Se reintentará automáticamente.');
+      return false;
+    }finally{
+      saveInFlight['duel'] = Math.max((saveInFlight['duel']||1)-1,0);
+    }
+  };
+  duelStateWriteQueue = duelStateWriteQueue.then(write,write);
+  return duelStateWriteQueue;
 }
 async function saveDuelHistory(){
-  return await trackedStoreSet('duelHistory', 'locke:duelHistory', duelHistory);
-}
-async function saveDuelBets(){
-  return await trackedStoreSet('duelBets', 'locke:duelBets', duelBets);
+  saveInFlight['duelHistory']=(saveInFlight['duelHistory']||0)+1;
+  try{
+    const result=await FBD.mergeDuelHistory(duelHistory);
+    duelHistory=result.value;
+    return true;
+  }catch(error){
+    console.error('No se pudo guardar el historial de torneos.',error);
+    return false;
+  }finally{
+    saveInFlight['duelHistory']=Math.max((saveInFlight['duelHistory']||1)-1,0);
+  }
 }
 async function saveArenaJourney(){
-  return await trackedStoreSet('arenaJourney', 'locke:arenaJourney', arenaJourneyState);
+  const snapshot=JSON.parse(JSON.stringify(arenaJourneyState));
+  const write=async()=>{
+    saveInFlight['arenaJourney']=(saveInFlight['arenaJourney']||0)+1;
+    try{
+      const result=await FBD.compareAndSetLegacy('arenaJourney',arenaJourneyStateBase,snapshot,normalizeArenaJourney);
+      if(result.committed){
+        arenaJourneyStateBase=snapshot;
+        return true;
+      }
+      arenaJourneyState=normalizeArenaJourney(result.value);
+      arenaJourneyStateBase=JSON.parse(JSON.stringify(arenaJourneyState));
+      render();
+      toast('El recorrido cambió desde otra sesión. Se ha conservado el progreso del servidor.');
+      return true;
+    }catch(error){
+      console.error('No se pudo guardar el recorrido de la Arena.',error);
+      toast('No se pudo guardar el recorrido. Se reintentará automáticamente.');
+      return false;
+    }finally{
+      saveInFlight['arenaJourney']=Math.max((saveInFlight['arenaJourney']||1)-1,0);
+    }
+  };
+  arenaJourneyWriteQueue=arenaJourneyWriteQueue.then(write,write);
+  return arenaJourneyWriteQueue;
 }
 async function saveChallengeState(){
   return await trackedStoreSet('challenge', 'locke:challenge', challengeState);
@@ -4986,12 +5041,12 @@ async function saveFinalState(){
 }
 
 /* ================================================================
-   FINAL — reparto de estrellas especiales (estilo Mario Party).
+   FINAL — reparto de estrellas propias de la Final (estilo Mario Party).
    Se calculan las 9 categorías posibles, se descartan las que
    queden empatadas a máximo valor y, de las que sí tienen un
-   ganador claro, se eligen 3 al azar. Esas 3 "estrellas" no son
-   estrellas de verdad: son puntos que se suman directo al marcador
-   de combates (Temporizador → Marcador).
+   ganador claro, se eligen 3 al azar. Estas estrellas pertenecen
+   a la Final y se mantienen separadas de las estrellas de campeón
+   que se adjudican en los torneos.
    ================================================================ */
 function shuffleArr(arr){
   const a = [...arr];
@@ -5409,9 +5464,12 @@ function renderFinal(app){
 const DUEL_BET_CHIPS = [5, 10, 20, 50];
 let duelBetChipValue = 10;
 function setDuelBetChip(v){ duelBetChipValue = v; render(); }
+function duelBetStorageKey(matchKey){
+  return duelState.scheduled?.id ? `${duelState.scheduled.id}:${matchKey}` : matchKey;
+}
 
 function renderDuelBetPanel(matchKey, p1, p2){
-  const bets = duelBets[matchKey] || [];
+  const bets = (duelBets[duelBetStorageKey(matchKey)] || []).filter(b=>b&&b.status!=='settled'&&b.status!=='cancelled');
   const alreadyBet = new Set(bets.map(b=>b.trainer));
   const available = TRAINERS.filter(t=>!alreadyBet.has(t));
   return `
@@ -5459,25 +5517,77 @@ async function placeDuelBet(matchKey){
   const trainer = trainerSel.value;
   const pick = pickSel.value;
   const amount = duelBetChipValue;
+  const storageKey=duelBetStorageKey(matchKey);
   if((tickets[trainer]||0) < amount){ err.textContent = `${NAMES[trainer]} no tiene suficientes tickets.`; return; }
-  if((duelBets[matchKey]||[]).some(b=>b.trainer===trainer)){ err.textContent = 'Ya ha apostado en este combate.'; return; }
-  await addTickets(trainer, -amount, `Apuesta en combate a favor de ${NAMES[pick]}`);
-  duelBets[matchKey] = [...(duelBets[matchKey]||[]), { trainer, pick, amount }];
-  render();
-  const ok = await saveDuelBets();
-  if(!ok) queueRetry('duelBets', saveDuelBets);
+  if((duelBets[storageKey]||[]).some(b=>b.trainer===trainer&&b.status!=='settled'&&b.status!=='cancelled')){ err.textContent = 'Ya ha apostado en este combate.'; return; }
+  const bet={id:crypto.randomUUID(),trainer,pick,amount,status:'open'};
+  const debitId=`duel-bet-debit:${bet.id}`;
+  if(!await FBD.adjustTicketsOnce(trainer,-amount,debitId)){
+    err.textContent=`${NAMES[trainer]} ya no tiene suficientes tickets.`;
+    return;
+  }
+  pushHistory(`🎟️ ${NAMES[trainer]} apostó ${amount} tickets a favor de ${NAMES[pick]}`);
+  try{
+    saveInFlight['duelBets']=(saveInFlight['duelBets']||0)+1;
+    const result=await FBD.addDuelBet(storageKey,bet);
+    duelBets=result.value;
+    if(!result.added){
+      const refunded=await FBD.adjustTicketsOnce(trainer,amount,`duel-bet-refund:${bet.id}`);
+      if(refunded) pushHistory(`↩️ Se devolvieron los ${amount} tickets de una apuesta duplicada de ${NAMES[trainer]}`);
+      else queueRetry(`duel-bet-refund:${bet.id}`,()=>FBD.adjustTicketsOnce(trainer,amount,`duel-bet-refund:${bet.id}`));
+      err.textContent=refunded
+        ? (result.duplicate?'Ya ha apostado otra sesión en este combate. Se han devuelto los tickets.':'No se pudo registrar la apuesta. Se han devuelto los tickets.')
+        : 'No se pudo registrar ni confirmar la devolución; se reintentará automáticamente.';
+      render();
+      return;
+    }
+    render();
+  }catch(error){
+    console.error('No se pudo registrar la apuesta.',error);
+    try{
+      const refunded=await FBD.adjustTicketsOnce(trainer,amount,`duel-bet-refund:${bet.id}`);
+      if(!refunded) queueRetry(`duel-bet-refund:${bet.id}`,()=>FBD.adjustTicketsOnce(trainer,amount,`duel-bet-refund:${bet.id}`));
+      err.textContent=refunded?'No se pudo guardar la apuesta. Se han devuelto los tickets.':'No se pudo guardar ni confirmar la devolución; se reintentará automáticamente.';
+    }catch(refundError){
+      console.error('No se pudo devolver el importe de la apuesta.',refundError);
+      queueRetry(`duel-bet-refund:${bet.id}`,()=>FBD.adjustTicketsOnce(trainer,amount,`duel-bet-refund:${bet.id}`));
+      err.textContent='No se pudo confirmar la devolución; se reintentará automáticamente.';
+    }
+  }finally{
+    saveInFlight['duelBets']=Math.max((saveInFlight['duelBets']||1)-1,0);
+  }
 }
 
 async function resolveDuelBets(matchKey, winner){
-  const bets = duelBets[matchKey] || [];
-  for(const b of bets){
-    if(b.pick === winner){
-      await addTickets(b.trainer, b.amount*2, `Acertó su apuesta del combate (x2)`);
+  try{
+    saveInFlight['duelBets']=(saveInFlight['duelBets']||0)+1;
+    const result=await FBD.settleDuelBets(duelBetStorageKey(matchKey),winner);
+    duelBets=result.value;
+    for(const bet of result.payouts){
+      const pay=async()=>{
+        const paid=await FBD.adjustTicketsOnce(bet.trainer,bet.amount*2,`duel-bet-payout:${bet.id}`);
+        if(!paid) throw new Error('El pago de la apuesta no quedó confirmado');
+        pushHistory(`🎟️ ${NAMES[bet.trainer]} cobró ${bet.amount*2} tickets por acertar su apuesta`);
+        return true;
+      };
+      try{await pay()}catch(error){
+        console.error('No se pudo pagar una apuesta ganadora.',error);
+        queueRetry(`duel-bet-payout:${bet.id}`,pay);
+      }
     }
+    function resumeUnpaidDuelBetPayouts(){
+      for(const [matchKey,bets] of Object.entries(duelBets||{})){
+        const pendingPayout=bets.find(b=>b&&b.status==='settled'&&b.winner&&b.pick===b.winner&&
+          !(FBS.profiles[b.trainer]?.ticketOperations||{})[`duel-bet-payout:${b.id}`]);
+        if(pendingPayout) resolveDuelBets(matchKey,pendingPayout.winner);
+      }
+    }
+  }catch(error){
+    console.error('No se pudieron liquidar las apuestas del combate.',error);
+    toast('No se pudieron confirmar las apuestas con el servidor.');
+  }finally{
+    saveInFlight['duelBets']=Math.max((saveInFlight['duelBets']||1)-1,0);
   }
-  duelBets[matchKey] = [];
-  const ok = await saveDuelBets();
-  if(!ok) queueRetry('duelBets', saveDuelBets);
 }
 
 async function saveNormas(){
@@ -5581,9 +5691,12 @@ async function flushPending(){
 setInterval(flushPending, 4000);
 
 function pushHistory(text){
-  history.unshift({id: crypto.randomUUID(), text, ts: Date.now()});
+  const event = {id: crypto.randomUUID(), text, ts: Date.now()};
+  history.unshift(event);
   history = history.slice(0, 300);
-  trackedStoreSet('history', 'locke:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>trackedStoreSet('history', 'locke:history', history)); });
+  window.FBD.appendHistoryEvents([event]).then(ok=>{
+    if(!ok) queueRetry('history-event:'+event.id, ()=>window.FBD.appendHistoryEvents([event]));
+  });
 }
 
 /* ---- Popup de novedades al abrir la web: solo una vez, luego no vuelve a
@@ -5911,7 +6024,7 @@ function go(v, param){
   view = v;
   currentTrainer = param || null;
   if(v === 'casino'){
-    casinoPlayer = LOGIN_ME; Promise.resolve(maybeShowGiovanniQuiz(LOGIN_ME)).catch(()=>{});
+    casinoPlayer = LOGIN_ME; Promise.resolve(maybeShowSlakingQuiz(LOGIN_ME)).catch(()=>{});
     casinoFloor = true;
     casinoGreetingLine = CROUPIER_LINES[Math.floor(Math.random()*CROUPIER_LINES.length)];
   }
@@ -5974,9 +6087,7 @@ function render(){
   if(view === 'locker') return renderLocker(app);
   if(view === 'profile'){ renderProfile(app, currentTrainer); if(window.lkProfileCard) app.insertAdjacentHTML('afterbegin', `<div class="pf-wrap">${lkProfileCard(currentTrainer, true)}</div>`); return; }
   if(view === 'history') return renderHistory(app);
-  if(view === 'trade') return renderTrade(app);
   if(view === 'duel') return renderDuel(app);
-  if(view === 'types') return renderTypeCalc(app);
   if(view === 'routes') return renderRouteAtlas(app);
   if(view === 'contest') return renderContest(app);
   if(view === 'normas') return renderNormas(app);
@@ -5988,8 +6099,19 @@ function render(){
 function combatWinsOf(t){
   return duelHistory.filter(d=> d.champion === t).length;
 }
-// Compatibilidad reservada para el día en que Tracker Sync publique medallas.
+function tournamentStarClaimId(scheduled){
+  if(scheduled && scheduled.id) return `t-${scheduled.id}`;
+  const source=`${scheduled?.datetime||''}|${scheduled?.name||''}`;
+  let hash=2166136261;
+  for(let i=0;i<source.length;i++) hash=Math.imul(hash^source.charCodeAt(i),16777619);
+  return `legacy-${(hash>>>0).toString(16)}`;
+}
+// Compatibilidad con los registros de medallas guardados anteriormente.
 function badgeBitsOf(t){ return (badgeBits[t]||0) & 0xFF; }
+function tournamentStarCount(t){
+  const claims=((window.FBS&&FBS.profiles&&FBS.profiles[t])||{}).tournamentStarClaims||{};
+  return Object.keys(claims).length;
+}
 function badgeCountOf(t){
   const raw = badgeBitsOf(t); let n = 0;
   for(let i=0;i<GYM_COUNT;i++) if(raw & (1<<i)) n++;
@@ -6293,6 +6415,7 @@ function lbRow(t, r){
           ${segBar(h)}
           <div class="lb-chips">
             <span class="chipx gold">🏆 ${wins} combate${wins===1?'':'s'}</span>
+            <span class="chipx gold">⭐ ${tournamentStarCount(t)} estrella${tournamentStarCount(t)===1?'':'s'}</span>
             <span class="chipx elo" title="Elo (combates + lockes)">⚡ ${eloOf(t)}</span>
             <span class="chipx">${trackerBadgesAvailable[t] ? `🏅 ${badgeCountOf(t)}/${GYM_COUNT} medallas` : '🏅 medallas: esperando actualización del Tracker Sync'}</span>
             <span class="chipx">💰 ${(money[t]||0).toLocaleString('es-ES')}</span>
@@ -6344,7 +6467,7 @@ function renderSinJoelCard(){
       <div>
         <div class="sin-joel-label">⏱️ Tiempo sin ${NAMES.joel}</div>
         <div class="sin-joel-time" id="sin-joel-time" data-level="">—</div>
-        <div class="sin-joel-note">Se reinicia cuando su partida se actualiza (Tracker Sync).</div>
+        <div class="sin-joel-note">Se reinicia cuando su partida se actualiza.</div>
       </div>
     </div>`;
 }
@@ -6357,12 +6480,14 @@ window.lkProfileCard = function(t, big){
   const pal = K ? K.pal(a) : '';
   const ti = K ? K.title(a) : null;
   const ret = (typeof RETIRED_TRAINERS !== 'undefined') && RETIRED_TRAINERS.has(t);
+  const online = Object.values(((window.FBS&&FBS.presence)||{})[t]||{}).some(Boolean);
+  const stars = Object.keys(p.tournamentStarClaims||{}).length;
   const bg = a.background ? `background-image:url(recompensas/recompensas/fondos/fondo_${lkEsc(a.background)}.png),var(--pf-fb);` : '';
   return `<article class="pf-card${big?' big':''}${t===LOGIN_ME?' me':''}" style="${pal}" ${big?'':`onclick="go('profile','${t}')"`}>
     <div class="pf-ban" style="${bg}"></div>
     ${a.character ? `<img class="pf-ch" src="recompensas/recompensas/personajes/personaje_${lkEsc(a.character)}.png" alt="" onerror="this.hidden=true">` : `<div class="pf-ch pf-ph">🎅</div>`}
     ${ret ? '<div class="pf-stamp">🚩 ABANDONÓ</div>' : ''}
-    <div class="pf-txt"><h3>${NAMES[t]}</h3><p class="pf-ttl">${ti ? `<span>${'★'.repeat(+ti.stars||0)}</span> ${lkEsc(ti.name)}` : '<em>Sin título</em>'}</p></div>
+    <div class="pf-txt"><h3>${NAMES[t]} <span class="pf-presence ${online?'online':''}" role="img" aria-label="${online?'En línea':'Sin conexión'}" title="${online?'En línea':'Sin conexión'}"></span></h3><p class="pf-ttl">${ti ? `<span>${'★'.repeat(+ti.stars||0)}</span> ${lkEsc(ti.name)}` : '<em>Sin título</em>'}</p><p class="pf-stars">⭐ ${stars} estrella${stars===1?'':'s'} de torneo</p></div>
   </article>`;
 }
 function rrInfo(t, r){
@@ -7097,9 +7222,9 @@ function openCasinoProfileModal(){
 }
 
 /* ---------------- Cuestionario sorpresa de Slaking ---------------- */
-const GIOVANNI_QUIZ_TICKETS = 5; // premio por acertar una de cultura general
-const GIOVANNI_QUIZ_CHANCE = 0.1; // 1 de cada 10, con UNA sola tirada al día por perfil
-const GIOVANNI_QUIZ = [
+const SLAKING_QUIZ_TICKETS = 5; // premio por acertar una pregunta del cuestionario
+const SLAKING_QUIZ_CHANCE = 0.1; // 1 de cada 10, con UNA sola tirada al día por perfil
+const SLAKING_QUIZ = [
   // --- Cultura general (dificil) ---
   { id:'cg1', type:'cultura', q:'¿Cuál es la capital de Burkina Faso?', o:['Bamako','Uagadugú','Niamey','Acra'], c:1 },
   { id:'cg2', type:'cultura', q:'¿En qué año se firmó el Tratado de Tordesillas?', o:['1492','1494','1498','1503'], c:1 },
@@ -7138,11 +7263,11 @@ const GIOVANNI_QUIZ = [
   { id:'om4', type:'opinion_mala', q:'¿Qué parte de la página te parece más aburrida?', o:['El cementerio','El historial','Las normas','La colección'] },
   { id:'om5', type:'opinion_mala', q:'¿Qué es lo que peor funciona?', o:['El tracker','El casino','Los intercambios','Los duelos'] },
 ];
-let giovanniQuizCurrent = null;
-let giovanniQuizTrainer = null;
-let giovanniQuizDone = null;
+let slakingQuizCurrent = null;
+let slakingQuizTrainer = null;
+let slakingQuizDone = null;
 
-function injectGiovanniQuizStyle(){
+function injectSlakingQuizStyle(){
   if(document.getElementById('gq-style')) return;
   const s = document.createElement('style');
   s.id = 'gq-style';
@@ -7161,11 +7286,11 @@ function injectGiovanniQuizStyle(){
 }
 
 // Devuelve una pregunta que este perfil aun no ha contestado (o null).
-async function pickGiovanniQuestion(t){
+async function pickSlakingQuestion(t){
   const done = await storeGet('locke:quiz:' + t, []);
   if(done === STORE_FETCH_FAILED || !Array.isArray(done)) return null;
   const answered = new Set(done.map(a => a.qid));
-  const left = GIOVANNI_QUIZ.filter(q => !answered.has(q.id));
+  const left = SLAKING_QUIZ.filter(q => !answered.has(q.id));
   if(!left.length) return null;
   return { question: left[Math.floor(Math.random() * left.length)], done };
 }
@@ -7176,27 +7301,27 @@ async function pickGiovanniQuestion(t){
 function quizTodayKey(){
   return new Intl.DateTimeFormat('sv-SE', { timeZone:'Europe/Madrid' }).format(new Date());
 }
-async function giovanniDailyRoll(t){
+async function slakingDailyRoll(t){
   const key = 'locke:quizRoll:' + t;
   const today = quizTodayKey();
   const last = await storeGet(key, null);
   if(last === STORE_FETCH_FAILED) return false; // sin saber si ya tiró hoy, mejor no tirar
   if(last === today) return false;
   await storeSet(key, today);
-  return Math.random() < GIOVANNI_QUIZ_CHANCE;
+  return Math.random() < SLAKING_QUIZ_CHANCE;
 }
 
-async function maybeShowGiovanniQuiz(t){
+async function maybeShowSlakingQuiz(t){
   let roll = false;
-  try{ roll = await giovanniDailyRoll(t); }catch(e){}
+  try{ roll = await slakingDailyRoll(t); }catch(e){}
   if(!roll) return false;
   let pick = null;
-  try{ pick = await pickGiovanniQuestion(t); }catch(e){}
+  try{ pick = await pickSlakingQuestion(t); }catch(e){}
   if(!pick) return false;
-  giovanniQuizCurrent = pick.question;
-  giovanniQuizTrainer = t;
-  giovanniQuizDone = pick.done;
-  injectGiovanniQuizStyle();
+  slakingQuizCurrent = pick.question;
+  slakingQuizTrainer = t;
+  slakingQuizDone = pick.done;
+  injectSlakingQuizStyle();
   const q = pick.question;
   const el = document.createElement('div');
   el.id = 'gq-overlay';
@@ -7204,16 +7329,16 @@ async function maybeShowGiovanniQuiz(t){
     <img src="${SLACKING_ART.hall}" alt="Slaking, el crupier">
     <div class="gq-tag">Slaking quiere saber una cosa</div>
     <div class="gq-q">${q.q}</div>
-    ${q.type==='cultura' ? `<div class="gq-tag">Sin IA ni buscadores · si aciertas +${GIOVANNI_QUIZ_TICKETS} tickets, si fallas -${GIOVANNI_QUIZ_TICKETS}</div>` : q.type==='joel' ? `<div class="gq-tag">¿Cuánto conoces a Joel? · si aciertas +${GIOVANNI_QUIZ_TICKETS} tickets, si fallas -${GIOVANNI_QUIZ_TICKETS}</div>` : q.type==='iker' ? `<div class="gq-tag">¿Cuánto conoces a Iker? · si aciertas +${GIOVANNI_QUIZ_TICKETS} tickets, si fallas -${GIOVANNI_QUIZ_TICKETS}</div>` : ''}
-    <div class="gq-opts">${q.o.map((o,i)=>`<button onclick="answerGiovanniQuiz(${i})">${o}</button>`).join('')}</div>`;
+    ${q.type==='cultura' ? `<div class="gq-tag">Sin IA ni buscadores · si aciertas +${SLAKING_QUIZ_TICKETS} tickets, si fallas -${SLAKING_QUIZ_TICKETS}</div>` : q.type==='joel' ? `<div class="gq-tag">¿Cuánto conoces a Joel? · si aciertas +${SLAKING_QUIZ_TICKETS} tickets, si fallas -${SLAKING_QUIZ_TICKETS}</div>` : q.type==='iker' ? `<div class="gq-tag">¿Cuánto conoces a Iker? · si aciertas +${SLAKING_QUIZ_TICKETS} tickets, si fallas -${SLAKING_QUIZ_TICKETS}</div>` : ''}
+    <div class="gq-opts">${q.o.map((o,i)=>`<button onclick="answerSlakingQuiz(${i})">${o}</button>`).join('')}</div>`;
   document.body.appendChild(el);
   return new Promise(resolve => { window._gqResolve = resolve; });
 }
 
-async function answerGiovanniQuiz(i){
-  const q = giovanniQuizCurrent;
+async function answerSlakingQuiz(i){
+  const q = slakingQuizCurrent;
   if(!q) return;
-  giovanniQuizCurrent = null;
+  slakingQuizCurrent = null;
   const el = document.getElementById('gq-overlay');
   el.querySelectorAll('.gq-opts button').forEach(b => b.disabled = true);
   const record = { qid:q.id, type:q.type, question:q.q, answer:q.o[i], ts:Date.now() };
@@ -7221,18 +7346,18 @@ async function answerGiovanniQuiz(i){
   el.querySelector('.gq-tag').textContent = '';
   const won = record.correct === true;
   const lost = record.correct === false;
-  el.querySelector('.gq-q').textContent = won ? `¡Correcto! +${GIOVANNI_QUIZ_TICKETS} tickets. Muchas gracias por contestar.`
-    : lost ? `Fallaste: -${GIOVANNI_QUIZ_TICKETS} tickets. Muchas gracias por contestar.`
+  el.querySelector('.gq-q').textContent = won ? `¡Correcto! +${SLAKING_QUIZ_TICKETS} tickets. Muchas gracias por contestar.`
+    : lost ? `Fallaste: -${SLAKING_QUIZ_TICKETS} tickets. Muchas gracias por contestar.`
     : 'Muchas gracias por contestar.';
-  el.querySelector('.gq-opts').innerHTML = '<button class="gq-enter" style="grid-column:1/-1" onclick="closeGiovanniQuiz()">Entrar al casino</button>';
-  const trainer = giovanniQuizTrainer;
-  try{ await storeSet('locke:quiz:' + trainer, [...giovanniQuizDone, record]); }catch(e){}
+  el.querySelector('.gq-opts').innerHTML = '<button class="gq-enter" style="grid-column:1/-1" onclick="closeSlakingQuiz()">Entrar al casino</button>';
+  const trainer = slakingQuizTrainer;
+  try{ await storeSet('locke:quiz:' + trainer, [...slakingQuizDone, record]); }catch(e){}
   if(won || lost){
-    try{ await addTickets(trainer, won ? GIOVANNI_QUIZ_TICKETS : -GIOVANNI_QUIZ_TICKETS, (won ? 'acierto' : 'fallo') + ' en el cuestionario de Slaking'); render(); }catch(e){}
+    try{ await addTickets(trainer, won ? SLAKING_QUIZ_TICKETS : -SLAKING_QUIZ_TICKETS, (won ? 'acierto' : 'fallo') + ' en el cuestionario de Slaking'); render(); }catch(e){}
   }
 }
 
-function closeGiovanniQuiz(){
+function closeSlakingQuiz(){
   const el = document.getElementById('gq-overlay');
   if(el) el.remove();
   if(window._gqResolve){ const r = window._gqResolve; window._gqResolve = null; r(true); }
@@ -7243,7 +7368,7 @@ function confirmCasinoPlayer(t){
   casinoNeedsProfileSelect = false;
   closeModal();
   render();
-  Promise.resolve(maybeShowGiovanniQuiz(t)).catch(()=>{}).then(() => checkDailyBonus(t));
+  Promise.resolve(maybeShowSlakingQuiz(t)).catch(()=>{}).then(() => checkDailyBonus(t));
 }
 
 function setCasinoPlayer(t){
@@ -9553,7 +9678,7 @@ function openScheduleDuel(progressionKey){
     <h3>Programar torneo</h3>
     <div class="field">
       <label>Nombre del torneo</label>
-      <input type="text" id="duel-name" value="${defaultName}" placeholder="ej: Combate 1 · 2 medallas">
+      <input type="text" id="duel-name" maxlength="80" value="${defaultName}" placeholder="ej: Combate 1 · 2 medallas">
     </div>
     <div class="field">
       <label>Fecha y hora (esta semana)</label>
@@ -9590,7 +9715,7 @@ async function submitScheduleDuel(){
   }
   // Torneo de 3: sortea quién juega el Combate 1 (dos jugadores); el tercero pasa
   // directo a la final ("bye"). El sorteo se hace en la propia pantalla (spinWheel).
-  duelState = { scheduled: { name, datetime: dt }, progressionKey, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
+  duelState = { scheduled: { id:crypto.randomUUID(), name, datetime:dt }, progressionKey, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
   duelScheduleProgressionKey = null;
   duelWheelRotation = 0;
   finalWheelRotationWinner = 0;
@@ -10488,8 +10613,9 @@ function spinFinalWheel(role){
 async function finishDuel(){
   const { scheduled, bye, match1, match1Winner, match1LoserPrize, finalWinner, finalWinnerPrize, finalLoserPrize, progressionKey } = duelState;
   const finalLoser = finalLoserOf();
+  const tournamentId = tournamentStarClaimId(scheduled);
   const historyEntry = {
-    id: crypto.randomUUID(),
+    id: scheduled.id || tournamentId,
     name: scheduled.name,
     date: scheduled.datetime,
     match1: { p1: match1.p1, p2: match1.p2, winner: match1Winner },
@@ -10505,7 +10631,7 @@ async function finishDuel(){
     ts: Date.now()
   };
   if(progressionKey) historyEntry.progressionKey = progressionKey;
-  duelHistory.unshift(historyEntry);
+  if(!duelHistory.some(entry=>entry.id===historyEntry.id)) duelHistory.unshift(historyEntry);
   let journeyChanged = false;
   if(progressionKey === 'post-league' && !arenaJourneyState.postLeagueDone){
     arenaJourneyState.postLeagueDone = true;
@@ -10520,6 +10646,24 @@ async function finishDuel(){
       arenaClearVotes(String(medals));
       journeyChanged = true;
     }
+  }
+  const awardChampionStar=async()=>{
+    const awarded=await FBD.awardTournamentStar(finalWinner,tournamentId);
+    if(!awarded) return false;
+    const event={id:`tournament-star:${tournamentId}`,text:`⭐ ${NAMES[finalWinner]} ganó una estrella por ser campeón del torneo «${scheduled.name}»`,ts:Date.now()};
+    if(!history.some(entry=>entry.id===event.id)){
+      history.unshift(event);
+      history=history.slice(0,300);
+    }
+    return await FBD.appendHistoryEvents([event]);
+  };
+  try{
+    const saved=await awardChampionStar();
+    if(!saved) queueRetry('tournament-star:'+tournamentId,awardChampionStar);
+  }catch(error){
+    console.error('No se pudo adjudicar la estrella del torneo.',error);
+    toast('No se ha podido confirmar la estrella del campeón. Se reintentará automáticamente.');
+    queueRetry('tournament-star:'+tournamentId,awardChampionStar);
   }
   duelState = { scheduled:null, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
   duelWheelRotation = 0;
@@ -12208,7 +12352,24 @@ button:disabled{opacity:.45;cursor:default}
 @keyframes lkrise{from{opacity:0;transform:translateY(24px) scale(.92)}}
 @keyframes lkbur{to{transform:translate(var(--x),var(--y)) scale(.3);opacity:0}}
 .lk .mu{color:var(--mu);margin:0 0 10px}
-@media (min-width:901px){ .rail{ overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; } }
+.pf-presence{display:inline-block;width:9px;height:9px;margin-left:6px;border-radius:50%;vertical-align:middle;background:#e34b55;box-shadow:0 0 0 3px #e34b5522}
+.pf-presence.online{background:#39d98a;box-shadow:0 0 0 3px #39d98a22,0 0 10px #39d98a99}
+.pf-stars{margin:4px 0 0;color:var(--ember);font-size:11px}
+.lk-trade{margin:18px 0 22px;padding:20px;border:1px solid color-mix(in srgb,var(--ac) 40%,var(--pr));border-radius:16px;background:linear-gradient(145deg,color-mix(in srgb,var(--sf) 88%,var(--pr)),var(--bg));box-shadow:0 14px 32px #0003}
+.lk-trade-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+.lk-trade-head h3{margin:4px 0;color:var(--tx);font:800 20px var(--f-ui)}
+.lk-trade-head p,.lk-trade-note{margin:0;color:var(--mu);font-size:12px}
+.lk-trade-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+.lk-trade-form label{display:grid;gap:6px;color:var(--mu);font-size:11px}
+.lk-trade-form select{min-width:0;width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--tx)}
+.lk-trade-form button{grid-column:1/-1;justify-self:start}
+.lk-trade-list{display:grid;gap:9px;margin-top:16px}
+.lk-trade-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px;border:1px solid var(--border);border-radius:11px;background:color-mix(in srgb,var(--bg) 75%,transparent)}
+.lk-trade-row p{margin:4px 0 0;color:var(--mu);font-size:12px}
+.lk-trade-status{color:var(--ac);font-size:11px;font-weight:700}
+.lk-trade-actions{display:flex;gap:7px;flex-wrap:wrap}
+.lk-trade-actions button{white-space:nowrap}
+@media(max-width:760px){.lk-trade-form{grid-template-columns:1fr 1fr}.lk-trade-row{align-items:flex-start;flex-direction:column}}
 .home-commandbar{
   display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,1.5fr);gap:22px;align-items:center;
   margin:0 0 22px;padding:22px 24px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border));
@@ -12297,19 +12458,132 @@ button:disabled{opacity:.45;cursor:default}
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import {getDatabase,ref,onValue,get,set,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+import {getDatabase,ref,onValue,get,set,remove,runTransaction,onDisconnect,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 const app=initializeApp({apiKey:"AIzaSyA7HY0r6mmwWUTBgDG8M0quYH6j6roJct8",authDomain:"locke-navideno.firebaseapp.com",databaseURL:"https://locke-navideno-default-rtdb.europe-west1.firebasedatabase.app",projectId:"locke-navideno",appId:"1:351098737273:web:27479e5a49ca9a01cabaa8"});
 const auth=getAuth(app),db=getDatabase(app),$=s=>document.querySelector(s),FBS=window.FBS;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const wait=ms=>new Promise(r=>setTimeout(r,ms)),dirty=()=>{window.__fbDirty=true},say=t=>{try{window.toast(t)}catch(e){console.log(t)}};
-let me=null,cfg={},inv={},opened={},claims={},pz={},off=0,cbusy=false,busy=false,tab='skins',doors={},unsubs=[];const granting=new Set();
+let me=null,cfg={},inv={},opened={},claims={},pz={},off=0,cbusy=false,busy=false,tab='skins',doors={},unsubs=[],presenceSession=crypto.randomUUID();const granting=new Set();
 window.__lkBusy=()=>cbusy;
-const sub=(path,cb)=>new Promise(res=>{let first=true;unsubs.push(onValue(ref(db,path),s=>{cb(s.val());dirty();if(first){first=false;res()}},()=>{if(first){first=false;res()}}))});
+const sub=(path,cb)=>new Promise(res=>{let first=true;unsubs.push(onValue(ref(db,path),s=>{cb(s.val());dirty();if(first){first=false;res()}},error=>{console.error(`No se pudo sincronizar Firebase en ${path}.`,error);if(first){first=false;res()}}))});
+function decodeLegacyValue(value, fallback){
+  if(value == null) return fallback;
+  if(typeof value !== 'string') return value;
+  try{return JSON.parse(value)}catch(error){console.error('No se pudo interpretar legacy/'+error);throw error}
+}
+async function transactLegacy(key, fallback, mutate){
+  const result=await runTransaction(ref(db,'legacy/'+key),raw=>{
+    let current;
+    try{current=decodeLegacyValue(raw,fallback)}catch{return}
+    const next=mutate(current);
+    return next === undefined ? undefined : JSON.stringify(next);
+  },{applyLocally:false});
+  return {committed:result.committed,value:decodeLegacyValue(result.snapshot.val(),fallback)};
+}
+function cloneData(value){return value == null ? value : JSON.parse(JSON.stringify(value))}
+function inventoryTransaction(mutate){
+  return runTransaction(ref(db,'inventory'),current=>{
+    const next=mutate(cloneData(current||{}));
+    return next === undefined ? undefined : next;
+  },{applyLocally:false});
+}
 window.FBD={
   setLegacy:(k,raw)=>set(ref(db,'legacy/'+k),raw),
+  appendHistoryEvents:async events=>{
+    try{
+      const result=await transactLegacy('history',[],current=>{
+        const list=Array.isArray(current)?current:[];
+        const known=new Set(list.map(e=>e&&e.id).filter(Boolean));
+        const added=events.filter(e=>!known.has(e.id));
+        return [...added,...list].slice(0,300);
+      });
+      if(result.committed){dirty();return true}
+      return true;
+    }catch(error){console.error('No se pudo guardar el diario transaccionalmente.',error);say('No se pudo guardar el diario. Se reintentará automáticamente.');return false}
+  },
+  mergeDuelHistory:async entries=>{
+    const result=await transactLegacy('duelHistory',[],current=>{
+    const next=Array.isArray(current)?[...current]:[];
+    const known=new Set(next.map(entry=>entry&&entry.id).filter(Boolean));
+    for(const entry of entries) if(entry&&entry.id&&!known.has(entry.id)){
+      next.push(entry);
+      known.add(entry.id);
+    }
+    next.sort((a,b)=>(Number(b&&b.ts)||0)-(Number(a&&a.ts)||0));
+    if(JSON.stringify(next)===JSON.stringify(current)) return undefined;
+    return next;
+    });
+    return result;
+  },
+  addDuelBet:async(matchKey,bet)=>{
+    let duplicate=false;
+    const result=await transactLegacy('duelBets',{match1:[],final:[]},current=>{
+      const state=current&&typeof current==='object'?current:{match1:[],final:[]};
+      const bets=Array.isArray(state[matchKey])?state[matchKey]:[];
+      if(bets.some(item=>item&&item.trainer===bet.trainer&&item.status!=='settled'&&item.status!=='cancelled')){
+        duplicate=true;
+        return undefined;
+      }
+      return {...state,[matchKey]:[...bets,bet]};
+    });
+    return {added:result.committed,duplicate,value:result.value};
+  },
+  settleDuelBets:async(matchKey,winner)=>{
+    let payouts=[];
+    const result=await transactLegacy('duelBets',{match1:[],final:[]},current=>{
+      payouts=[];
+      const state=current&&typeof current==='object'?current:{match1:[],final:[]};
+      const bets=Array.isArray(state[matchKey])?state[matchKey]:[];
+      if(!bets.some(item=>item&&item.status!=='settled'&&item.status!=='cancelled')){
+        payouts=bets.filter(item=>item&&item.status==='settled'&&item.winner===winner&&item.pick===winner);
+        return undefined;
+      }
+      const settled=bets.map(item=>{
+        if(!item||item.status==='settled'||item.status==='cancelled') return item;
+        if(item.pick===winner) payouts.push(item);
+        return {...item,status:'settled',winner};
+      });
+      return {...state,[matchKey]:settled};
+    });
+    return {settled:result.committed,payouts,value:result.value};
+  },
+  compareAndSetLegacy:async(k,expected,next,normalize=value=>value)=>{
+    const result=await transactLegacy(k,null,current=>{
+      if(JSON.stringify(normalize(current))!==JSON.stringify(expected)) return undefined;
+      return next;
+    });
+    return result;
+  },
+  transactInventory:inventoryTransaction,
+  awardTournamentStar:async(trainer,tournamentId)=>{
+    const claim=ref(db,`profiles/${trainer}/tournamentStarClaims/${tournamentId}`);
+    const result=await runTransaction(claim,current=>current?undefined:{at:serverTimestamp()},{applyLocally:false});
+    return result.committed || result.snapshot.exists();
+  },
+  adjustTicketsOnce:async(trainer,delta,operationId)=>{
+    let insufficient=false;
+    const result=await runTransaction(ref(db,`profiles/${trainer}`),current=>{
+      const profile=current||{};
+      const operations=profile.ticketOperations||{};
+      if(operations[operationId]) return undefined;
+      const balance=Number(profile.tickets)||0;
+      if(delta<0&&balance < -delta){insufficient=true;return undefined}
+      profile.tickets=balance+delta;
+      profile.ticketOperations={...operations,[operationId]:{delta,at:Date.now()}};
+      return profile;
+    },{applyLocally:false});
+    const profile=result.snapshot.val()||{};
+    FBS.profiles[trainer]=profile;
+    dirty();
+    return result.committed||!!(profile.ticketOperations&&profile.ticketOperations[operationId]) ? !insufficient : false;
+  },
   bump(k,field,d){const p=(FBS.profiles[k]=FBS.profiles[k]||{});p[field]=(+p[field]||0)+d;dirty();
     runTransaction(ref(db,`profiles/${k}/${field}`),c=>(+c||0)+d).catch(()=>{p[field]-=d;dirty();say('No se pudo guardar un cambio de '+field+'.')})},
-  logout:()=>signOut(auth).then(()=>location.reload())};
+  logout:async()=>{
+    if(me) await remove(ref(db,`presence/${me}/${presenceSession}`));
+    await signOut(auth);
+    location.reload();
+  }};
 $('#lk-f').onsubmit=async e=>{e.preventDefault();$('#lk-err').textContent='';
   try{await signInWithEmailAndPassword(auth,$('#lk-u').value+'@locke.local',$('#lk-p').value)}catch{$('#lk-err').textContent='Usuario o contraseña incorrectos.'}};
 onAuthStateChanged(auth,async user=>{
@@ -12317,7 +12591,28 @@ onAuthStateChanged(auth,async user=>{
   me=user.email.split('@')[0];window.LOGIN_ME=me;
   cfg=(await get(ref(db,'config'))).val()||{};
   await Promise.all([sub('legacy',v=>{FBS.legacy=v||{}}),sub('profiles',v=>{FBS.profiles=v||{}}),sub('inventory',v=>{FBS.inventory=v||{};inv=FBS.inventory[me]||{}}),
+    sub('presence',v=>{FBS.presence=v||{}}),
     sub('calendarOpened/'+me,v=>{opened=v||{};syncCal()}),sub('claims/'+me,v=>{claims=v||{};syncCal()}),sub('.info/serverTimeOffset',v=>{off=v||0})]);
+  const connectionRef=ref(db,'.info/connected');
+  unsubs.push(onValue(connectionRef,async snapshot=>{
+    if(snapshot.val()!==true || !me){FBS.presenceConnected=false;dirty();return}
+    try{
+      const ownPresence=ref(db,`presence/${me}/${presenceSession}`);
+      await onDisconnect(ownPresence).remove();
+      await set(ownPresence,true);
+      FBS.presenceConnected=true;
+    }catch(error){
+      FBS.presenceConnected=false;
+      console.error('No se pudo actualizar la presencia del entrenador.',error);
+      say('No se pudo actualizar tu estado en línea.');
+    }
+    dirty();
+  },error=>{
+    FBS.presenceConnected=false;
+    dirty();
+    console.error('No se pudo consultar la conexión de Firebase.',error);
+    say('No se pudo comprobar el estado de conexión.');
+  }));
   $('#lk-login').style.display='none';window._fbResolve();
 });
 /* ---------- calendario ---------- */
@@ -12426,9 +12721,52 @@ window.renderShop=a=>{
     return `<div class="it${has?' own':''}${has&&isNew(kind,it.id)?' lk-new':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div>${btn}</div>`}).join('');
   const ownedCount=Object.keys(own).filter(id=>own[id]).length;
   a.innerHTML=`<div class="lk lk-shop"><header class="lk-shop-head"><div><span class="lk-eyebrow">PERSONALIZA TU AVENTURA</span><h2>Tienda</h2><p class="mu">Elige un cosmético, equípalo y dale tu estilo a la run.</p></div><div class="lk-shop-balance"><span>🎟️</span><div><small>Tu saldo</small><b>${tk} tickets</b></div></div></header><div class="lk-shop-toolbar"><div class="lk-shop-tabs">${Object.keys(TABS).map(k=>`<button class="sm${k===tab?' on':''}" data-tab="${k}" type="button">${TABS[k][0]}</button>`).join('')}</div><span class="lk-shop-count">${ownedCount} de ${items.length} disponibles</span></div><div class="shop">${cards||'<p class="mu lk-shop-empty">No hay artículos disponibles en esta categoría todavía.</p>'}</div></div>`};
-async function act(fn){if(busy)return;busy=true;try{await fn()}catch{say('Error de conexión. Inténtalo otra vez.')}finally{busy=false}}
+async function act(fn){if(busy)return;busy=true;try{await fn()}catch(error){console.error('No se pudo completar la acción de la taquilla/tienda.',error);say('No se pudo completar la acción. Comprueba la conexión e inténtalo otra vez.')}finally{busy=false}}
 document.addEventListener('click',e=>{const b=e.target.closest('.lk button');if(!b)return;
   if(b.dataset.tab){tab=b.dataset.tab;window.render()}
+  if(b.dataset.cosmeticTradeCreate)act(async()=>{
+    const target=document.getElementById('trade-target')?.value;
+    const offered=document.getElementById('trade-offered')?.value.split(':');
+    const wanted=document.getElementById('trade-wanted')?.value.split(':');
+    if(!['iker','joel','alex'].includes(target)||target===me||!offered||!wanted){say('Elige dos cosméticos válidos para el intercambio.');return}
+    const offer={id:crypto.randomUUID(),from:me,to:target,offered:{kind:offered[0],id:offered[1]},wanted:{kind:wanted[0],id:wanted[1]},status:'pending',createdAt:Date.now()};
+    const result=await inventoryTransaction(inventory=>{
+      if(!inventory[me]?.[offer.offered.kind]?.[offer.offered.id]||!inventory[target]?.[offer.wanted.kind]?.[offer.wanted.id]) return undefined;
+      if(cosmeticEquipped(me,offer.offered.kind,offer.offered.id)||cosmeticEquipped(target,offer.wanted.kind,offer.wanted.id)) return undefined;
+      inventory.cosmeticTrades=inventory.cosmeticTrades||{};
+      inventory.cosmeticTrades[offer.id]=offer;
+      return inventory;
+    });
+    if(!result.committed){say('La propiedad del cosmético cambió o está equipado; actualiza la taquilla y vuelve a intentarlo.');return}
+    FBS.inventory=result.snapshot.val()||{};
+    inv=FBS.inventory[me]||{};
+    say('Propuesta enviada. El otro entrenador debe aceptarla y tú confirmar la entrega.');
+    window.render();
+  });
+  if(b.dataset.tradeAccept)act(async()=>{
+    if(await updateCosmeticTrade(b.dataset.tradeAccept,'accept')) say('Has aceptado la propuesta. Falta que quien la creó confirme la entrega.');
+    else say('La propuesta ya no está disponible para aceptar.');
+    window.render();
+  });
+  if(b.dataset.tradeConfirm)act(async()=>{
+    if(await updateCosmeticTrade(b.dataset.tradeConfirm,'confirm')) say('Intercambio completado. Los dos cosméticos ya están en sus nuevas taquillas.');
+    else say('No se pudo completar: comprueba que ambos cosméticos sigan en propiedad y no estén equipados.');
+    window.render();
+  });
+  if(b.dataset.tradeCancel)act(async()=>{
+    if(await updateCosmeticTrade(b.dataset.tradeCancel,'cancel')) say('Propuesta cancelada.');
+    else say('La propuesta ya no se puede cancelar.');
+    window.render();
+  });
+  if(b.dataset.unequip)act(async()=>{
+    const field=b.dataset.unequip;
+    await remove(ref(db,`profiles/${me}/avatar/${field}`));
+    const profile=FBS.profiles[me]||(FBS.profiles[me]={});
+    if(profile.avatar) delete profile.avatar[field];
+    dirty();
+    say('Cosmético quitado. Ya puedes intercambiarlo.');
+    window.render();
+  });
   if(b.dataset.eq)act(async()=>{const field=TABS[tab][2],profile=FBS.profiles[me]||(FBS.profiles[me]={});profile.avatar={...(profile.avatar||{}),[field]:b.dataset.eq};await set(ref(db,`profiles/${me}/avatar/${field}`),b.dataset.eq);dirty();window.render();say('Cosmético equipado.');});
   if(b.dataset.buy)act(async()=>{const id=b.dataset.buy,pr=+b.dataset.price,kind=TABS[tab][1],tk=ref(db,`profiles/${me}/tickets`);
     const r=await runTransaction(tk,c=>(+c||0)>=pr?(+c||0)-pr:undefined);
@@ -12436,8 +12774,103 @@ document.addEventListener('click',e=>{const b=e.target.closest('.lk button');if(
     try{await set(ref(db,`inventory/${me}/${kind}/${id}`),true);inv[kind]=inv[kind]||{};inv[kind][id]=true;FBS.inventory[me]=inv;dirty();say('Compra realizada. Ya puedes equiparlo desde tu taquilla.');window.render()}catch{await runTransaction(tk,c=>(+c||0)+pr);say('No se pudo completar la compra. Te hemos devuelto los tickets.')}});
   if(b.dataset.life)act(async()=>{const k=b.dataset.life;if(((FBS.profiles[me]||{}).lives??20)>=20){say('Ya tienes 20 vidas. Cóbrala cuando pierdas alguna.');return}
     await set(ref(db,`claims/${me}/${k}`),{at:serverTimestamp()});await runTransaction(ref(db,`profiles/${me}/lives`),c=>Math.min(20,(+c||0)+1))})});
+document.addEventListener('change',e=>{
+  if(e.target&&e.target.id==='trade-target'){
+    tradeTargetTrainer=e.target.value;
+    window.render();
+  }
+});
 addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#rv')&&$('#rv').classList.contains('on'))closeCard()});
 /* ---------- helpers de perfil / taquilla / bonus diario ---------- */
+const COSMETIC_KINDS={characters:'Personaje',backgrounds:'Fondo',palettes:'Paleta',titles:'Título'};
+const LK_TRAINER_NAMES={iker:'Iker',joel:'Joel',alex:'Alex'};
+let tradeTargetTrainer=null;
+function cosmeticName(kind,id){
+  if(kind==='characters') return `Personaje ${id}`;
+  if(kind==='backgrounds') return `Fondo ${id}`;
+  if(kind==='palettes') return paletteNameOf(paletteById(id));
+  if(kind==='titles') return (cfg.titles&&cfg.titles[id]&&cfg.titles[id].name)||`Título ${id}`;
+  return 'Cosmético';
+}
+function cosmeticEquipped(trainer,kind,id){
+  const field={characters:'character',backgrounds:'background',palettes:'palette',titles:'title'}[kind];
+  return String((((FBS.profiles||{})[trainer]||{}).avatar||{})[field]||'')===String(id);
+}
+function ownedCosmetics(trainer,includeEquipped=false){
+  const inventory=(FBS.inventory||{})[trainer]||{};
+  return Object.entries(COSMETIC_KINDS).flatMap(([kind,label])=>
+    Object.keys(inventory[kind]||{}).filter(id=>inventory[kind][id]&&
+      (includeEquipped||!cosmeticEquipped(trainer,kind,id)))
+      .map(id=>({kind,id,label,name:cosmeticName(kind,id)})));
+}
+function cosmeticOptionList(items){
+  return items.map(item=>`<option value="${esc(item.kind+':'+item.id)}">${esc(item.label)} · ${esc(item.name)}</option>`).join('');
+}
+function renderCosmeticTrades(){
+  const others=['iker','joel','alex'].filter(trainer=>trainer!==me);
+  if(!others.includes(tradeTargetTrainer)) tradeTargetTrainer=others[0];
+  const mine=ownedCosmetics(me);
+  const theirs=ownedCosmetics(tradeTargetTrainer);
+  const offers=Object.values((FBS.inventory||{}).cosmeticTrades||{})
+    .filter(offer=>offer&&['pending','accepted-by-target','completed','cancelled'].includes(offer.status))
+    .sort((a,b)=>(Number(b.createdAt)||0)-(Number(a.createdAt)||0));
+  const rows=offers.map(offer=>{
+    const fromItem=`${COSMETIC_KINDS[offer.offered?.kind]||'Cosmético'} · ${cosmeticName(offer.offered?.kind,offer.offered?.id)}`;
+    const wantedItem=`${COSMETIC_KINDS[offer.wanted?.kind]||'Cosmético'} · ${cosmeticName(offer.wanted?.kind,offer.wanted?.id)}`;
+    const status=offer.status==='pending'?'Esperando aceptación':offer.status==='accepted-by-target'?'Aceptado · falta confirmar el envío':offer.status==='completed'?'Intercambio completado':'Cancelado';
+    const controls=[];
+    if(offer.status==='pending'&&offer.to===me) controls.push(`<button class="primary" data-trade-accept="${esc(offer.id)}" type="button">Aceptar intercambio</button>`);
+    if(offer.status==='accepted-by-target'&&offer.from===me) controls.push(`<button class="primary" data-trade-confirm="${esc(offer.id)}" type="button">Confirmar y entregar</button>`);
+    if(['pending','accepted-by-target'].includes(offer.status)&&(offer.from===me||offer.to===me)) controls.push(`<button class="ghost" data-trade-cancel="${esc(offer.id)}" type="button">Cancelar</button>`);
+    return `<article class="lk-trade-row"><div><b>${esc(LK_TRAINER_NAMES[offer.from]||offer.from)} ↔ ${esc(LK_TRAINER_NAMES[offer.to]||offer.to)}</b><p>${esc(fromItem)} ↔ ${esc(wantedItem)}</p><span class="lk-trade-status">${status}</span></div>${controls.length?`<div class="lk-trade-actions">${controls.join('')}</div>`:''}</article>`;
+  }).join('');
+  return `<section class="lk-trade">
+    <header class="lk-trade-head"><div><span class="lk-eyebrow">INTERCAMBIO SEGURO · 1:1</span><h3>Trueques de la taquilla</h3><p>Elige un cosmético tuyo y otro de la colección de la otra persona. Ambos confirmaréis antes de que se mueva nada.</p></div><span aria-hidden="true" style="font-size:30px">🔁</span></header>
+    ${mine.length&&theirs.length?`<div class="lk-trade-form">
+      <label>Intercambiar con<select id="trade-target">${others.map(trainer=>`<option value="${trainer}" ${trainer===tradeTargetTrainer?'selected':''}>${esc(LK_TRAINER_NAMES[trainer])}</option>`).join('')}</select></label>
+      <label>Tu cosmético<select id="trade-offered">${cosmeticOptionList(mine)}</select></label>
+      <label>Cosmético que pides<select id="trade-wanted">${cosmeticOptionList(theirs)}</select></label>
+      <button class="primary" data-cosmetic-trade-create type="button">Proponer intercambio</button>
+    </div>`:`<p class="lk-trade-note">Para proponer un trueque, tú y la otra persona necesitáis al menos un cosmético que no esté equipado.</p>`}
+    ${rows?`<div class="lk-trade-list">${rows}</div>`:'<p class="lk-trade-note" style="margin-top:14px">Todavía no hay propuestas de intercambio.</p>'}
+  </section>`;
+}
+async function updateCosmeticTrade(id,action){
+  const result=await inventoryTransaction(inventory=>{
+    const trades=inventory.cosmeticTrades||{};
+    const offer=trades[id];
+    if(!offer) return undefined;
+    if(action==='accept'&&offer.status==='pending'&&offer.to===me){
+      trades[id]={...offer,status:'accepted-by-target',targetConfirmedAt:Date.now()};
+      inventory.cosmeticTrades=trades;
+      return inventory;
+    }
+    if(action==='cancel'&&['pending','accepted-by-target'].includes(offer.status)&&(offer.from===me||offer.to===me)){
+      trades[id]={...offer,status:'cancelled',cancelledAt:Date.now(),cancelledBy:me};
+      inventory.cosmeticTrades=trades;
+      return inventory;
+    }
+    if(action!=='confirm'||offer.status!=='accepted-by-target'||offer.from!==me) return undefined;
+    const {offered,wanted,to,from}=offer;
+    if(!offered||!wanted||!COSMETIC_KINDS[offered.kind]||!COSMETIC_KINDS[wanted.kind]) return undefined;
+    if(!inventory[from]?.[offered.kind]?.[offered.id]||!inventory[to]?.[wanted.kind]?.[wanted.id]) return undefined;
+    if(cosmeticEquipped(from,offered.kind,offered.id)||cosmeticEquipped(to,wanted.kind,wanted.id)) return undefined;
+    inventory[from][offered.kind][offered.id]=null;
+    inventory[to][wanted.kind][wanted.id]=null;
+    inventory[from][wanted.kind]=inventory[from][wanted.kind]||{};
+    inventory[to][offered.kind]=inventory[to][offered.kind]||{};
+    inventory[from][wanted.kind][wanted.id]=true;
+    inventory[to][offered.kind][offered.id]=true;
+    trades[id]={...offer,status:'completed',completedAt:Date.now(),confirmedBy:me};
+    inventory.cosmeticTrades=trades;
+    return inventory;
+  });
+  if(!result.committed) return false;
+  FBS.inventory=result.snapshot.val()||{};
+  inv=FBS.inventory[me]||{};
+  dirty();
+  return true;
+}
 window.LK={
   pal(a){const p=a&&paletteById(a.palette),c=paletteColorsOf(p);return c?`--bg:${esc(c.fondo)};--sf:${esc(c.superficie)};--pr:${esc(c.primario)};--ac:${esc(c.acento)};--tx:${esc(c.texto)};--pf-fb:linear-gradient(135deg,${esc(c.fondo)} 0%,${esc(c.superficie)} 100%)`:''},
   title(a){return (cfg.titles&&a&&cfg.titles[a.title])||null},
@@ -12459,10 +12892,11 @@ window.renderLocker=a=>{
   if(kind==='titles')items=ids.filter(i=>cfg.titles&&cfg.titles[i]).sort((x,y)=>cfg.titles[x].stars-cfg.titles[y].stars).map(id=>{const t=cfg.titles[id];return{id,nm:`${'★'.repeat(t.stars)}<small>${esc(t.name)}</small>`,tt:esc(t.name)}});
   const cards=items.map(it=>{const now=cur===String(it.id);
     const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" alt="">`;
-    return `<div class="it own${isNew(kind,it.id)?' lk-new':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div><button class="sm${now?' on':''}" data-eq="${it.id}" ${now?'disabled':''} type="button">${now?'Puesto ✓':'Ponerme'}</button></div>`}).join('');
+    return `<div class="it own${isNew(kind,it.id)?' lk-new':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div>${now?`<button class="sm" data-unequip="${field}" type="button">Quitar</button>`:`<button class="sm" data-eq="${it.id}" type="button">Ponerme</button>`}</div>`}).join('');
   a.innerHTML=`<div class="lk lk-locker" style="max-width:1000px"><button class="sm" type="button" onclick="go('home')">← Volver al inicio</button>
-    <h2>🔐 Tu taquilla</h2><p class="mu">Todo lo que has conseguido. Lo que te pongas se ve en tu perfil.</p>
+    <header class="lk-shop-head"><div><span class="lk-eyebrow">TU COLECCIÓN PERSONAL</span><h2>🔐 Taquilla</h2><p class="mu">Equipa tus cosméticos y haz trueques 1:1 con los demás entrenadores.</p></div><div class="lk-shop-balance"><span>✨</span><div><small>Artículos en esta categoría</small><b>${nOwn(kind)} / ${total[kind]}</b></div></div></header>
     <div class="pf-wrap">${window.lkProfileCard(me,true)}</div>
+    ${renderCosmeticTrades()}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">${Object.keys(TABS).map(k=>`<button class="sm${k===tab?' on':''}" data-tab="${k}" type="button">${TABS[k][0]} ${nOwn(TABS[k][1])}/${total[TABS[k][1]]}</button>`).join('')}</div>
     ${items.length?`<div class="shop">${cards}</div>`:`<p class="mu" style="margin-top:16px">Aún no tienes nada en esta categoría. <a href="#" onclick="go('shop');return false" style="color:var(--ac)">Ir a la tienda</a> o abre las puertas del calendario.</p>`}</div>`};
 
