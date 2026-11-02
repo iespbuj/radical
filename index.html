@@ -4037,6 +4037,7 @@ async function fetchTrackerState(t){
     deaths: Array.isArray(raw.deaths) ? raw.deaths : [],
     badges: Array.isArray(player.badges?.obtained) ? player.badges.obtained : null,
     money: Number.isFinite(Number(player.money)) ? Number(player.money) : null,
+    region_id: Number.isFinite(Number(location.group)) ? Number(location.group) : null,
     map_id: Number.isFinite(Number(location.map)) ? Number(location.map) : null,
     map_x: Number.isFinite(Number(location.x)) ? Number(location.x) : null,
     map_y: Number.isFinite(Number(location.y)) ? Number(location.y) : null,
@@ -12517,8 +12518,9 @@ const auth=getAuth(app),db=getDatabase(app),$=s=>document.querySelector(s),FBS=w
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const wait=ms=>new Promise(r=>setTimeout(r,ms)),dirty=()=>{window.__fbDirty=true},say=t=>{try{window.toast(t)}catch(e){console.log(t)}};
 let me=null,cfg={},inv={},opened={},claims={},pz={},off=0,cbusy=false,busy=false,tab='skins',doors={},unsubs=[],presenceSession=crypto.randomUUID();const granting=new Set();
+const trackerStateCache={},trackerStateErrors={};
 window.__lkBusy=()=>cbusy;
-const sub=(path,cb)=>new Promise(res=>{let first=true;unsubs.push(onValue(ref(db,path),s=>{cb(s.val());dirty();if(first){first=false;res()}},error=>{console.error(`No se pudo sincronizar Firebase en ${path}.`,error);if(first){first=false;res()}}))});
+const sub=(path,cb,onError)=>new Promise(res=>{let first=true;unsubs.push(onValue(ref(db,path),s=>{cb(s.val());dirty();if(first){first=false;res()}},error=>{console.error(`No se pudo sincronizar Firebase en ${path}.`,error);if(onError)onError(error);if(first){first=false;res()}}))});
 function decodeLegacyValue(value, fallback){
   if(value == null) return fallback;
   if(typeof value !== 'string') return value;
@@ -12544,8 +12546,8 @@ window.FBD={
   setLegacy:(k,raw)=>set(ref(db,'legacy/'+k),raw),
   getTrackerState:async trainer=>{
     if(!['iker','joel','alex'].includes(trainer)) throw new Error('Entrenador no válido para Tracker Sync');
-    const snapshot=await get(ref(db,'trackers/'+trainer));
-    return snapshot.val();
+    if(trackerStateErrors[trainer]) throw trackerStateErrors[trainer];
+    return trackerStateCache[trainer]??null;
   },
   appendHistoryEvents:async events=>{
     try{
@@ -12650,7 +12652,8 @@ onAuthStateChanged(auth,async user=>{
   cfg=(await get(ref(db,'config'))).val()||{};
   await Promise.all([sub('legacy',v=>{FBS.legacy=v||{}}),sub('profiles',v=>{FBS.profiles=v||{}}),sub('inventory',v=>{FBS.inventory=v||{};inv=FBS.inventory[me]||{}}),
     sub('presence',v=>{FBS.presence=v||{}}),
-    sub('calendarOpened/'+me,v=>{opened=v||{};syncCal()}),sub('claims/'+me,v=>{claims=v||{};syncCal()}),sub('.info/serverTimeOffset',v=>{off=v||0})]);
+    sub('calendarOpened/'+me,v=>{opened=v||{};syncCal()}),sub('claims/'+me,v=>{claims=v||{};syncCal()}),sub('.info/serverTimeOffset',v=>{off=v||0}),
+    ...['iker','joel','alex'].map(trainer=>sub('trackers/'+trainer,v=>{trackerStateCache[trainer]=v;delete trackerStateErrors[trainer]},error=>{trackerStateErrors[trainer]=error}))]);
   const connectionRef=ref(db,'.info/connected');
   unsubs.push(onValue(connectionRef,async snapshot=>{
     if(snapshot.val()!==true || !me){FBS.presenceConnected=false;dirty();return}
