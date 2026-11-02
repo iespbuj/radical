@@ -6531,7 +6531,8 @@ window.lkProfileCard = function(t, big){
   const p = (window.FBS && FBS.profiles && FBS.profiles[t]) || {};
   const a = p.avatar || {};
   const K = window.LK;
-  const pal = K ? K.pal(a) : '';
+  const pal = K ? K.pal(a, t) : '';
+  const character = a.character ? window.characterAsset(a.character) : null;
   const ti = K ? K.title(a) : null;
   const ret = (typeof RETIRED_TRAINERS !== 'undefined') && RETIRED_TRAINERS.has(t);
   const online = Object.values(((window.FBS&&FBS.presence)||{})[t]||{}).some(Boolean);
@@ -6539,7 +6540,7 @@ window.lkProfileCard = function(t, big){
   const bg = a.background ? `background-image:url(recompensas/recompensas/fondos/fondo_${lkEsc(a.background)}.png),var(--pf-fb);` : '';
   return `<article class="pf-card${big?' big':''}${t===LOGIN_ME?' me':''}" style="${pal}" ${big?'':`onclick="go('profile','${t}')"`}>
     <div class="pf-ban" style="${bg}"></div>
-    ${a.character ? `<img class="pf-ch" src="recompensas/recompensas/personajes/personaje_${lkEsc(a.character)}.png" alt="" onerror="this.hidden=true">` : `<div class="pf-ch pf-ph">🎅</div>`}
+    ${character ? `<img class="pf-ch" src="${character.src}" ${window.characterFallbackAttrs(character.fallback)} alt="">` : `<div class="pf-ch pf-ph">🎅</div>`}
     ${ret ? '<div class="pf-stamp">🚩 ABANDONÓ</div>' : ''}
     <div class="pf-txt"><h3>${NAMES[t]} <span class="pf-presence ${online?'online':''}" role="img" aria-label="${online?'En línea':'Sin conexión'}" title="${online?'En línea':'Sin conexión'}"></span></h3><p class="pf-ttl">${ti ? `<span>${'★'.repeat(+ti.stars||0)}</span> ${lkEsc(ti.name)}` : '<em>Sin título</em>'}</p><p class="pf-stars">⭐ ${stars} estrella${stars===1?'':'s'} de torneo</p></div>
   </article>`;
@@ -6590,7 +6591,7 @@ function openLockerAnim(el){
   setTimeout(()=>{ window.__lockerAnim = false; go('locker'); }, 2100);
 }
 function __profPalVars(t){
-  const K = window.LK; const raw = K ? K.pal(((window.FBS && FBS.profiles[t]) || {}).avatar || {}) : ''; if(!raw) return '';
+  const K = window.LK; const raw = K ? K.pal(((window.FBS && FBS.profiles[t]) || {}).avatar || {}, t) : ''; if(!raw) return '';
   const m = {}; raw.split(';').forEach(x => { const i = x.indexOf(':'); if(i > 0) m[x.slice(0, i).trim()] = x.slice(i + 1).trim(); });
   const bg = m['--bg'], sf = m['--sf'], pr = m['--pr'], ac = m['--ac'], tx = m['--tx']; if(!(bg && sf && pr && ac && tx)) return '';
   return `--bg:${bg};--bg-elev:color-mix(in srgb,${bg} 55%,${sf});--panel:${sf};--panel-2:color-mix(in srgb,${sf} 90%,${tx});--border:color-mix(in srgb,${pr} 38%,${sf});--ruby:${pr};--ruby-deep:color-mix(in srgb,${pr} 60%,#000);--magma:${ac};--sapphire:${ac};--sapphire-deep:color-mix(in srgb,${ac} 70%,#000);--silver-bright:${tx};--silver-dim:color-mix(in srgb,${tx} 62%,${bg});`;
@@ -12680,6 +12681,14 @@ onAuthStateChanged(auth,async user=>{
 const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Se entregará al juego con el botón Recibir.'],illegality:['ILEG','Una ilegalidad','Sí, se llama así. Úsala cuando quieras.'],sanction:['SANC','Derecho a una sanción','Eliges a quién y puedes girar la ruleta de sanciones.'],steal:['ROBO','Derecho a un robo','Eliges a la persona y gira una ruleta con su equipo.'],operator:['OPER','Un Operator','Quien elijas te compra un Operator en Valorant.'],casino:['CASINO','Ruleta de casino','Te invita a una tirada gratis quien elijas.'],slots:['777','Tiradas gratis','Para las tragaperras de la web.'],shield:['ESCUDO','Un escudo','Bloquea un robo o una sanción.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis de la lotería.'],reroll:['REPITE','Repetir una tirada','Vuelves a girar cualquier ruleta.'],nickname:['MOTE','Mote forzado','Eliges un Pokémon de otro y le pones el mote.']};
 const KIND={title:'titles',palette:'palettes',character:'characters',background:'backgrounds'};
 const REWARD_ASSET_ROOT='recompensas/recompensas/';
+window.characterAsset=function(id,silhouette=false){
+  const folder=silhouette?'personajes_siluetas':'personajes';
+  const file=`personaje_${lkEsc(id)}${silhouette?'_silueta':''}.png`;
+  return {src:`${REWARD_ASSET_ROOT}${folder}/${file}`,fallback:`${folder}/${file}`};
+};
+window.characterFallbackAttrs=function(path){
+  return path?`data-fallback="${lkEsc(path)}" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback=''}else{this.hidden=true}"`:'';
+};
 function paletteById(id){
   const palettes=cfg.palettes;
   if(Array.isArray(palettes))return palettes.find(p=>p&&String(p.id)===String(id))||palettes[Number(id)-1]||null;
@@ -12756,8 +12765,8 @@ async function openDoor(d){
   const k=String(d);let note='';if(AUTO(p.type)){granting.add(k);note=await applyGrant(k,p);granting.delete(k)}
   reveal(d,true,p,note)}
 function reveal(d,fresh,p,note){const rv=$('#rv');if(!rv)return;let h='',t=p.type;
-  if(t==='character'||t==='background'){const ch=t==='character',n=p.id,nm=(ch?'Personaje ':'Fondo ')+n;
-    h=`<div class="rvis ${ch?'':'w'}${fresh?' hid':''}"><img src="${ch?`${REWARD_ASSET_ROOT}personajes_siluetas/personaje_${n}_silueta.png`:`${REWARD_ASSET_ROOT}fondos_siluetas/fondo_${n}_silueta.png`}" alt=""><img src="${ch?`${REWARD_ASSET_ROOT}personajes/personaje_${n}.png`:`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`}" alt="${nm}"></div><h2>${nm}</h2>`}
+  if(t==='character'||t==='background'){const ch=t==='character',n=p.id,nm=(ch?'Personaje ':'Fondo ')+n,sprite=ch?window.characterAsset(n):null,silhouette=ch?window.characterAsset(n,true):null;
+    h=`<div class="rvis ${ch?'':'w'}${fresh?' hid':''}"><img src="${ch?silhouette.src:`${REWARD_ASSET_ROOT}fondos_siluetas/fondo_${n}_silueta.png`}" ${ch?window.characterFallbackAttrs(silhouette.fallback):''} alt=""><img src="${ch?sprite.src:`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`}" ${ch?window.characterFallbackAttrs(sprite.fallback):''} alt="${nm}"></div><h2>${nm}</h2>`}
   else if(t==='title'){const x=cfg.titles[p.id]||{name:p.id,stars:0};h=`<div class="emb">${'★'.repeat(x.stars)}</div><h2>${esc(x.name)}</h2><p>Título de ${x.stars}★. Ya puedes ponértelo.</p>`}
   else if(t==='palette'){const x=paletteById(p.id),colors=paletteColorsOf(x)||{},name=paletteNameOf(x),rarity=paletteRarityOf(x);h=`<div style="display:flex;gap:8px;justify-content:center;margin:14px 0">${Object.values(colors).map(c=>`<i style="width:34px;height:34px;border-radius:50%;background:${esc(c)};border:2px solid #fff4"></i>`).join('')}</div><h2>${esc(name)}</h2><p>Paleta ${esc(String(rarity).toLowerCase())}.</p>`}
   else if(t==='tickets')h=`<div class="emb">+${p.amount}</div><h2>${p.amount} tickets</h2>`;
@@ -12772,12 +12781,12 @@ const TABS={skins:['Skins','characters','character'],fondos:['Fondos','backgroun
 window.renderShop=a=>{
   const [,kind,field]=TABS[tab],own=inv[kind]||{},av=(FBS.profiles[me]||{}).avatar||{},cur=String(av[field]),P=cfg.prices||{},tk=+((FBS.profiles[me]||{}).tickets)||0;
   let items=[];
-  if(kind==='characters')items=Array.from({length:cfg.counts?.characters||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.characters,nm:'Personaje '+n,vis:own[n]?`${REWARD_ASSET_ROOT}personajes/personaje_${n}.png`:`${REWARD_ASSET_ROOT}personajes_siluetas/personaje_${n}_silueta.png`}});
+  if(kind==='characters')items=Array.from({length:cfg.counts?.characters||0},(_,i)=>{const n=i+1,sprite=window.characterAsset(n,!own[n]);return{id:String(n),price:P.characters,nm:'Personaje '+n,vis:sprite.src,fallback:sprite.fallback}});
   if(kind==='backgrounds')items=Array.from({length:cfg.counts?.backgrounds||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.backgrounds,nm:'Fondo '+n,w:1,vis:own[n]?`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`:`${REWARD_ASSET_ROOT}fondos_siluetas/fondo_${n}_silueta.png`}});
   if(kind==='palettes')items=paletteIds().sort((x,y)=>x-y).map(id=>{const p=paletteById(id);return{id,price:P.palettes,nm:`${esc(paletteNameOf(p))}<small>${esc(paletteRarityOf(p))}</small>`,sw:paletteColorsOf(p)}});
   if(kind==='titles')items=Object.keys(cfg.titles||{}).sort((x,y)=>cfg.titles[x].stars-cfg.titles[y].stars).map(id=>{const t=cfg.titles[id];return{id,price:(P.titleByStars||{})[t.stars],nm:`${'★'.repeat(t.stars)}<small>${esc(t.name)}</small>`,tt:esc(t.name)}});
   const cards=items.map(it=>{const has=!!own[it.id],now=cur===it.id;
-    const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" alt="">`;
+    const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" ${window.characterFallbackAttrs(it.fallback)} alt="">`;
     const btn=has?`<button class="sm" data-eq="${it.id}" ${now?'disabled':''} type="button">${now?'Puesto':'Ponerme'}</button>`:`<button class="btn" data-buy="${it.id}" data-price="${it.price}" ${tk<it.price?'disabled':''} type="button">Comprar ${it.price}</button>`;
     return `<div class="it${has?' own':''}${has&&isNew(kind,it.id)?' lk-new':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div>${btn}</div>`}).join('');
   const ownedCount=Object.keys(own).filter(id=>own[id]).length;
@@ -12828,7 +12837,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('.lk button');if(
     say('Cosmético quitado. Ya puedes intercambiarlo.');
     window.render();
   });
-  if(b.dataset.eq)act(async()=>{const field=TABS[tab][2],profile=FBS.profiles[me]||(FBS.profiles[me]={});profile.avatar={...(profile.avatar||{}),[field]:b.dataset.eq};await set(ref(db,`profiles/${me}/avatar/${field}`),b.dataset.eq);dirty();window.render();say('Cosmético equipado.');});
+  if(b.dataset.eq)act(async()=>{const field=TABS[tab][2],kind=TABS[tab][1],id=b.dataset.eq,profile=FBS.profiles[me]||(FBS.profiles[me]={});if(!inv[kind]||!inv[kind][id]){say('No tienes este cosmético en tu taquilla.');window.render();return}profile.avatar={...(profile.avatar||{}),[field]:id};await set(ref(db,`profiles/${me}/avatar/${field}`),id);dirty();window.render();say('Cosmético equipado.');});
   if(b.dataset.buy)act(async()=>{const id=b.dataset.buy,pr=+b.dataset.price,kind=TABS[tab][1],tk=ref(db,`profiles/${me}/tickets`);
     const r=await runTransaction(tk,c=>(+c||0)>=pr?(+c||0)-pr:undefined);
     if(!r.committed){say('No tienes tickets suficientes.');return}
@@ -12933,7 +12942,7 @@ async function updateCosmeticTrade(id,action){
   return true;
 }
 window.LK={
-  pal(a){const p=a&&paletteById(a.palette),c=paletteColorsOf(p);return c?`--bg:${esc(c.fondo)};--sf:${esc(c.superficie)};--pr:${esc(c.primario)};--ac:${esc(c.acento)};--tx:${esc(c.texto)};--pf-fb:linear-gradient(135deg,${esc(c.fondo)} 0%,${esc(c.superficie)} 100%)`:''},
+  pal(a,trainer){const id=a&&String(a.palette),inventory=trainer&&FBS.inventory[trainer],ownsPalette=inventory&&inventory.palettes&&inventory.palettes[id];if(!ownsPalette)return '';const p=paletteById(id),c=paletteColorsOf(p);return c?`--bg:${esc(c.fondo)};--sf:${esc(c.superficie)};--pr:${esc(c.primario)};--ac:${esc(c.acento)};--tx:${esc(c.texto)};--pf-fb:linear-gradient(135deg,${esc(c.fondo)} 0%,${esc(c.superficie)} 100%)`:''},
   title(a){return (cfg.titles&&a&&cfg.titles[a.title])||null},
   today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid'}).format(new Date(Date.now()+off))},
   daily(){act(async()=>{const day=LK.today(),n=+cfg.dailyBonus||10;
@@ -12947,12 +12956,12 @@ window.renderLocker=a=>{
   const total={characters:cfg.counts?.characters||0,backgrounds:cfg.counts?.backgrounds||0,palettes:paletteIds().length,titles:Object.keys(cfg.titles||{}).length};
   const nOwn=k=>Object.keys(inv[k]||{}).filter(i=>(inv[k]||{})[i]).length;
   const ids=Object.keys(own).filter(i=>own[i]);let items=[];
-  if(kind==='characters')items=ids.sort((x,y)=>x-y).map(n=>({id:n,nm:'Personaje '+n,vis:`${REWARD_ASSET_ROOT}personajes/personaje_${n}.png`}));
+  if(kind==='characters')items=ids.sort((x,y)=>x-y).map(n=>{const sprite=window.characterAsset(n);return{id:n,nm:'Personaje '+n,vis:sprite.src,fallback:sprite.fallback}});
   if(kind==='backgrounds')items=ids.sort((x,y)=>x-y).map(n=>({id:n,nm:'Fondo '+n,w:1,vis:`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`}));
   if(kind==='palettes')items=ids.filter(i=>paletteById(i)).map(id=>{const p=paletteById(id);return{id,nm:`${esc(paletteNameOf(p))}<small>${esc(paletteRarityOf(p))}</small>`,sw:paletteColorsOf(p)}});
   if(kind==='titles')items=ids.filter(i=>cfg.titles&&cfg.titles[i]).sort((x,y)=>cfg.titles[x].stars-cfg.titles[y].stars).map(id=>{const t=cfg.titles[id];return{id,nm:`${'★'.repeat(t.stars)}<small>${esc(t.name)}</small>`,tt:esc(t.name)}});
   const cards=items.map(it=>{const now=cur===String(it.id);
-    const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" alt="">`;
+    const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" ${window.characterFallbackAttrs(it.fallback)} alt="">`;
     return `<div class="it own${isNew(kind,it.id)?' lk-new':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div>${now?`<button class="sm" data-unequip="${field}" type="button">Quitar</button>`:`<button class="sm" data-eq="${it.id}" type="button">Ponerme</button>`}</div>`}).join('');
   a.innerHTML=`<div class="lk lk-locker" style="max-width:1000px"><button class="sm" type="button" onclick="go('home')">← Volver al inicio</button>
     <header class="lk-shop-head"><div><span class="lk-eyebrow">TU COLECCIÓN PERSONAL</span><h2>🔐 Taquilla</h2><p class="mu">Equipa tus cosméticos y haz trueques 1:1 con los demás entrenadores.</p></div><div class="lk-shop-balance"><span>✨</span><div><small>Artículos en esta categoría</small><b>${nOwn(kind)} / ${total[kind]}</b></div></div></header>
