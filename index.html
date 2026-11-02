@@ -4037,6 +4037,7 @@ async function fetchTrackerState(t){
     deaths: Array.isArray(raw.deaths) ? raw.deaths : [],
     badges: Array.isArray(player.badges?.obtained) ? player.badges.obtained : null,
     money: Number.isFinite(Number(player.money)) ? Number(player.money) : null,
+    region_id: Number.isFinite(Number(location.group)) ? Number(location.group) : null,
     map_id: Number.isFinite(Number(location.map)) ? Number(location.map) : null,
     map_x: Number.isFinite(Number(location.x)) ? Number(location.x) : null,
     map_y: Number.isFinite(Number(location.y)) ? Number(location.y) : null,
@@ -4283,6 +4284,7 @@ function trainerTrackerTeam(snapshot){
           ? Number(mon.metLevel)
           : null,
         isEgg,
+        box: mon.box != null && Number.isFinite(Number(mon.box)) ? Number(mon.box) : null,
         abilityName: !isEgg && typeof mon.abilityName === 'string' && mon.abilityName.trim()
           ? mon.abilityName.trim()
           : null,
@@ -4418,7 +4420,7 @@ function syncTrackerEvents(t, snapshot, team){
       const pid = String(m.pid);
       const prev = reg[pid];
       const rec = { nickname:m.nickname, speciesName:m.species, sprite:m.sprite || '', level:m.level, metLocationName:m.metLocationName || null,
-        metLevel:m.metLevel, fainted:!!m.fainted, inTeam, shiny:!!m.shiny, abilityName:m.abilityName || null };
+        metLevel:m.metLevel, fainted:!!m.fainted, inTeam, shiny:!!m.shiny, abilityName:m.abilityName || null, box:inTeam ? null : (m.box || null) };
       const cmp = o => JSON.stringify({ ...o, level:null });
       if(!prev || cmp(prev) !== cmp(rec)){ newReg[pid] = rec; regChanged = true; }
       if(!prev && !baseline){
@@ -6530,15 +6532,16 @@ window.lkProfileCard = function(t, big){
   const p = (window.FBS && FBS.profiles && FBS.profiles[t]) || {};
   const a = p.avatar || {};
   const K = window.LK;
-  const pal = K ? K.pal(a) : '';
+  const pal = K ? K.pal(a, t) : '';
+  const character = a.character ? window.characterAsset(a.character) : null;
   const ti = K ? K.title(a) : null;
   const ret = (typeof RETIRED_TRAINERS !== 'undefined') && RETIRED_TRAINERS.has(t);
   const online = Object.values(((window.FBS&&FBS.presence)||{})[t]||{}).some(Boolean);
   const stars = Object.keys(p.tournamentStarClaims||{}).length;
-  const bg = a.background ? `background-image:url(./fondos/fondo_${lkEsc(a.background)}.png),var(--pf-fb);` : '';
+  const bg = a.background ? `background-image:url(recompensas/recompensas/fondos/fondo_${lkEsc(a.background)}.png),var(--pf-fb);` : '';
   return `<article class="pf-card${big?' big':''}${t===LOGIN_ME?' me':''}" style="${pal}" ${big?'':`onclick="go('profile','${t}')"`}>
     <div class="pf-ban" style="${bg}"></div>
-    ${a.character ? `<img class="pf-ch" src="./personajes/personaje_${lkEsc(a.character)}.png" alt="" onerror="this.hidden=true">` : `<div class="pf-ch pf-ph">🎅</div>`}
+    ${character ? `<img class="pf-ch" src="${character.src}" ${window.characterFallbackAttrs(character.fallback)} alt="">` : `<div class="pf-ch pf-ph">🎅</div>`}
     ${ret ? '<div class="pf-stamp">🚩 ABANDONÓ</div>' : ''}
     <div class="pf-txt"><h3>${NAMES[t]} <span class="pf-presence ${online?'online':''}" role="img" aria-label="${online?'En línea':'Sin conexión'}" title="${online?'En línea':'Sin conexión'}"></span></h3><p class="pf-ttl">${ti ? `<span>${'★'.repeat(+ti.stars||0)}</span> ${lkEsc(ti.name)}` : '<em>Sin título</em>'}</p><p class="pf-stars">⭐ ${stars} estrella${stars===1?'':'s'} de torneo</p></div>
   </article>`;
@@ -6589,7 +6592,7 @@ function openLockerAnim(el){
   setTimeout(()=>{ window.__lockerAnim = false; go('locker'); }, 2100);
 }
 function __profPalVars(t){
-  const K = window.LK; const raw = K ? K.pal(((window.FBS && FBS.profiles[t]) || {}).avatar || {}) : ''; if(!raw) return '';
+  const K = window.LK; const raw = K ? K.pal(((window.FBS && FBS.profiles[t]) || {}).avatar || {}, t) : ''; if(!raw) return '';
   const m = {}; raw.split(';').forEach(x => { const i = x.indexOf(':'); if(i > 0) m[x.slice(0, i).trim()] = x.slice(i + 1).trim(); });
   const bg = m['--bg'], sf = m['--sf'], pr = m['--pr'], ac = m['--ac'], tx = m['--tx']; if(!(bg && sf && pr && ac && tx)) return '';
   return `--bg:${bg};--bg-elev:color-mix(in srgb,${bg} 55%,${sf});--panel:${sf};--panel-2:color-mix(in srgb,${sf} 90%,${tx});--border:color-mix(in srgb,${pr} 38%,${sf});--ruby:${pr};--ruby-deep:color-mix(in srgb,${pr} 60%,#000);--magma:${ac};--sapphire:${ac};--sapphire-deep:color-mix(in srgb,${ac} 70%,#000);--silver-bright:${tx};--silver-dim:color-mix(in srgb,${tx} 62%,${bg});`;
@@ -12458,8 +12461,6 @@ button:disabled{opacity:.45;cursor:default}
 .lk-shop .it:hover{transform:translateY(-4px);border-color:var(--ac);box-shadow:0 14px 26px rgba(0,0,0,.25)}
 .lk-shop .it.own{border-color:color-mix(in srgb,var(--ac) 38%,var(--pr))}
 .lk-shop .it .vis{height:112px;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(0,0,0,.3))}
-.lk-shop .it .vis.sil{height:112px;object-fit:cover;image-rendering:auto;background:color-mix(in srgb,var(--tx) 22%,var(--sf));border:1px dashed color-mix(in srgb,var(--tx) 40%,transparent)}
-.lk-shop .it .vis.sil.sil-fb{filter:brightness(0) opacity(.75)}
 .lk-shop .it .sw{height:112px;align-content:center;justify-content:center;gap:8px;padding:14px;border:1px solid color-mix(in srgb,var(--pr) 24%,transparent);border-radius:10px;background:radial-gradient(circle at 50% 20%,color-mix(in srgb,var(--sf) 90%,var(--pr)),var(--bg))}
 .lk-shop .it .sw i{width:26px;height:26px;border:2px solid rgba(255,255,255,.55);box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .lk-shop .it .nm{color:var(--tx);font-weight:700}
@@ -12519,8 +12520,9 @@ const auth=getAuth(app),db=getDatabase(app),$=s=>document.querySelector(s),FBS=w
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const wait=ms=>new Promise(r=>setTimeout(r,ms)),dirty=()=>{window.__fbDirty=true},say=t=>{try{window.toast(t)}catch(e){console.log(t)}};
 let me=null,cfg={},inv={},opened={},claims={},pz={},off=0,cbusy=false,busy=false,tab='skins',doors={},unsubs=[],presenceSession=crypto.randomUUID();const granting=new Set();
+const trackerStateCache={},trackerStateErrors={};
 window.__lkBusy=()=>cbusy;
-const sub=(path,cb)=>new Promise(res=>{let first=true;unsubs.push(onValue(ref(db,path),s=>{cb(s.val());dirty();if(first){first=false;res()}},error=>{console.error(`No se pudo sincronizar Firebase en ${path}.`,error);if(first){first=false;res()}}))});
+const sub=(path,cb,onError)=>new Promise(res=>{let first=true;unsubs.push(onValue(ref(db,path),s=>{cb(s.val());dirty();if(first){first=false;res()}},error=>{console.error(`No se pudo sincronizar Firebase en ${path}.`,error);if(onError)onError(error);if(first){first=false;res()}}))});
 function decodeLegacyValue(value, fallback){
   if(value == null) return fallback;
   if(typeof value !== 'string') return value;
@@ -12546,8 +12548,8 @@ window.FBD={
   setLegacy:(k,raw)=>set(ref(db,'legacy/'+k),raw),
   getTrackerState:async trainer=>{
     if(!['iker','joel','alex'].includes(trainer)) throw new Error('Entrenador no válido para Tracker Sync');
-    const snapshot=await get(ref(db,'trackers/'+trainer));
-    return snapshot.val();
+    if(trackerStateErrors[trainer]) throw trackerStateErrors[trainer];
+    return trackerStateCache[trainer]??null;
   },
   appendHistoryEvents:async events=>{
     try{
@@ -12652,7 +12654,8 @@ onAuthStateChanged(auth,async user=>{
   cfg=(await get(ref(db,'config'))).val()||{};
   await Promise.all([sub('legacy',v=>{FBS.legacy=v||{}}),sub('profiles',v=>{FBS.profiles=v||{}}),sub('inventory',v=>{FBS.inventory=v||{};inv=FBS.inventory[me]||{}}),
     sub('presence',v=>{FBS.presence=v||{}}),
-    sub('calendarOpened/'+me,v=>{opened=v||{};syncCal()}),sub('claims/'+me,v=>{claims=v||{};syncCal()}),sub('.info/serverTimeOffset',v=>{off=v||0})]);
+    sub('calendarOpened/'+me,v=>{opened=v||{};syncCal()}),sub('claims/'+me,v=>{claims=v||{};syncCal()}),sub('.info/serverTimeOffset',v=>{off=v||0}),
+    ...['iker','joel','alex'].map(trainer=>sub('trackers/'+trainer,v=>{trackerStateCache[trainer]=v;delete trackerStateErrors[trainer]},error=>{trackerStateErrors[trainer]=error}))]);
   const connectionRef=ref(db,'.info/connected');
   unsubs.push(onValue(connectionRef,async snapshot=>{
     if(snapshot.val()!==true || !me){FBS.presenceConnected=false;dirty();return}
@@ -12678,7 +12681,15 @@ onAuthStateChanged(auth,async user=>{
 /* ---------- calendario ---------- */
 const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Se entregará al juego con el botón Recibir.'],illegality:['ILEG','Una ilegalidad','Sí, se llama así. Úsala cuando quieras.'],sanction:['SANC','Derecho a una sanción','Eliges a quién y puedes girar la ruleta de sanciones.'],steal:['ROBO','Derecho a un robo','Eliges a la persona y gira una ruleta con su equipo.'],operator:['OPER','Un Operator','Quien elijas te compra un Operator en Valorant.'],casino:['CASINO','Ruleta de casino','Te invita a una tirada gratis quien elijas.'],slots:['777','Tiradas gratis','Para las tragaperras de la web.'],shield:['ESCUDO','Un escudo','Bloquea un robo o una sanción.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis de la lotería.'],reroll:['REPITE','Repetir una tirada','Vuelves a girar cualquier ruleta.'],nickname:['MOTE','Mote forzado','Eliges un Pokémon de otro y le pones el mote.']};
 const KIND={title:'titles',palette:'palettes',character:'characters',background:'backgrounds'};
-const REWARD_ASSET_ROOT='./';
+const REWARD_ASSET_ROOT='recompensas/recompensas/';
+window.characterAsset=function(id,silhouette=false){
+  const folder=silhouette?'personajes_siluetas':'personajes';
+  const file=`personaje_${lkEsc(id)}${silhouette?'_silueta':''}.png`;
+  return {src:`${REWARD_ASSET_ROOT}${folder}/${file}`,fallback:`${folder}/${file}`};
+};
+window.characterFallbackAttrs=function(path){
+  return path?`data-fallback="${lkEsc(path)}" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback=''}else{this.hidden=true}"`:'';
+};
 function paletteById(id){
   const palettes=cfg.palettes;
   if(Array.isArray(palettes))return palettes.find(p=>p&&String(p.id)===String(id))||palettes[Number(id)-1]||null;
@@ -12755,8 +12766,8 @@ async function openDoor(d){
   const k=String(d);let note='';if(AUTO(p.type)){granting.add(k);note=await applyGrant(k,p);granting.delete(k)}
   reveal(d,true,p,note)}
 function reveal(d,fresh,p,note){const rv=$('#rv');if(!rv)return;let h='',t=p.type;
-  if(t==='character'||t==='background'){const ch=t==='character',n=p.id,nm=(ch?'Personaje ':'Fondo ')+n;
-    h=`<div class="rvis ${ch?'':'w'}${fresh?' hid':''}"><img src="${ch?`${REWARD_ASSET_ROOT}personajes_siluetas/personaje_${n}_silueta.png`:`${REWARD_ASSET_ROOT}fondos_siluetas/fondo_${n}_silueta.png`}" alt=""><img src="${ch?`${REWARD_ASSET_ROOT}personajes/personaje_${n}.png`:`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`}" alt="${nm}"></div><h2>${nm}</h2>`}
+  if(t==='character'||t==='background'){const ch=t==='character',n=p.id,nm=(ch?'Personaje ':'Fondo ')+n,sprite=ch?window.characterAsset(n):null,silhouette=ch?window.characterAsset(n,true):null;
+    h=`<div class="rvis ${ch?'':'w'}${fresh?' hid':''}"><img src="${ch?silhouette.src:`${REWARD_ASSET_ROOT}fondos_siluetas/fondo_${n}_silueta.png`}" ${ch?window.characterFallbackAttrs(silhouette.fallback):''} alt=""><img src="${ch?sprite.src:`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`}" ${ch?window.characterFallbackAttrs(sprite.fallback):''} alt="${nm}"></div><h2>${nm}</h2>`}
   else if(t==='title'){const x=cfg.titles[p.id]||{name:p.id,stars:0};h=`<div class="emb">${'★'.repeat(x.stars)}</div><h2>${esc(x.name)}</h2><p>Título de ${x.stars}★. Ya puedes ponértelo.</p>`}
   else if(t==='palette'){const x=paletteById(p.id),colors=paletteColorsOf(x)||{},name=paletteNameOf(x),rarity=paletteRarityOf(x);h=`<div style="display:flex;gap:8px;justify-content:center;margin:14px 0">${Object.values(colors).map(c=>`<i style="width:34px;height:34px;border-radius:50%;background:${esc(c)};border:2px solid #fff4"></i>`).join('')}</div><h2>${esc(name)}</h2><p>Paleta ${esc(String(rarity).toLowerCase())}.</p>`}
   else if(t==='tickets')h=`<div class="emb">+${p.amount}</div><h2>${p.amount} tickets</h2>`;
@@ -12771,12 +12782,12 @@ const TABS={skins:['Skins','characters','character'],fondos:['Fondos','backgroun
 window.renderShop=a=>{
   const [,kind,field]=TABS[tab],own=inv[kind]||{},av=(FBS.profiles[me]||{}).avatar||{},cur=String(av[field]),P=cfg.prices||{},tk=+((FBS.profiles[me]||{}).tickets)||0;
   let items=[];
-  if(kind==='characters')items=Array.from({length:cfg.counts?.characters||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.characters,nm:'Personaje '+n,vis:own[n]?`${REWARD_ASSET_ROOT}personajes/personaje_${n}.png`:`${REWARD_ASSET_ROOT}personajes_siluetas/personaje_${n}_silueta.png`}});
-  if(kind==='backgrounds')items=Array.from({length:cfg.counts?.backgrounds||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.backgrounds,nm:'Fondo '+n,w:1,sil:!own[n],fb:`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`,vis:own[n]?`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`:`${REWARD_ASSET_ROOT}fondos_siluetas/fondo_${n}_silueta.png`}});
+  if(kind==='characters')items=Array.from({length:cfg.counts?.characters||0},(_,i)=>{const n=i+1,sprite=window.characterAsset(n,!own[n]);return{id:String(n),price:P.characters,nm:'Personaje '+n,vis:sprite.src,fallback:sprite.fallback}});
+  if(kind==='backgrounds')items=Array.from({length:cfg.counts?.backgrounds||0},(_,i)=>{const n=i+1;return{id:String(n),price:P.backgrounds,nm:'Fondo '+n,w:1,vis:own[n]?`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`:`${REWARD_ASSET_ROOT}fondos_siluetas/fondo_${n}_silueta.png`}});
   if(kind==='palettes')items=paletteIds().sort((x,y)=>x-y).map(id=>{const p=paletteById(id);return{id,price:P.palettes,nm:`${esc(paletteNameOf(p))}<small>${esc(paletteRarityOf(p))}</small>`,sw:paletteColorsOf(p)}});
   if(kind==='titles')items=Object.keys(cfg.titles||{}).sort((x,y)=>cfg.titles[x].stars-cfg.titles[y].stars).map(id=>{const t=cfg.titles[id];return{id,price:(P.titleByStars||{})[t.stars],nm:`${'★'.repeat(t.stars)}<small>${esc(t.name)}</small>`,tt:esc(t.name)}});
   const cards=items.map(it=>{const has=!!own[it.id],now=cur===it.id;
-    const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}${it.sil?' sil':''}" src="${it.vis}" alt=""${it.sil?` onerror="this.onerror=null;this.src='${it.fb}';this.classList.add('sil-fb')"`:''}>`;
+    const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" ${window.characterFallbackAttrs(it.fallback)} alt="">`;
     const btn=has?`<button class="sm" data-eq="${it.id}" ${now?'disabled':''} type="button">${now?'Puesto':'Ponerme'}</button>`:`<button class="btn" data-buy="${it.id}" data-price="${it.price}" ${tk<it.price?'disabled':''} type="button">Comprar ${it.price}</button>`;
     return `<div class="it${has?' own':''}${has&&isNew(kind,it.id)?' lk-new':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div>${btn}</div>`}).join('');
   const ownedCount=Object.keys(own).filter(id=>own[id]).length;
@@ -12827,7 +12838,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('.lk button');if(
     say('Cosmético quitado. Ya puedes intercambiarlo.');
     window.render();
   });
-  if(b.dataset.eq)act(async()=>{const field=TABS[tab][2],profile=FBS.profiles[me]||(FBS.profiles[me]={});profile.avatar={...(profile.avatar||{}),[field]:b.dataset.eq};await set(ref(db,`profiles/${me}/avatar/${field}`),b.dataset.eq);dirty();window.render();say('Cosmético equipado.');});
+  if(b.dataset.eq)act(async()=>{const field=TABS[tab][2],kind=TABS[tab][1],id=b.dataset.eq,profile=FBS.profiles[me]||(FBS.profiles[me]={});if(!inv[kind]||!inv[kind][id]){say('No tienes este cosmético en tu taquilla.');window.render();return}profile.avatar={...(profile.avatar||{}),[field]:id};await set(ref(db,`profiles/${me}/avatar/${field}`),id);dirty();window.render();say('Cosmético equipado.');});
   if(b.dataset.buy)act(async()=>{const id=b.dataset.buy,pr=+b.dataset.price,kind=TABS[tab][1],tk=ref(db,`profiles/${me}/tickets`);
     const r=await runTransaction(tk,c=>(+c||0)>=pr?(+c||0)-pr:undefined);
     if(!r.committed){say('No tienes tickets suficientes.');return}
@@ -12932,7 +12943,7 @@ async function updateCosmeticTrade(id,action){
   return true;
 }
 window.LK={
-  pal(a){const p=a&&paletteById(a.palette),c=paletteColorsOf(p);return c?`--bg:${esc(c.fondo)};--sf:${esc(c.superficie)};--pr:${esc(c.primario)};--ac:${esc(c.acento)};--tx:${esc(c.texto)};--pf-fb:linear-gradient(135deg,${esc(c.fondo)} 0%,${esc(c.superficie)} 100%)`:''},
+  pal(a,trainer){const id=a&&String(a.palette),inventory=trainer&&FBS.inventory[trainer],ownsPalette=inventory&&inventory.palettes&&inventory.palettes[id];if(!ownsPalette)return '';const p=paletteById(id),c=paletteColorsOf(p);return c?`--bg:${esc(c.fondo)};--sf:${esc(c.superficie)};--pr:${esc(c.primario)};--ac:${esc(c.acento)};--tx:${esc(c.texto)};--pf-fb:linear-gradient(135deg,${esc(c.fondo)} 0%,${esc(c.superficie)} 100%)`:''},
   title(a){return (cfg.titles&&a&&cfg.titles[a.title])||null},
   today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid'}).format(new Date(Date.now()+off))},
   daily(){act(async()=>{const day=LK.today(),n=+cfg.dailyBonus||10;
@@ -12946,12 +12957,12 @@ window.renderLocker=a=>{
   const total={characters:cfg.counts?.characters||0,backgrounds:cfg.counts?.backgrounds||0,palettes:paletteIds().length,titles:Object.keys(cfg.titles||{}).length};
   const nOwn=k=>Object.keys(inv[k]||{}).filter(i=>(inv[k]||{})[i]).length;
   const ids=Object.keys(own).filter(i=>own[i]);let items=[];
-  if(kind==='characters')items=ids.sort((x,y)=>x-y).map(n=>({id:n,nm:'Personaje '+n,vis:`${REWARD_ASSET_ROOT}personajes/personaje_${n}.png`}));
+  if(kind==='characters')items=ids.sort((x,y)=>x-y).map(n=>{const sprite=window.characterAsset(n);return{id:n,nm:'Personaje '+n,vis:sprite.src,fallback:sprite.fallback}});
   if(kind==='backgrounds')items=ids.sort((x,y)=>x-y).map(n=>({id:n,nm:'Fondo '+n,w:1,vis:`${REWARD_ASSET_ROOT}fondos/fondo_${n}.png`}));
   if(kind==='palettes')items=ids.filter(i=>paletteById(i)).map(id=>{const p=paletteById(id);return{id,nm:`${esc(paletteNameOf(p))}<small>${esc(paletteRarityOf(p))}</small>`,sw:paletteColorsOf(p)}});
   if(kind==='titles')items=ids.filter(i=>cfg.titles&&cfg.titles[i]).sort((x,y)=>cfg.titles[x].stars-cfg.titles[y].stars).map(id=>{const t=cfg.titles[id];return{id,nm:`${'★'.repeat(t.stars)}<small>${esc(t.name)}</small>`,tt:esc(t.name)}});
   const cards=items.map(it=>{const now=cur===String(it.id);
-    const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" alt="">`;
+    const vis=it.sw?`<div class="sw">${Object.values(it.sw).map(c=>`<i style="background:${esc(c)}"></i>`).join('')}</div>`:it.tt?`<div class="tt">${it.tt}</div>`:`<img class="vis${it.w?' w':''}" src="${it.vis}" ${window.characterFallbackAttrs(it.fallback)} alt="">`;
     return `<div class="it own${isNew(kind,it.id)?' lk-new':''}">${vis}<div class="nm">${it.sw?it.nm:it.tt?it.nm.split('<small>')[0]:it.nm}</div>${now?`<button class="sm" data-unequip="${field}" type="button">Quitar</button>`:`<button class="sm" data-eq="${it.id}" type="button">Ponerme</button>`}</div>`}).join('');
   a.innerHTML=`<div class="lk lk-locker" style="max-width:1000px"><button class="sm" type="button" onclick="go('home')">← Volver al inicio</button>
     <header class="lk-shop-head"><div><span class="lk-eyebrow">TU COLECCIÓN PERSONAL</span><h2>🔐 Taquilla</h2><p class="mu">Equipa tus cosméticos y haz trueques 1:1 con los demás entrenadores.</p></div><div class="lk-shop-balance"><span>✨</span><div><small>Artículos en esta categoría</small><b>${nOwn(kind)} / ${total[kind]}</b></div></div></header>
