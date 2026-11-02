@@ -4014,7 +4014,35 @@ async function storeGet(key, def){ const raw = FBS.legacy[key]; if(raw == null) 
 async function storeSet(key, val){ const raw = JSON.stringify(val); FBS.legacy[key] = raw; try{ await FBD.setLegacy(key, raw); return true; }catch(e){ return false; } }
 async function storeGetBatch(keyDefaults){ const out = {}; for(const {key, def} of keyDefaults) out[key] = await storeGet(key, def); return out; }
 function cosmeticsCountOf(t){ const inv = (FBS.inventory || {})[t] || {}; return Object.values(inv).reduce((n, k) => n + Object.keys(k || {}).length, 0); }
-async function fetchTrackerState(t){ return null; } // hasta que el script de BizHawk suba el estado de la partida
+async function fetchTrackerState(t){
+  if(typeof FBD?.getTrackerState !== 'function') return null;
+  const raw = await FBD.getTrackerState(t);
+  if(!raw || typeof raw !== 'object') return null;
+  const toWebPokemon = mon => ({
+    ...mon,
+    pid: mon.pid || (mon.personality && mon.trainer_id
+      ? `${mon.personality}-${mon.trainer_id}`
+      : `${mon.box ?? mon.slot}-${mon.species_id}`),
+    name: mon.nickname || mon.name || mon.species || 'Pokémon',
+    species: mon.species || mon.speciesName || '',
+    abilityName: mon.abilityName || mon.ability || null,
+    metLocationId: mon.metLocationId ?? mon.met_location_id ?? null,
+    metLevel: mon.metLevel ?? mon.met_level ?? null,
+  });
+  const player = raw.player || {};
+  const location = player.location || {};
+  return {
+    party: Array.isArray(raw.party) ? raw.party.map(toWebPokemon) : [],
+    pokemon: Array.isArray(raw.boxes) ? raw.boxes.map(toWebPokemon) : [],
+    deaths: Array.isArray(raw.deaths) ? raw.deaths : [],
+    badges: Array.isArray(player.badges?.obtained) ? player.badges.obtained : null,
+    money: Number.isFinite(Number(player.money)) ? Number(player.money) : null,
+    map_id: Number.isFinite(Number(location.map)) ? Number(location.map) : null,
+    map_x: Number.isFinite(Number(location.x)) ? Number(location.x) : null,
+    map_y: Number.isFinite(Number(location.y)) ? Number(location.y) : null,
+    lives: null,
+  };
+}
 
 
 // Freno compartido entre todas las peticiones al backend: si van muy
@@ -4227,16 +4255,17 @@ function trainerTrackerTeam(snapshot){
     .sort((a,b) => Number(a.slot || 0) - Number(b.slot || 0))
     .map(mon => {
       const isEgg = mon.isEgg === true;
-      const species = isEgg ? 'Huevo' : normalizeSpeciesName(mon.species || mon.speciesName || '');
+      let species = isEgg ? 'Huevo' : normalizeSpeciesName(mon.species || mon.speciesName || '');
+      const directDexId = Number(mon.dexId ?? mon.dex);
       let speciesId = isEgg ? null : Object.keys(SPECIES_NAMES).find(id =>
         SPECIES_NAMES[id].toLowerCase() === species.toLowerCase()
       );
       if(!speciesId && !isEgg){
-        const direct = Number(mon.speciesId ?? mon.dexId ?? mon.dex);
-        if(Number.isFinite(direct) && direct > 0) speciesId = direct;
+        if(Number.isFinite(directDexId) && directDexId > 0) speciesId = directDexId;
         else speciesId = speciesIdFromExtra(species) || speciesIdFromCache(species) || null;
         if(!speciesId) resolveSpeciesIdByName(species);
       }
+      if(!species && speciesId && SPECIES_NAMES[speciesId]) species = SPECIES_NAMES[speciesId];
       const pid = String(mon.pid ?? `${mon.slot}-${species}`);
       return {
         pid,
@@ -4400,6 +4429,29 @@ function syncTrackerEvents(t, snapshot, team){
         if(!baseline) events.push({ id:`dead:${t}:${pid}`, text:`💔 ${NAMES[t]} perdió a ${m.nickname}${m.nickname !== m.species ? ` (${m.species})` : ''}${m.level ? ` · Nv.${m.level}` : ''}` });
       }
     });
+    (Array.isArray(snapshot.deaths) ? snapshot.deaths : []).forEach(death => {
+      if(!death || typeof death !== 'object') return;
+      const pid = String(death.identity || `${death.personality || ''}-${death.trainer_id || ''}`);
+      if(pid === '-' || grave.some(g => String(g.pid) === pid) || tombs.some(g => g.pid === pid)) return;
+      const nickname = String(death.nickname || death.species || 'Pokémon');
+      const speciesName = String(death.species || (death.species_id ? `#${death.species_id}` : 'Pokémon'));
+      const level = Math.max(1, Number(death.level) || 1);
+      const parsedDeathDate = Date.parse(String(death.datetime || ''));
+      tombs.push({
+        pid,
+        nickname,
+        speciesName,
+        sprite: death.species_id ? pokedexSpriteUrl(Number(death.species_id)) : '',
+        level,
+        diedAt: Number.isFinite(parsedDeathDate) ? parsedDeathDate : now,
+      });
+      if(!baseline){
+        events.push({
+          id:`dead:${t}:${pid}`,
+          text:`💔 ${NAMES[t]} perdió a ${nickname}${nickname !== speciesName ? ` (${speciesName})` : ''} · Nv.${level}`,
+        });
+      }
+    });
     if(regChanged){
       collections[t] = newReg;
       trackedStoreSet('collection:'+t, 'locke:collection:'+t, { pids:newReg }).then(ok=>{ if(!ok) queueRetry('collection:'+t, ()=>trackedStoreSet('collection:'+t, 'locke:collection:'+t, { pids:collections[t] })); });
@@ -4422,9 +4474,10 @@ async function loadTrackerStates(){
         return;
       }
       const team = trainerTrackerTeam(snapshot);
-      const lives = Math.trunc(Number(snapshot.lives));
-      const version = hashStr(JSON.stringify([snapshot.updated ?? null, snapshot.map_id ?? null, snapshot.region_id ?? null, snapshot.map_x ?? null, snapshot.map_y ?? null, snapshot.lives, snapshot.party, snapshot.pokemon ?? null, snapshot.badges ?? null, snapshot.money ?? null]));
-      const hasBaseline = trackerVersion[t] != null && Number.isFinite(Number(trackerLives[t]));
+      const hasTrackerLives = snapshot.lives != null && Number.isFinite(Number(snapshot.lives));
+      const lives = hasTrackerLives ? Math.trunc(Number(snapshot.lives)) : null;
+      const version = hashStr(JSON.stringify([snapshot.updated ?? null, snapshot.map_id ?? null, snapshot.region_id ?? null, snapshot.map_x ?? null, snapshot.map_y ?? null, snapshot.lives ?? null, snapshot.party, snapshot.pokemon ?? null, snapshot.deaths ?? null, snapshot.badges ?? null, snapshot.money ?? null]));
+      const hasBaseline = trackerVersion[t] != null && (!hasTrackerLives || Number.isFinite(Number(trackerLives[t])));
       teams[t] = normalizeTeamSpecies(team);
       locationId[t] = snapshot.map_id ?? null;
       locationName[t] = mapTrackerLocation(snapshot.map_id);
@@ -4460,15 +4513,15 @@ async function loadTrackerStates(){
           if(medalEvents.length) pushHistoryEvents(medalEvents);
         }
       }
-      if(hasBaseline && Number.isFinite(prevLivesForEvents) && lives < prevLivesForEvents && version !== trackerVersion[t]){
+      if(hasTrackerLives && hasBaseline && Number.isFinite(prevLivesForEvents) && lives < prevLivesForEvents && version !== trackerVersion[t]){
         const d = prevLivesForEvents - lives;
         pushHistoryEvents([{ id:`life:${t}:${snapshot.updated ?? Date.now()}`, text:`💔 ${NAMES[t]} perdió ${d} vida${d>1?'s':''} (${lives}/20)` }]);
       }
       syncTrackerEvents(t, snapshot, team);
       if(!hasBaseline || version !== trackerVersion[t] || medalLogChanged){
-        if(!hasBaseline || lives !== Number(trackerLives[t])) hearts[t] = lives;
+        if(hasTrackerLives && (!hasBaseline || lives !== Number(trackerLives[t]))) hearts[t] = lives;
         trackerVersion[t] = version;
-        trackerLives[t] = lives;
+        if(hasTrackerLives) trackerLives[t] = lives;
         saveProfile(t).then(ok=>{ if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t)); });
       }
       trackerSnapshots[t] = snapshot;
@@ -12489,6 +12542,11 @@ function inventoryTransaction(mutate){
 }
 window.FBD={
   setLegacy:(k,raw)=>set(ref(db,'legacy/'+k),raw),
+  getTrackerState:async trainer=>{
+    if(!['iker','joel','alex'].includes(trainer)) throw new Error('Entrenador no válido para Tracker Sync');
+    const snapshot=await get(ref(db,'trackers/'+trainer));
+    return snapshot.val();
+  },
   appendHistoryEvents:async events=>{
     try{
       const result=await transactLegacy('history',[],current=>{
