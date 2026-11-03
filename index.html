@@ -4364,18 +4364,19 @@ function spinSteal(id){
 function openStealPick(id){
   const s = stealState[id];
   if(!s || s.status !== 'pick' || s.thief !== window.LOGIN_ME) return;
-  const mons = allMonsOf(s.victim).filter(m=>!m.isEgg && STEAL_PID_RE.test(String(m.pid||'')));
+  const team = allMonsOf(s.victim).filter(m=>m.inTeam);
+  const mons = team.length < 2 ? [] : team.filter(m=>!m.isEgg && STEAL_PID_RE.test(String(m.pid||'')));
   openModal(`
-    <h3>🦹 Elige un Pokémon de ${lkEsc(NAMES[s.victim])}</h3>
+    <h3>🦹 Elige un Pokémon del equipo de ${lkEsc(NAMES[s.victim])}</h3>
     ${mons.length ? `<div class="field"><select id="steal-mon-select">${mons.map(m=>`<option value="${lkEsc(m.pid)}">${lkEsc(m.nickname)} (${lkEsc(String(m.speciesName||'').replace(/-/g,' '))})</option>`).join('')}</select></div>`
-      : `<div class="capline">No hay Pokémon robables (¿el tracker de ${lkEsc(NAMES[s.victim])} está subiendo datos?)</div>`}
+      : `<div class="capline">No hay Pokémon robables en el equipo de ${lkEsc(NAMES[s.victim])} (necesita al menos 2 en el equipo y que su tracker esté subiendo datos)</div>`}
     <div class="modal-actions"><button class="ghost" onclick="closeModal()">Cancelar</button>
     ${mons.length ? `<button class="primary" onclick="confirmStealPick('${id}')">Elegir</button>` : ''}</div>`);
 }
 async function confirmStealPick(id){
   const s = stealState[id], sel = document.getElementById('steal-mon-select');
   if(!s || !sel || s.status !== 'pick') return;
-  const mon = allMonsOf(s.victim).find(m=>m.pid === sel.value && !m.isEgg);
+  const mon = allMonsOf(s.victim).find(m=>m.pid === sel.value && !m.isEgg && m.inTeam);
   if(!mon){ toast('Ese Pokémon ya no está disponible.'); return; }
   s.pid = mon.pid; s.label = `${mon.nickname} (${String(mon.speciesName||'').replace(/-/g,' ')})`; s.status = 'accept'; s.accepts = {};
   pushHistory(`🦹 ${NAMES[s.thief]} quiere quedarse ${s.label} de ${NAMES[s.victim]}. Deben aceptar los dos.`);
