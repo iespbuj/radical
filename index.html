@@ -6630,7 +6630,7 @@ window.lkProfileCard = function(t, big){
   const ret = (typeof RETIRED_TRAINERS !== 'undefined') && RETIRED_TRAINERS.has(t);
   const online = Object.values(((window.FBS&&FBS.presence)||{})[t]||{}).some(Boolean);
   const stars = Object.keys(p.tournamentStarClaims||{}).length;
-  const bg = a.background ? `background-image:url(recompensas/recompensas/fondos/fondo_${lkEsc(a.background)}.png),var(--pf-fb);` : '';
+  const bg = a.background ? `background-image:url(fondos/fondo_${lkEsc(a.background)}.png),var(--pf-fb);` : '';
   return `<article class="pf-card${big?' big':''}${t===LOGIN_ME?' me':''}" style="${pal}" ${big?'':`onclick="go('profile','${t}')"`}>
     <div class="pf-ban" style="${bg}"></div>
     ${character ? `<img class="pf-ch" src="${character.src}" ${window.characterFallbackAttrs(character.fallback)} alt="">` : `<div class="pf-ch pf-ph">🎅</div>`}
@@ -12776,7 +12776,7 @@ onAuthStateChanged(auth,async user=>{
 /* ---------- calendario ---------- */
 const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Se entregará al juego con el botón Recibir.'],illegality:['ILEG','Una ilegalidad','Sí, se llama así. Úsala cuando quieras.'],sanction:['SANC','Derecho a una sanción','Eliges a quién y puedes girar la ruleta de sanciones.'],steal:['ROBO','Derecho a un robo','Eliges a la persona y gira una ruleta con su equipo.'],operator:['OPER','Un Operator','Quien elijas te compra un Operator en Valorant.'],casino:['CASINO','Ruleta de casino','Te invita a una tirada gratis quien elijas.'],slots:['777','Tiradas gratis','Para las tragaperras de la web.'],shield:['ESCUDO','Un escudo','Bloquea un robo o una sanción.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis de la lotería.'],reroll:['REPITE','Repetir una tirada','Vuelves a girar cualquier ruleta.'],nickname:['MOTE','Mote forzado','Eliges un Pokémon de otro y le pones el mote.']};
 const KIND={title:'titles',palette:'palettes',character:'characters',background:'backgrounds'};
-const REWARD_ASSET_ROOT='recompensas/recompensas/';
+const REWARD_ASSET_ROOT='';
 window.characterAsset=function(id,silhouette=false){
   const folder=silhouette?'personajes_siluetas':'personajes';
   const file=`personaje_${lkEsc(id)}${silhouette?'_silueta':''}.png`;
