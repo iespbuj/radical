@@ -5705,6 +5705,14 @@ async function placeDuelBet(matchKey){
   }
 }
 
+function resumeUnpaidDuelBetPayouts(){
+  for(const [matchKey,bets] of Object.entries(duelBets||{})){
+    const pendingPayout=bets.find(b=>b&&b.status==='settled'&&b.winner&&b.pick===b.winner&&
+      !(FBS.profiles[b.trainer]?.ticketOperations||{})[`duel-bet-payout:${b.id}`]);
+    if(pendingPayout) resolveDuelBets(matchKey,pendingPayout.winner);
+  }
+}
+
 async function resolveDuelBets(matchKey, winner){
   try{
     saveInFlight['duelBets']=(saveInFlight['duelBets']||0)+1;
@@ -5720,13 +5728,6 @@ async function resolveDuelBets(matchKey, winner){
       try{await pay()}catch(error){
         console.error('No se pudo pagar una apuesta ganadora.',error);
         queueRetry(`duel-bet-payout:${bet.id}`,pay);
-      }
-    }
-    function resumeUnpaidDuelBetPayouts(){
-      for(const [matchKey,bets] of Object.entries(duelBets||{})){
-        const pendingPayout=bets.find(b=>b&&b.status==='settled'&&b.winner&&b.pick===b.winner&&
-          !(FBS.profiles[b.trainer]?.ticketOperations||{})[`duel-bet-payout:${b.id}`]);
-        if(pendingPayout) resolveDuelBets(matchKey,pendingPayout.winner);
       }
     }
   }catch(error){
