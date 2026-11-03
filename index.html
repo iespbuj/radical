@@ -6020,6 +6020,98 @@ async function removePendingPrize(t, id){
   if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
 }
 
+/* ---- Legendarios del casino -> entrega directa al PC del juego (buzon de ordenes + tracker Lua) ---- */
+const LEGEND_SPECIES = { Articuno:144, Zapdos:145, Moltres:146, Mewtwo:150, Mew:151 };
+function legendarySpeciesOf(text){
+  const m = /^Legendario:\s*(\w+)$/.exec(String(text||'').trim());
+  return m ? (LEGEND_SPECIES[m[1]] || null) : null;
+}
+function gameOrderOf(prizeId){
+  return (window.FBS && FBS.orders && FBS.orders['prize-'+prizeId]) || null;
+}
+function legendaryPrizeActions(t, p){
+  if(!legendarySpeciesOf(p.text) || t !== window.LOGIN_ME) return '';
+  const o = gameOrderOf(p.id);
+  if(!o) return `<button class="primary" onclick="claimLegendaryToGame('${t}','${p.id}')">📥 Recibir en el juego</button>`;
+  if(o.status === 'error') return `<span class="capline">⚠️ No se pudo entregar${o.note ? ': ' + lkEsc(o.note) : ''}</span><button class="ghost" onclick="retryLegendaryOrder('${t}','${p.id}')">Reintentar</button>`;
+  if(o.note) return `<span class="capline">⚠️ ${lkEsc(o.note)}. Libera un hueco y se entregará solo.</span>`;
+  if(o.status === 'working') return `<span class="capline">⏳ Entregando en tu PC…</span>`;
+  return `<span class="capline">⏳ Pedido enviado. Se entrega solo cuando tengas el juego y el tracker abiertos.</span>`;
+}
+async function claimLegendaryToGame(t, id){
+  const prize = (pendingPrizes[t]||[]).find(p=>p.id===id);
+  const species = prize ? legendarySpeciesOf(prize.text) : null;
+  if(!species) return;
+  if(t !== window.LOGIN_ME){ toast('Solo puedes recibirlo desde tu propia sesión.'); return; }
+  try{
+    const created = await window.FBD.createGameOrder('prize-'+id, { kind:'give_legendary', species, prizeId:id });
+    toast(created ? '📥 Pedido enviado. Se entregará en tu PC cuando el tracker esté abierto.' : 'Ese premio ya tiene un pedido en curso.');
+  }catch(error){
+    console.error('No se pudo crear el pedido al juego.', error);
+    toast('No se pudo enviar el pedido. Inténtalo de nuevo.');
+  }
+  render();
+}
+async function retryLegendaryOrder(t, id){
+  try{ await window.FBD.removeGameOrder('prize-'+id); }catch(error){ console.error(error); toast('No se pudo reiniciar el pedido.'); return; }
+  await claimLegendaryToGame(t, id);
+}
+const gameOrderBusy = new Set();
+async function settleGameOrders(){
+  const me = window.LOGIN_ME;
+  if(!loaded || !me || !window.FBS || !FBS.orders) return;
+  for(const [oid, o] of Object.entries(FBS.orders)){
+    if(!o || o.kind !== 'give_legendary' || o.status !== 'done' || !oid.startsWith('prize-') || gameOrderBusy.has(oid)) continue;
+    gameOrderBusy.add(oid);
+    try{
+      const prizeId = oid.slice(6);
+      const prize = (pendingPrizes[me]||[]).find(p=>p.id===prizeId);
+      if(prize){
+        await removePendingPrize(me, prizeId);
+        const name = String(prize.text).replace(/^Legendario:\s*/, '');
+        toast(`✅ ${name} entregado en tu PC (caja ${o.box}, hueco ${o.slot}).`);
+      }
+      if(!(pendingPrizes[me]||[]).some(p=>p.id===prizeId)) await window.FBD.removeGameOrder(oid);
+    }catch(error){
+      console.error('No se pudo cerrar el pedido al juego.', error);
+    }finally{
+      gameOrderBusy.delete(oid);
+    }
+  }
+}
+/* ---- Caramelos raros (solo iker): 999 = máximo de un hueco de la mochila ---- */
+async function giveRareCandies(t){
+  if(window.LOGIN_ME !== 'iker'){ toast('Solo iker puede hacer esto.'); return; }
+  if(!['iker','joel','alex'].includes(t)) return;
+  if(!confirm('¿Dar 999 Caramelos raros a ' + (NAMES[t] || t) + '? Se añaden a su mochila cuando tenga el juego y el tracker abiertos.')) return;
+  try{
+    await window.FBD.createGameOrderFor(t, 'candy-' + crypto.randomUUID(), { kind:'give_item', item:68, qty:999 });
+    toast('🍬 Pedido enviado a ' + (NAMES[t] || t) + '. Le llegará solo.');
+  }catch(error){
+    console.error('No se pudo crear el pedido de caramelos.', error);
+    toast('No se pudo enviar el pedido de caramelos.');
+  }
+}
+async function settleItemOrders(){
+  const me = window.LOGIN_ME;
+  if(!me || !window.FBS || !FBS.orders) return;
+  for(const [oid, o] of Object.entries(FBS.orders)){
+    if(!o || o.kind !== 'give_item' || !oid.startsWith('candy-') || gameOrderBusy.has(oid)) continue;
+    if(o.status !== 'done' && o.status !== 'error') continue;
+    gameOrderBusy.add(oid);
+    try{
+      toast(o.status === 'done' ? '🍬 999 Caramelos raros añadidos a tu mochila.' : '⚠️ No se pudieron entregar los caramelos' + (o.note ? ': ' + o.note : '.'));
+      await window.FBD.removeGameOrder(oid);
+    }catch(error){
+      console.error('No se pudo cerrar el pedido de objetos.', error);
+    }finally{
+      gameOrderBusy.delete(oid);
+    }
+  }
+}
+window.onGameOrders = ()=>{ settleGameOrders().catch(error=>console.error(error)); settleItemOrders().catch(error=>console.error(error)); };
+setInterval(()=>{ if(loaded && window.LOGIN_ME) window.onGameOrders(); }, 5000);
+
 function openGiftPrize(fromTrainer, id){
   const prize = (pendingPrizes[fromTrainer]||[]).find(p=>p.id===id);
   if(!prize) return;
@@ -6688,6 +6780,7 @@ function __renderProfileBase(app, t){
           <button class="ghost" onclick="addLife('${t}')">➕ Sumar vida</button>
           <button class="ghost" onclick="resetLives('${t}')">🔄 Restablecer</button>
           <button class="ghost" onclick="openApplySancion()">⚖️ Sanción</button>
+          ${window.LOGIN_ME === 'iker' ? `<button class="ghost" onclick="giveRareCandies('${t}')">🍬 +999 Caramelos raros</button>` : ''}
         </div>
       </aside>
 
@@ -6722,8 +6815,9 @@ function __renderProfileBase(app, t){
               <div>
                 <div class="n-text">${p.text}</div>
                 <div class="n-meta mono">${p.source} · ${fmtTime(p.ts)}</div>
-                <div style="text-align:right;display:flex;gap:8px;justify-content:flex-end;">
-                  <button class="ghost" onclick="openGiftPrize('${t}','${p.id}')">🎁 Regalar</button>
+                <div style="text-align:right;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center;">
+                  ${legendaryPrizeActions(t,p)}
+                  ${gameOrderOf(p.id) ? '' : `<button class="ghost" onclick="openGiftPrize('${t}','${p.id}')">🎁 Regalar</button>`}
                   <button class="danger-outline" onclick="removePendingPrize('${t}','${p.id}')">Entregado</button>
                 </div>
               </div>
@@ -12654,6 +12748,7 @@ onAuthStateChanged(auth,async user=>{
   cfg=(await get(ref(db,'config'))).val()||{};
   await Promise.all([sub('legacy',v=>{FBS.legacy=v||{}}),sub('profiles',v=>{FBS.profiles=v||{}}),sub('inventory',v=>{FBS.inventory=v||{};inv=FBS.inventory[me]||{}}),
     sub('presence',v=>{FBS.presence=v||{}}),
+    sub('orders/'+me,v=>{FBS.orders=v||{};if(window.onGameOrders)window.onGameOrders()},()=>{FBS.orders={}}),
     sub('calendarOpened/'+me,v=>{opened=v||{};syncCal()}),sub('claims/'+me,v=>{claims=v||{};syncCal()}),sub('.info/serverTimeOffset',v=>{off=v||0}),
     ...['iker','joel','alex'].map(trainer=>sub('trackers/'+trainer,v=>{trackerStateCache[trainer]=v;delete trackerStateErrors[trainer]},error=>{trackerStateErrors[trainer]=error}))]);
   const connectionRef=ref(db,'.info/connected');
@@ -12942,6 +13037,20 @@ async function updateCosmeticTrade(id,action){
   dirty();
   return true;
 }
+Object.assign(window.FBD,{
+  // crea orders/<yo>/<id> SOLO si no existe (un premio no puede generar dos pedidos)
+  async createGameOrder(id,order){
+    const r=await runTransaction(ref(db,`orders/${me}/${id}`),cur=>cur?undefined:{...order,status:'pending',ts:serverTimestamp()},{applyLocally:false});
+    return r.committed;
+  },
+  removeGameOrder(id){return remove(ref(db,`orders/${me}/${id}`))},
+  // pedido para otro entrenador (solo iker, lo exigen las reglas); set sin leer, el id es unico
+  async createGameOrderFor(trainer,id,order){
+    if(!['iker','joel','alex'].includes(trainer)) throw new Error('Entrenador no válido');
+    await set(ref(db,`orders/${trainer}/${id}`),{...order,status:'pending',ts:serverTimestamp()});
+    return true;
+  }
+});
 window.LK={
   pal(a,trainer){const id=a&&String(a.palette),inventory=trainer&&FBS.inventory[trainer],ownsPalette=inventory&&inventory.palettes&&inventory.palettes[id];if(!ownsPalette)return '';const p=paletteById(id),c=paletteColorsOf(p);return c?`--bg:${esc(c.fondo)};--sf:${esc(c.superficie)};--pr:${esc(c.primario)};--ac:${esc(c.acento)};--tx:${esc(c.texto)};--pf-fb:linear-gradient(135deg,${esc(c.fondo)} 0%,${esc(c.superficie)} 100%)`:''},
   title(a){return (cfg.titles&&a&&cfg.titles[a.title])||null},
