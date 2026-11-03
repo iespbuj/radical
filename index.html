@@ -3417,7 +3417,7 @@ const NAMES = { iker:'Iker', joel:'Joel', alex:'Alex' };
 // comparar) y llevan un cartel bien visible en su tarjeta de la portada.
 const RETIRED_TRAINERS = new Set(); // vacío: ahora juegan los tres. (Si alguien vuelve a abandonar: new Set(['nombre']))
 
-const LOSER_PRIZES = ['1 captura extra', '1 Menta de Naturaleza', '5 tickets', '10 tickets', 'Banda Focus', 'Pesa Recia', 'Baya Meloc', 'Pierde 3 vidas', 'Pierde 1 vida', '1 Cápsula Habilidad', '1 Cápsula Habilidad', 'Un fondo aleatorio', 'Una paleta aleatoria', 'Nada'];
+const LOSER_PRIZES = ['1 captura extra', '1 Menta de Naturaleza', '5 tickets', '10 tickets', 'Banda Focus', 'Pesa Recia', 'Baya Meloc', 'Pierde 3 vidas', 'Pierde 1 vida', '1 Cápsula Habilidad', '1 Cápsula Habilidad', 'Un fondo aleatorio', 'Una paleta aleatoria', 'Te roban un Pokémon', 'Nada'];
 const WINNER_PRIZES = ['2 capturas extra', 'Elegir entre 3 huevos', '2 Mentas de Naturaleza', '10 tickets', '20 tickets', 'Permiso para una ilegalidad', 'Cambiar un Pokémon por otro que quiera de otro equipo', '3 Cápsulas Habilidad', 'Una skin aleatoria', 'Un título aleatorio', 'Un cosmético aleatorio'];
 const WHEEL_COLORS = ['#9fb2da','#c9a86a','#c9cfdd','#7d97c9','#e0c68a','#b8bfd1','#8fa8d6','#d18aa0'];
 
@@ -3895,6 +3895,9 @@ let arenaJourneyWriteQueue = Promise.resolve();
 let duelScheduleProgressionKey = null;
 let challengeState = null; // {challenger, opponent, stakeId, stakeMonPid, stakeMonLabel, games:[], narration} o null si no hay ninguno activo
 let challengeActionInFlight = false;
+let stealState = {};   // robos de Pokémon en curso: id -> {victim, others, status, thief, pid, label, accepts, ...}
+const STEAL_LABEL = 'Te roban un Pokémon';
+const spinningSteals = new Set();
 let challengeRevision = 0;
 const CHALLENGE_COST = 25;
 const CHALLENGE_STAKES = [
@@ -4326,17 +4329,130 @@ function mapTrackerCaptureLocation(mapId, locationName){
   return customName || mapName || zoneName || `Zona #${id}`;
 }
 
-// Notificaciones: solo lo que requiere una acción del jugador que ha iniciado sesión (premios pendientes).
+/* ---- ROBO DE POKÉMON: ruleta -> elegir -> aceptan los dos -> take_mon (víctima) -> give_mon (ladrón) ---- */
+const STEAL_PID_RE = /^[0-9A-Fa-f]{1,8}-[0-9A-Fa-f]{1,8}$/;
+async function saveStealState(){ return await trackedStoreSet('steals', 'locke:steals', stealState); }
+async function persistSteal(){
+  render();
+  const ok = await saveStealState();
+  if(!ok) queueRetry('steals', saveStealState);
+}
+async function startSteal(victim, source){
+  const id = crypto.randomUUID();
+  stealState[id] = { id, victim, others: TRAINERS.filter(t=>t!==victim), status:'wheel', thief:null, pid:null, label:null, accepts:{}, source, ts:Date.now() };
+  pushHistory(`🦹 A ${NAMES[victim]} le toca que le roben un Pokémon (${source}). Ruleta entre los otros dos.`);
+  await persistSteal();
+}
+function spinSteal(id){
+  const s = stealState[id];
+  if(!s || s.status !== 'wheel' || spinningSteals.has(id)) return;
+  spinningSteals.add(id);
+  const pick = s.others[Math.floor(Math.random()*s.others.length)];
+  openModal(`<h3>🎰 Ruleta del robo</h3><div id="steal-wheel-name" style="font-size:28px;text-align:center;margin:18px 0">…</div>`);
+  let i = 0;
+  const timer = setInterval(()=>{ const e = document.getElementById('steal-wheel-name'); if(e) e.textContent = NAMES[s.others[i++ % s.others.length]]; }, 120);
+  setTimeout(async ()=>{
+    clearInterval(timer);
+    const e = document.getElementById('steal-wheel-name'); if(e) e.textContent = '🦹 ' + NAMES[pick];
+    s.thief = pick; s.status = 'pick';
+    pushHistory(`🦹 La ruleta decide: ${NAMES[pick]} se queda un Pokémon de ${NAMES[s.victim]}.`);
+    spinningSteals.delete(id);
+    await persistSteal();
+    setTimeout(closeModal, 1500);
+  }, 2400);
+}
+function openStealPick(id){
+  const s = stealState[id];
+  if(!s || s.status !== 'pick' || s.thief !== window.LOGIN_ME) return;
+  const mons = allMonsOf(s.victim).filter(m=>!m.isEgg && STEAL_PID_RE.test(String(m.pid||'')));
+  openModal(`
+    <h3>🦹 Elige un Pokémon de ${lkEsc(NAMES[s.victim])}</h3>
+    ${mons.length ? `<div class="field"><select id="steal-mon-select">${mons.map(m=>`<option value="${lkEsc(m.pid)}">${lkEsc(m.nickname)} (${lkEsc(String(m.speciesName||'').replace(/-/g,' '))})</option>`).join('')}</select></div>`
+      : `<div class="capline">No hay Pokémon robables (¿el tracker de ${lkEsc(NAMES[s.victim])} está subiendo datos?)</div>`}
+    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Cancelar</button>
+    ${mons.length ? `<button class="primary" onclick="confirmStealPick('${id}')">Elegir</button>` : ''}</div>`);
+}
+async function confirmStealPick(id){
+  const s = stealState[id], sel = document.getElementById('steal-mon-select');
+  if(!s || !sel || s.status !== 'pick') return;
+  const mon = allMonsOf(s.victim).find(m=>m.pid === sel.value && !m.isEgg);
+  if(!mon){ toast('Ese Pokémon ya no está disponible.'); return; }
+  s.pid = mon.pid; s.label = `${mon.nickname} (${String(mon.speciesName||'').replace(/-/g,' ')})`; s.status = 'accept'; s.accepts = {};
+  pushHistory(`🦹 ${NAMES[s.thief]} quiere quedarse ${s.label} de ${NAMES[s.victim]}. Deben aceptar los dos.`);
+  closeModal();
+  await persistSteal();
+}
+async function acceptSteal(id){
+  const s = stealState[id], me = window.LOGIN_ME;
+  if(!s || s.status !== 'accept' || (me !== s.thief && me !== s.victim)) return;
+  s.accepts = { ...(s.accepts||{}), [me]: true };
+  if(s.accepts[s.thief] && s.accepts[s.victim]){
+    const [pers, tid] = s.pid.split('-');
+    try{
+      await window.FBD.createGameOrderFor(s.victim, 'steal-' + id, { kind:'take_mon', monpers:pers, montid:tid });
+      s.status = 'executing';
+      pushHistory(`🦹 Robo aceptado: ${s.label} pasa de ${NAMES[s.victim]} a ${NAMES[s.thief]}.`);
+    }catch(error){
+      console.error('No se pudo crear la orden de robo.', error);
+      s.accepts[me] = false; toast('No se pudo iniciar el robo. Inténtalo de nuevo.'); render(); return;
+    }
+  }
+  await persistSteal();
+}
+async function closeSteal(id){ delete stealState[id]; await persistSteal(); }
+// Se ejecuta cada pocos segundos (window.onGameOrders): avanza los robos con las órdenes que lee este navegador.
+async function settleStealOrders(){
+  const me = window.LOGIN_ME;
+  if(!me || !window.FBS || !FBS.orders) return;
+  for(const s of Object.values(stealState)){
+    if(!s || s.status !== 'executing') continue;
+    if(s.victim === me){
+      const o = FBS.orders['steal-' + s.id];
+      if(o && o.status === 'taken' && o.raw && !s.giveCreated){
+        try{
+          s.raw = o.raw; s.giveCreated = true;
+          await window.FBD.createGameOrderFor(s.thief, 'steal-' + s.id + '-give', { kind:'give_mon', raw:o.raw });
+          await persistSteal();
+          await window.FBD.removeGameOrder('steal-' + s.id);
+        }catch(error){ console.error('No se pudo crear la entrega del robo.', error); s.giveCreated = false; }
+      } else if(o && o.status === 'error'){
+        s.status = 'error'; s.note = o.note || 'no se pudo quitar el Pokémon'; await persistSteal();
+        window.FBD.removeGameOrder('steal-' + s.id).catch(()=>{});
+      }
+    }
+    if(s.thief === me){
+      const g = FBS.orders['steal-' + s.id + '-give'];
+      if(g && g.status === 'done'){
+        s.status = 'done'; toast(`🦹 ${s.label} ya está en tu PC.`); await persistSteal();
+        window.FBD.removeGameOrder('steal-' + s.id + '-give').catch(()=>{});
+      }
+    }
+  }
+}
+
+// Notificaciones: solo lo que requiere una acción del jugador que ha iniciado sesión.
 function myNotifications(){
   const me = window.LOGIN_ME;
-  return me ? (pendingPrizes[me] || []) : [];
+  if(!me) return [];
+  const list = (pendingPrizes[me] || []).map(p => ({ text:p.text, source:p.source||'', label:'Ver en mi perfil', fn:'openNotif()' }));
+  for(const s of Object.values(stealState)){
+    if(!s) continue;
+    const src = `Robo a ${NAMES[s.victim]}`;
+    if(s.status === 'wheel' && s.others.includes(me)) list.push({ text:`🎰 Gira la ruleta: ¿quién se queda un Pokémon de ${NAMES[s.victim]}?`, source:src, label:'Girar', fn:`spinSteal('${s.id}')` });
+    else if(s.status === 'pick' && s.thief === me) list.push({ text:`🦹 Te toca elegir un Pokémon de ${NAMES[s.victim]}`, source:src, label:'Elegir', fn:`openStealPick('${s.id}')` });
+    else if(s.status === 'accept' && (me === s.thief || me === s.victim) && !(s.accepts||{})[me])
+      list.push({ text:`${NAMES[s.thief]} se queda ${s.label} de ${NAMES[s.victim]}. ¿Aceptas?`, source:src, label:'Aceptar', fn:`acceptSteal('${s.id}')` });
+    else if(s.status === 'error' && (me === s.thief || me === s.victim))
+      list.push({ text:`⚠️ El robo de ${s.label} falló: ${s.note || 'error'}`, source:src, label:'Cerrar', fn:`closeSteal('${s.id}')` });
+  }
+  return list;
 }
 function renderNotifWidget(){
   const me = window.LOGIN_ME, list = myNotifications(), n = list.length;
   if(!me) return '';
   const items = list.map(p => `
-    <div class="notif-item">${lkEsc(p.text)}<small>${lkEsc(p.source || '')}</small>
-      <button class="primary" type="button" onclick="openNotif()">Ver en mi perfil</button>
+    <div class="notif-item">${lkEsc(p.text)}<small>${lkEsc(p.source)}</small>
+      <button class="primary" type="button" onclick="${p.fn}">${p.label}</button>
     </div>`).join('');
   return `
     <section id="notif-widget">
@@ -4536,6 +4652,7 @@ async function loadAll(){
     { key: 'locke:duelBets', def: { match1: [], final: [] } },
     { key: 'locke:arenaJourney', def: { completed:[], winners:{}, postLeagueDone:false, postLeagueWinner:null, votes:{} } },
     { key: 'locke:challenge', def: null },
+    { key: 'locke:steals', def: {} },
     { key: 'locke:dailyContest', def: { date:null, winner:null, attempts:{}, pieces:{iker:0,joel:0,alex:0}, stars:{iker:0,joel:0,alex:0} } },
     { key: 'locke:finalState', def: null },
     { key: 'locke:normas', def: [] },
@@ -4638,6 +4755,8 @@ async function loadAll(){
       && !saveInFlight['challenge'] && !challengeActionInFlight && !pendingSaves.has('challenge')){
     challengeState = challengeResult;
   }
+  { const stealsResult = batch['locke:steals'];
+    if(!saveInFlight['steals'] && !pendingSaves.has('steals')) stealState = (stealsResult && typeof stealsResult === 'object') ? stealsResult : {}; }
   if(!saveInFlight['dailyContest']) dailyContestState = normalizeDailyContestState(dailyContestResult);
   if(!saveInFlight['finalState']) finalState = finalResult;
   if(!saveInFlight['normas']) normas = normasResult;
@@ -6082,7 +6201,7 @@ async function settleItemOrders(){
     }
   }
 }
-window.onGameOrders = ()=>{ settleGameOrders().catch(error=>console.error(error)); settleItemOrders().catch(error=>console.error(error)); };
+window.onGameOrders = ()=>{ settleStealOrders().catch(error=>console.error(error)); settleGameOrders().catch(error=>console.error(error)); settleItemOrders().catch(error=>console.error(error)); };
 setInterval(()=>{ if(loaded && window.LOGIN_ME) window.onGameOrders(); }, 5000);
 
 function openGiftPrize(fromTrainer, id){
@@ -6132,6 +6251,7 @@ async function confirmGiftPrize(fromTrainer, id){
 // Aplica un premio de ruleta al ganador/perdedor: si es "N tickets" se suma solo al saldo,
 // si no, queda como premio físico pendiente de entregar en el perfil.
 async function applyPrizeToTrainer(t, prizeLabel, source){
+  if(prizeLabel === STEAL_LABEL){ await startSteal(t, source); return; }
   const m = prizeLabel.match(/^(\d+)\s+tickets?$/i);
   if(m){
     await addTickets(t, parseInt(m[1], 10), source);
