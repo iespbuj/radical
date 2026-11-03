@@ -4491,6 +4491,7 @@ function pushHistoryEvents(list){
     if(!ok) queueRetry('history-events', ()=>window.FBD.appendHistoryEvents(events));
   });
 }
+const trackerGhostMisses = {}, trackerGhostLastCheck = {};
 function syncTrackerEvents(t, snapshot, team){
   try{
     if(['collection:'+t, 'graveyard:'+t, 'history'].some(k => saveInFlight[k] > 0)) return;
@@ -4543,6 +4544,19 @@ function syncTrackerEvents(t, snapshot, team){
         });
       }
     });
+    // Limpieza: Pokémon de las cajas que ya no están en el tracker (liberados, robados...).
+    // Solo se borran si el tracker ha leído las cajas y llevan ausentes en 3 comprobaciones separadas (>=20 s), para no borrar por una lectura mala.
+    if(Array.isArray(snapshot.pokemon) && snapshot.pokemon.length > 0 && Date.now() - (trackerGhostLastCheck[t] || 0) >= 20000){
+      trackerGhostLastCheck[t] = Date.now();
+      const present = new Set(all.map(x => String(x.m.pid)));
+      Object.entries(newReg).forEach(([pid, r]) => {
+        const key = t + ':' + pid;
+        if(r && r.inTeam === false && !r.fainted && !present.has(pid)){
+          trackerGhostMisses[key] = (trackerGhostMisses[key] || 0) + 1;
+          if(trackerGhostMisses[key] >= 3){ delete newReg[pid]; delete trackerGhostMisses[key]; regChanged = true; }
+        } else delete trackerGhostMisses[key];
+      });
+    }
     if(regChanged){
       collections[t] = newReg;
       trackedStoreSet('collection:'+t, 'locke:collection:'+t, { pids:newReg }).then(ok=>{ if(!ok) queueRetry('collection:'+t, ()=>trackedStoreSet('collection:'+t, 'locke:collection:'+t, { pids:collections[t] })); });
