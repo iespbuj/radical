@@ -3451,7 +3451,7 @@ const MERGED_LOSER_WHEEL = [
 ];
 
 const hearts = FBP('lives', 20); let teams = {}, history = [], tradesActive = [], tradesHistory = [];
-const tickets = FBP('tickets', 0); let pendingPrizes = {};
+const tickets = FBP('tickets', 0); let pendingPrizes = {}; let mints = {};   // mints[t] = { choose:N (torneo: elige naturaleza), random:N (desafío: ruleta) }
 let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador reclamó su bonus diario
 let dailyContestRewardClaims = {};
 let dailyContestState = { date:null, winner:null, starAwarded:false, attempts:{}, pieces:{iker:0,joel:0,alex:0}, stars:{iker:0,joel:0,alex:0} };
@@ -4431,11 +4431,116 @@ async function settleStealOrders(){
   }
 }
 
+
+/* ---- MENTAS DE NATURALEZA: se guardan en el perfil y se usan cuando quieras (cambian la naturaleza editando el Pokémon en el juego) ---- */
+const NATURE_NAMES = ['Fuerte','Huraña','Audaz','Firme','Pícara','Osada','Dócil','Plácida','Agitada','Floja','Miedosa','Activa','Seria','Alegre','Ingenua','Modesta','Afable','Mansa','Tímida','Alocada','Serena','Amable','Grosera','Cauta','Rara'];
+const NATURE_STATS = ['Ataque','Defensa','Velocidad','At. Esp.','Def. Esp.'];
+function natureEffect(n){ const up = Math.floor(n/5), down = n % 5; return up === down ? 'neutra' : `+${NATURE_STATS[up]} −${NATURE_STATS[down]}`; }
+function normalizeMints(m){ return { choose: Math.max(0, parseInt(m && m.choose, 10) || 0), random: Math.max(0, parseInt(m && m.random, 10) || 0) }; }
+async function addMints(t, n, mode, source){
+  mints[t] = normalizeMints(mints[t]); mints[t][mode] += n;
+  pushHistory(`🌿 ${NAMES[t]} gana ${n} menta${n === 1 ? '' : 's'} de naturaleza (${source})`);
+  render();
+  const ok = await saveProfile(t);
+  if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
+}
+function mintCandidates(){ return allMonsOf(window.LOGIN_ME).filter(m => !m.isEgg && STEAL_PID_RE.test(String(m.pid || ''))); }
+let mintBusy = false;
+function openMint(mode){
+  const me = window.LOGIN_ME;
+  if(!me) return;
+  const left = normalizeMints(mints[me])[mode];
+  if(left < 1) return;
+  notifOpen = false;
+  const mons = mintCandidates();
+  const monField = mons.length
+    ? `<div class="field"><label>Pokémon (equipo o cajas)</label><select id="mint-mon">${mons.map(m=>`<option value="${lkEsc(m.pid)}">${lkEsc(m.nickname)} (${lkEsc(String(m.speciesName||'').replace(/-/g,' '))}) · ${m.inTeam ? 'equipo' : 'caja'}</option>`).join('')}</select></div>`
+    : `<div class="capline">No hay Pokémon disponibles (¿el tracker está subiendo datos?)</div>`;
+  const natField = mode === 'choose'
+    ? `<div class="field"><label>Naturaleza</label><select id="mint-nature">${NATURE_NAMES.map((nm,i)=>`<option value="${i}">${nm} — ${natureEffect(i)}</option>`).join('')}</select></div>`
+    : `<div id="mint-wheel" style="font-size:26px;text-align:center;margin:14px 0">🎰 ?</div>`;
+  openModal(`<h3>🌿 Menta de Naturaleza</h3><div class="capline">Te quedan ${left}.</div>${monField}${natField}
+    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Cancelar</button>
+    ${mons.length ? `<button class="primary" onclick="useMint('${mode}')">${mode === 'choose' ? 'Aplicar' : '🎰 Girar'}</button>` : ''}</div>`);
+}
+async function useMint(mode){
+  const sel = document.getElementById('mint-mon');
+  if(!sel || mintBusy) return;
+  const mon = mintCandidates().find(m => m.pid === sel.value);
+  if(!mon){ toast('Ese Pokémon ya no está disponible.'); return; }
+  const current = parseInt(mon.pid.split('-')[0], 16) % 25;
+  mintBusy = true;
+  try{
+    if(mode === 'choose'){
+      const nature = parseInt(document.getElementById('mint-nature').value, 10);
+      if(nature === current){ toast(`${mon.nickname} ya tiene la naturaleza ${NATURE_NAMES[nature]}.`); return; }
+      await applyMint(mode, mon, nature);
+    } else {
+      const options = NATURE_NAMES.map((_, i) => i).filter(i => i !== current);
+      const nature = options[Math.floor(Math.random() * options.length)];
+      const el = document.getElementById('mint-wheel');
+      let i = 0;
+      const timer = setInterval(() => { if(el) el.textContent = '🎰 ' + NATURE_NAMES[i++ % 25]; }, 80);
+      await new Promise(r => setTimeout(r, 2200));
+      clearInterval(timer);
+      if(el) el.textContent = `🌿 ${NATURE_NAMES[nature]} (${natureEffect(nature)})`;
+      await new Promise(r => setTimeout(r, 1300));
+      await applyMint(mode, mon, nature);
+    }
+  } finally { mintBusy = false; }
+}
+async function applyMint(mode, mon, nature){
+  const me = window.LOGIN_ME;
+  mints[me] = normalizeMints(mints[me]);
+  if(mints[me][mode] < 1) return false;
+  const [pers, tid] = mon.pid.split('-');
+  try{
+    await window.FBD.createGameOrder('mint-' + crypto.randomUUID(), { kind:'set_nature', monpers:pers, montid:tid, nature, mode });
+  }catch(error){
+    console.error('No se pudo crear la orden de naturaleza.', error);
+    toast('No se pudo enviar la orden. Inténtalo de nuevo.'); return false;
+  }
+  mints[me][mode]--;
+  pushHistory(`🌿 ${NAMES[me]} usa una menta en ${mon.nickname}: ${NATURE_NAMES[nature]} (${natureEffect(nature)})`);
+  closeModal(); render();
+  toast('🌿 Pedido enviado. Se aplica solo cuando el juego y el tracker estén abiertos.');
+  const ok = await saveProfile(me);
+  if(!ok) queueRetry('profile:'+me, ()=>saveProfile(me));
+  return true;
+}
+const mintOrderBusy = new Set();
+async function settleMintOrders(){
+  const me = window.LOGIN_ME;
+  if(!loaded || !me || !window.FBS || !FBS.orders) return;
+  for(const [oid, o] of Object.entries(FBS.orders)){
+    if(!o || o.kind !== 'set_nature' || !oid.startsWith('mint-') || mintOrderBusy.has(oid)) continue;
+    if(o.status !== 'done' && o.status !== 'error') continue;
+    mintOrderBusy.add(oid);
+    try{
+      await window.FBD.removeGameOrder(oid);
+      if(o.status === 'done'){
+        toast(`🌿 Naturaleza cambiada a ${NATURE_NAMES[o.nature] || ''}.`);
+      } else {
+        mints[me] = normalizeMints(mints[me]);
+        mints[me][o.mode === 'random' ? 'random' : 'choose']++;      // se devuelve la menta
+        toast(`⚠️ No se pudo usar la menta (${o.note || 'error'}). Te la devolvemos.`);
+        render();
+        const ok = await saveProfile(me);
+        if(!ok) queueRetry('profile:'+me, ()=>saveProfile(me));
+      }
+    }catch(error){ console.error('No se pudo cerrar el pedido de la menta.', error); }
+    finally{ mintOrderBusy.delete(oid); }
+  }
+}
+
 // Notificaciones: solo lo que requiere una acción del jugador que ha iniciado sesión.
 function myNotifications(){
   const me = window.LOGIN_ME;
   if(!me) return [];
   const list = (pendingPrizes[me] || []).map(p => ({ text:p.text, source:p.source||'', label:'Ver en mi perfil', fn:'openNotif()' }));
+  const mm = normalizeMints(mints[me]);
+  if(mm.choose > 0) list.push({ text:`🌿 Tienes ${mm.choose} menta${mm.choose === 1 ? '' : 's'} de naturaleza para usar (tú eliges la naturaleza)`, source:'Torneo', label:'Usar menta', fn:"openMint('choose')" });
+  if(mm.random > 0) list.push({ text:`🌿 Tienes ${mm.random} menta${mm.random === 1 ? '' : 's'} de naturaleza para usar (naturaleza al azar)`, source:'Desafío', label:'Usar menta (ruleta)', fn:"openMint('random')" });
   for(const s of Object.values(stealState)){
     if(!s) continue;
     const src = `Robo a ${NAMES[s.victim]}`;
@@ -4735,6 +4840,7 @@ async function loadAll(){
     teams[t] = normalizeTeamSpecies(profileResults[i].team);
     /* tickets: Firebase */
     pendingPrizes[t] = profileResults[i].pendingPrizes || [];
+    mints[t] = normalizeMints(profileResults[i].mints);
     dailyBonusDate[t] = profileResults[i].dailyBonusDate || null;
     dailyContestRewardClaims[t] = Array.isArray(profileResults[i].dailyContestRewardClaims) ? profileResults[i].dailyContestRewardClaims.filter(id=>typeof id === 'string') : [];
     money[t] = profileResults[i].money || 0;
@@ -4808,7 +4914,7 @@ async function loadAll(){
 }
 async function saveProfile(t){
   teams[t] = normalizeTeamSpecies(teams[t]);
-  return await trackedStoreSet('profile:'+t, 'locke:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null, dailyContestRewardClaims: dailyContestRewardClaims[t]||[], money: money[t]||0, medalLog: medalLog[t]||null, badges: badgeBits[t]||0, locationName: locationName[t]||null, trackerVersion: trackerVersion[t]||null, trackerLives: trackerLives[t]??null, trackerBadges: trackerBadgesAvailable[t] ? Array.from({length:GYM_COUNT}, (_,i)=>!!(badgeBits[t] & (1<<i))) : null });
+  return await trackedStoreSet('profile:'+t, 'locke:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], mints: normalizeMints(mints[t]), dailyBonusDate: dailyBonusDate[t]||null, dailyContestRewardClaims: dailyContestRewardClaims[t]||[], money: money[t]||0, medalLog: medalLog[t]||null, badges: badgeBits[t]||0, locationName: locationName[t]||null, trackerVersion: trackerVersion[t]||null, trackerLives: trackerLives[t]??null, trackerBadges: trackerBadgesAvailable[t] ? Array.from({length:GYM_COUNT}, (_,i)=>!!(badgeBits[t] & (1<<i))) : null });
 }
 
 const DAILY_CONTEST_START = new Date('2026-10-07T10:00:00Z');
@@ -6113,6 +6219,8 @@ async function grantCosmeticPrize(t, text, source){
   }catch(e){ return false; }
 }
 async function addPendingPrize(t, text, source){
+  const mintPrize = String(text).match(/^(\d+)\s+Mentas?\s+de\s+Naturaleza$/i);
+  if(mintPrize){ await addMints(t, parseInt(mintPrize[1], 10), /desaf[ií]o/i.test(source) ? 'random' : 'choose', source); return; }
   if(COSMETIC_PRIZES[text] && await grantCosmeticPrize(t, text, source)) return;
   pendingPrizes[t] = pendingPrizes[t] || [];
   pendingPrizes[t].unshift({ id: crypto.randomUUID(), text, source, ts: Date.now() });
@@ -6217,7 +6325,7 @@ async function settleItemOrders(){
     }
   }
 }
-window.onGameOrders = ()=>{ settleStealOrders().catch(error=>console.error(error)); settleGameOrders().catch(error=>console.error(error)); settleItemOrders().catch(error=>console.error(error)); };
+window.onGameOrders = ()=>{ settleMintOrders().catch(error=>console.error(error)); settleStealOrders().catch(error=>console.error(error)); settleGameOrders().catch(error=>console.error(error)); settleItemOrders().catch(error=>console.error(error)); };
 setInterval(()=>{ if(loaded && window.LOGIN_ME) window.onGameOrders(); }, 5000);
 
 function openGiftPrize(fromTrainer, id){
@@ -6266,8 +6374,23 @@ async function confirmGiftPrize(fromTrainer, id){
 
 // Aplica un premio de ruleta al ganador/perdedor: si es "N tickets" se suma solo al saldo,
 // si no, queda como premio físico pendiente de entregar en el perfil.
+// Resta vidas automáticamente (mínimo -1, igual que el resto de la web) y lo guarda.
+async function loseLives(t, n, source){
+  hearts[t] = Math.max((hearts[t] ?? 20) - n, -1);
+  pushHistory(`💔 ${NAMES[t]} pierde ${n} vida${n === 1 ? '' : 's'} (${source}): ${hearts[t]}/20`);
+  render();
+  const ok = await saveProfile(t);
+  if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
+}
 async function applyPrizeToTrainer(t, prizeLabel, source){
   if(prizeLabel === STEAL_LABEL){ await startSteal(t, source); return; }
+  // "Pierde 3 vidas", "Suerte: solo pierdes 1 vida", "Pierde 1 vida y debes dar un Pokémon…": las vidas se restan solas; si hay algo más, queda como aviso.
+  const lives = prizeLabel.match(/^(?:Pierde|Suerte: solo pierdes)\s+(\d+)\s+vidas?(?:\s+y\s+(.+))?$/i);
+  if(lives){
+    await loseLives(t, parseInt(lives[1], 10), source);
+    if(lives[2]) await addPendingPrize(t, lives[2].charAt(0).toUpperCase() + lives[2].slice(1), source);
+    return;
+  }
   const m = prizeLabel.match(/^(\d+)\s+tickets?$/i);
   if(m){
     await addTickets(t, parseInt(m[1], 10), source);
@@ -9855,7 +9978,8 @@ function spinMatch1LoserWheel(){
     playSound('wheelLand');
 
     const loser = [duelState.match1.p1, duelState.match1.p2].find(p=> p!==duelState.match1Winner);
-    pushHistory(`💀 ${NAMES[loser]} perdió el Combate 1 y le tocó: ${outcome.label} (aplicar manualmente si corresponde)`);
+    pushHistory(`💀 ${NAMES[loser]} perdió el Combate 1 y le tocó: ${outcome.label}`);
+    await applyPrizeToTrainer(loser, outcome.label, 'Ruleta del perdedor del Combate 1');
 
     render();
     const ok2 = await saveDuelState();
