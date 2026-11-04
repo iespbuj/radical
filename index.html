@@ -3451,7 +3451,8 @@ const MERGED_LOSER_WHEEL = [
 ];
 
 const hearts = FBP('lives', 20); let teams = {}, history = [], tradesActive = [], tradesHistory = [];
-const tickets = FBP('tickets', 0); let pendingPrizes = {}; let mints = {};   // mints[t] = { choose:N (torneo: elige naturaleza), random:N (desafío: ruleta) }
+const tickets = FBP('tickets', 0); let pendingPrizes = {}; let mints = {}; let deathLives = {}; let capsules = {};   // capsules[t] = Cápsulas Habilidad sin usar
+// (mints/deathLives: ver más abajo)   // deathLives[t] = pids de muertes ya tratadas (null = aún no inicializado)   // mints[t] = { choose:N (torneo: elige naturaleza), random:N (desafío: ruleta) }
 let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador reclamó su bonus diario
 let dailyContestRewardClaims = {};
 let dailyContestState = { date:null, winner:null, starAwarded:false, attempts:{}, pieces:{iker:0,joel:0,alex:0}, stars:{iker:0,joel:0,alex:0} };
@@ -4016,6 +4017,7 @@ async function fetchTrackerState(t){
     name: mon.nickname || mon.name || mon.species || 'Pokémon',
     species: mon.species || mon.speciesName || '',
     abilityName: mon.abilityName || mon.ability || null,
+    altAbilityName: typeof mon.alt_ability === 'string' ? mon.alt_ability : (typeof mon.altAbilityName === 'string' ? mon.altAbilityName : undefined),   // '' = solo tiene una habilidad; undefined = tracker antiguo
     metLocationId: mon.metLocationId ?? mon.met_location_id ?? null,
     metLevel: mon.metLevel ?? mon.met_level ?? null,
   });
@@ -4277,6 +4279,7 @@ function trainerTrackerTeam(snapshot){
         abilityName: !isEgg && typeof mon.abilityName === 'string' && mon.abilityName.trim()
           ? mon.abilityName.trim()
           : null,
+        altAbilityName: !isEgg && typeof mon.altAbilityName === 'string' ? mon.altAbilityName.trim() : undefined,
         shiny: !isEgg && !!mon.shiny,
       };
     });
@@ -4508,18 +4511,80 @@ async function applyMint(mode, mon, nature){
   if(!ok) queueRetry('profile:'+me, ()=>saveProfile(me));
   return true;
 }
+
+/* ---- CÁPSULA HABILIDAD: se guarda en el perfil; puedes mirar qué habilidad tendría cualquier Pokémon y solo se gasta al aceptar ---- */
+async function addCapsules(t, n, source){
+  capsules[t] = (capsules[t] || 0) + n;
+  pushHistory(`💊 ${NAMES[t]} gana ${n} Cápsula${n === 1 ? '' : 's'} Habilidad (${source})`);
+  render();
+  const ok = await saveProfile(t);
+  if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
+}
+function openCapsule(){
+  const me = window.LOGIN_ME;
+  if(!me || (capsules[me] || 0) < 1) return;
+  notifOpen = false;
+  const mons = mintCandidates();
+  openModal(`<h3>💊 Cápsula Habilidad</h3>
+    <div class="capline">Te quedan ${capsules[me]}. Prueba con cualquier Pokémon: la cápsula solo se gasta cuando aceptas el cambio.</div>
+    ${mons.length ? `<div class="field"><label>Pokémon (equipo o cajas)</label><select id="cap-mon" onchange="updateCapsulePreview()">${mons.map(m=>`<option value="${lkEsc(m.pid)}">${lkEsc(m.nickname)} (${lkEsc(String(m.speciesName||'').replace(/-/g,' '))}) · ${m.inTeam ? 'equipo' : 'caja'}</option>`).join('')}</select></div>
+      <div id="cap-preview" class="capline" style="min-height:34px"></div>`
+      : `<div class="capline">No hay Pokémon disponibles (¿el tracker está subiendo datos?)</div>`}
+    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Cancelar</button>
+    ${mons.length ? `<button class="primary" id="cap-go" onclick="useCapsule()">Cambiar habilidad</button>` : ''}</div>`);
+  updateCapsulePreview();
+}
+function updateCapsulePreview(){
+  const sel = document.getElementById('cap-mon'), box = document.getElementById('cap-preview'), go = document.getElementById('cap-go');
+  if(!sel || !box) return;
+  const mon = mintCandidates().find(m => m.pid === sel.value);
+  let msg, can = false;
+  if(!mon) msg = 'Ese Pokémon ya no está disponible.';
+  else if(mon.altAbilityName === undefined) msg = 'El tracker aún no ha subido este dato. Reinicia el tracker con el archivo nuevo y espera un minuto.';
+  else if(mon.altAbilityName === '') msg = `<b>${lkEsc(mon.nickname)}</b> solo tiene una habilidad posible (${lkEsc(mon.abilityName || '?')}): la cápsula no cambiaría nada.`;
+  else { msg = `Ahora: <b>${lkEsc(mon.abilityName || '?')}</b> &nbsp;→&nbsp; con la cápsula: <b>${lkEsc(mon.altAbilityName)}</b>`; can = true; }
+  box.innerHTML = msg;
+  if(go) go.disabled = !can;
+}
+let capsuleBusy = false;
+async function useCapsule(){
+  const me = window.LOGIN_ME, sel = document.getElementById('cap-mon');
+  if(!me || !sel || capsuleBusy || (capsules[me] || 0) < 1) return;
+  const mon = mintCandidates().find(m => m.pid === sel.value);
+  if(!mon || !mon.altAbilityName) return;
+  capsuleBusy = true;
+  try{
+    const [pers, tid] = mon.pid.split('-');
+    await window.FBD.createGameOrder('cap-' + crypto.randomUUID(), { kind:'set_ability', monpers:pers, montid:tid });
+    capsules[me]--;
+    pushHistory(`💊 ${NAMES[me]} usa una Cápsula Habilidad en ${mon.nickname}: ${mon.abilityName || '?'} → ${mon.altAbilityName}`);
+    closeModal(); render();
+    toast('💊 Pedido enviado. Se aplica solo cuando el juego y el tracker estén abiertos.');
+    const ok = await saveProfile(me);
+    if(!ok) queueRetry('profile:'+me, ()=>saveProfile(me));
+  }catch(error){
+    console.error('No se pudo crear la orden de habilidad.', error);
+    toast('No se pudo enviar la orden. Inténtalo de nuevo.');
+  } finally { capsuleBusy = false; }
+}
 const mintOrderBusy = new Set();
 async function settleMintOrders(){
   const me = window.LOGIN_ME;
   if(!loaded || !me || !window.FBS || !FBS.orders) return;
   for(const [oid, o] of Object.entries(FBS.orders)){
-    if(!o || o.kind !== 'set_nature' || !oid.startsWith('mint-') || mintOrderBusy.has(oid)) continue;
+    if(!o || (o.kind !== 'set_nature' && o.kind !== 'set_ability') || !(oid.startsWith('mint-') || oid.startsWith('cap-')) || mintOrderBusy.has(oid)) continue;
     if(o.status !== 'done' && o.status !== 'error') continue;
     mintOrderBusy.add(oid);
     try{
       await window.FBD.removeGameOrder(oid);
       if(o.status === 'done'){
-        toast(`🌿 Naturaleza cambiada a ${NATURE_NAMES[o.nature] || ''}.`);
+        toast(o.kind === 'set_ability' ? '💊 Habilidad cambiada.' : `🌿 Naturaleza cambiada a ${NATURE_NAMES[o.nature] || ''}.`);
+      } else if(o.kind === 'set_ability'){
+        capsules[me] = (capsules[me] || 0) + 1;                      // se devuelve la cápsula
+        toast(`⚠️ No se pudo usar la cápsula (${o.note || 'error'}). Te la devolvemos.`);
+        render();
+        const ok = await saveProfile(me);
+        if(!ok) queueRetry('profile:'+me, ()=>saveProfile(me));
       } else {
         mints[me] = normalizeMints(mints[me]);
         mints[me][o.mode === 'random' ? 'random' : 'choose']++;      // se devuelve la menta
@@ -4538,6 +4603,7 @@ function myNotifications(){
   const me = window.LOGIN_ME;
   if(!me) return [];
   const list = (pendingPrizes[me] || []).map(p => ({ text:p.text, source:p.source||'', label:'Ver en mi perfil', fn:'openNotif()' }));
+  if((capsules[me] || 0) > 0) list.push({ text:`💊 Tienes ${capsules[me]} Cápsula${capsules[me] === 1 ? '' : 's'} Habilidad para usar (puedes probar antes qué habilidad saldría)`, source:'Premio', label:'Usar cápsula', fn:'openCapsule()' });
   const mm = normalizeMints(mints[me]);
   if(mm.choose > 0) list.push({ text:`🌿 Tienes ${mm.choose} menta${mm.choose === 1 ? '' : 's'} de naturaleza para usar (tú eliges la naturaleza)`, source:'Torneo', label:'Usar menta', fn:"openMint('choose')" });
   if(mm.random > 0) list.push({ text:`🌿 Tienes ${mm.random} menta${mm.random === 1 ? '' : 's'} de naturaleza para usar (naturaleza al azar)`, source:'Desafío', label:'Usar menta (ruleta)', fn:"openMint('random')" });
@@ -4616,7 +4682,7 @@ function syncTrackerEvents(t, snapshot, team){
       const pid = String(m.pid);
       const prev = reg[pid];
       const rec = { nickname:m.nickname, speciesName:m.species, sprite:m.sprite || '', level:m.level, metLocationName:m.metLocationName || null,
-        metLevel:m.metLevel, fainted:!!m.fainted, inTeam, shiny:!!m.shiny, abilityName:m.abilityName || null, box:inTeam ? null : (m.box || null) };
+        metLevel:m.metLevel, fainted:!!m.fainted, inTeam, shiny:!!m.shiny, abilityName:m.abilityName || null, altAbilityName:m.altAbilityName, box:inTeam ? null : (m.box || null) };
       const cmp = o => JSON.stringify({ ...o, level:null });
       if(!prev || cmp(prev) !== cmp(rec)){ newReg[pid] = rec; regChanged = true; }
       if(!prev && !baseline){
@@ -4652,12 +4718,12 @@ function syncTrackerEvents(t, snapshot, team){
     });
     // Limpieza: Pokémon de las cajas que ya no están en el tracker (liberados, robados...).
     // Solo se borran si el tracker ha leído las cajas y llevan ausentes en 3 comprobaciones separadas (>=20 s), para no borrar por una lectura mala.
-    if(Array.isArray(snapshot.pokemon) && snapshot.pokemon.length > 0 && Date.now() - (trackerGhostLastCheck[t] || 0) >= 20000){
+    if(Array.isArray(snapshot.pokemon) && Array.isArray(snapshot.party) && snapshot.party.length > 0 && Date.now() - (trackerGhostLastCheck[t] || 0) >= 20000){
       trackerGhostLastCheck[t] = Date.now();
       const present = new Set(all.map(x => String(x.m.pid)));
       Object.entries(newReg).forEach(([pid, r]) => {
         const key = t + ':' + pid;
-        if(r && r.inTeam === false && !r.fainted && !present.has(pid)){
+        if(r && !r.fainted && !present.has(pid)){
           trackerGhostMisses[key] = (trackerGhostMisses[key] || 0) + 1;
           if(trackerGhostMisses[key] >= 3){ delete newReg[pid]; delete trackerGhostMisses[key]; regChanged = true; }
         } else delete trackerGhostMisses[key];
@@ -4841,6 +4907,8 @@ async function loadAll(){
     /* tickets: Firebase */
     pendingPrizes[t] = profileResults[i].pendingPrizes || [];
     mints[t] = normalizeMints(profileResults[i].mints);
+    capsules[t] = Math.max(0, parseInt(profileResults[i].capsules, 10) || 0);
+    deathLives[t] = Array.isArray(profileResults[i].deathLives) ? profileResults[i].deathLives.map(String) : null;
     dailyBonusDate[t] = profileResults[i].dailyBonusDate || null;
     dailyContestRewardClaims[t] = Array.isArray(profileResults[i].dailyContestRewardClaims) ? profileResults[i].dailyContestRewardClaims.filter(id=>typeof id === 'string') : [];
     money[t] = profileResults[i].money || 0;
@@ -4910,11 +4978,12 @@ async function loadAll(){
   const changed = signature !== lastLoadSignature || hadLoadWarning;
   lastLoadSignature = signature;
   if(!saveInFlight['duelBets']) setTimeout(resumeUnpaidDuelBetPayouts,0);
+  setTimeout(()=>applyDeathLives().catch(error=>console.error(error)),0);
   return changed;
 }
 async function saveProfile(t){
   teams[t] = normalizeTeamSpecies(teams[t]);
-  return await trackedStoreSet('profile:'+t, 'locke:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], mints: normalizeMints(mints[t]), dailyBonusDate: dailyBonusDate[t]||null, dailyContestRewardClaims: dailyContestRewardClaims[t]||[], money: money[t]||0, medalLog: medalLog[t]||null, badges: badgeBits[t]||0, locationName: locationName[t]||null, trackerVersion: trackerVersion[t]||null, trackerLives: trackerLives[t]??null, trackerBadges: trackerBadgesAvailable[t] ? Array.from({length:GYM_COUNT}, (_,i)=>!!(badgeBits[t] & (1<<i))) : null });
+  return await trackedStoreSet('profile:'+t, 'locke:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], mints: normalizeMints(mints[t]), deathLives: deathLives[t] ?? null, capsules: capsules[t] || 0, dailyBonusDate: dailyBonusDate[t]||null, dailyContestRewardClaims: dailyContestRewardClaims[t]||[], money: money[t]||0, medalLog: medalLog[t]||null, badges: badgeBits[t]||0, locationName: locationName[t]||null, trackerVersion: trackerVersion[t]||null, trackerLives: trackerLives[t]??null, trackerBadges: trackerBadgesAvailable[t] ? Array.from({length:GYM_COUNT}, (_,i)=>!!(badgeBits[t] & (1<<i))) : null });
 }
 
 const DAILY_CONTEST_START = new Date('2026-10-07T10:00:00Z');
@@ -6219,6 +6288,8 @@ async function grantCosmeticPrize(t, text, source){
   }catch(e){ return false; }
 }
 async function addPendingPrize(t, text, source){
+  const capPrize = String(text).match(/^(?:(\d+)\s+)?C[áa]psulas?\s+Habilidad$/i);
+  if(capPrize){ await addCapsules(t, parseInt(capPrize[1] || '1', 10), source); return; }
   const mintPrize = String(text).match(/^(\d+)\s+Mentas?\s+de\s+Naturaleza$/i);
   if(mintPrize){ await addMints(t, parseInt(mintPrize[1], 10), /desaf[ií]o/i.test(source) ? 'random' : 'choose', source); return; }
   if(COSMETIC_PRIZES[text] && await grantCosmeticPrize(t, text, source)) return;
@@ -6374,6 +6445,42 @@ async function confirmGiftPrize(fromTrainer, id){
 
 // Aplica un premio de ruleta al ganador/perdedor: si es "N tickets" se suma solo al saldo,
 // si no, queda como premio físico pendiente de entregar en el perfil.
+
+/* ---- VIDAS POR MUERTE: cada Pokémon que muere resta 1 vida, pero solo desde que has capturado un segundo Pokémon ----
+   (con solo el starter los combates son forzados, así que esa muerte no cuenta). Cada jugador descuenta las suyas;
+   deathLives guarda qué muertes ya se han tratado, así no se resta dos veces. La primera vez solo se anota lo antiguo. */
+let deathLivesBusy = false;
+async function applyDeathLives(){
+  const me = window.LOGIN_ME;
+  if(!loaded || !me || deathLivesBusy) return;
+  const grave = Array.isArray(graveyard[me]) ? graveyard[me] : null;
+  const reg = collections[me];
+  if(!grave || !reg || !Object.keys(reg).length) return;      // aún no ha cargado todo: se mira en el siguiente ciclo
+  const pidOf = g => String(g && g.pid != null ? g.pid : `${g && g.nickname}:${g && g.speciesName}`);
+  deathLivesBusy = true;
+  try{
+    if(deathLives[me] === null || deathLives[me] === undefined){
+      deathLives[me] = grave.map(pidOf);                         // muertes antiguas: no se descuenta nada
+      const ok = await saveProfile(me);
+      if(!ok) queueRetry('profile:'+me, ()=>saveProfile(me));
+      return;
+    }
+    const handled = new Set(deathLives[me]);
+    const fresh = grave.filter(g => !handled.has(pidOf(g)));
+    if(!fresh.length) return;
+    const hasSecond = Object.keys(reg).length >= 2;
+    fresh.forEach(g => handled.add(pidOf(g)));
+    deathLives[me] = [...handled];
+    if(hasSecond){
+      await loseLives(me, fresh.length, fresh.length === 1 ? `murió ${fresh[0].nickname || 'un Pokémon'}` : `murieron ${fresh.length} Pokémon`);
+    } else {
+      pushHistory(`🕊️ ${NAMES[me]} perdió a ${fresh[0].nickname || 'su Pokémon'} sin tener un segundo Pokémon: no cuenta como vida perdida.`);
+      const ok = await saveProfile(me);
+      if(!ok) queueRetry('profile:'+me, ()=>saveProfile(me));
+    }
+  } finally { deathLivesBusy = false; }
+}
+
 // Resta vidas automáticamente (mínimo -1, igual que el resto de la web) y lo guarda.
 async function loseLives(t, n, source){
   hearts[t] = Math.max((hearts[t] ?? 20) - n, -1);
@@ -6532,16 +6639,21 @@ function allMonsOf(t){
     pid: p.pid, nickname: p.isEgg ? 'Huevo' : p.nickname, speciesName: p.isEgg ? 'Huevo' : p.species, sprite: p.sprite,
     level: p.isEgg ? null : p.level, metLocationName: p.metLocationName || null, metLevel: p.isEgg ? null : p.metLevel,
     fainted: p.isEgg ? false : (manualMap.hasOwnProperty(p.pid) ? manualMap[p.pid] : !!p.fainted), inTeam: true,
-    isEgg: !!p.isEgg, eggScale: p.eggScale || 1, abilityName: p.isEgg ? null : (p.abilityName || null), abilityId: p.isEgg ? null : (p.abilityId ?? null), shiny: p.isEgg ? false : !!p.shiny,
+    isEgg: !!p.isEgg, eggScale: p.eggScale || 1, altAbilityName: p.isEgg ? undefined : p.altAbilityName, abilityName: p.isEgg ? null : (p.abilityName || null), abilityId: p.isEgg ? null : (p.abilityId ?? null), shiny: p.isEgg ? false : !!p.shiny,
   }));
   const teamPids = new Set(team.map(m=>m.pid));
+  // El registro (collections) recuerda todo lo que se ha visto alguna vez. Si el tracker ya ha leído la partida (hay equipo),
+  // una caja solo se enseña si el Pokémon sigue en el último snapshot del tracker (o está muerto).
+  const live = trackerSnapshots[t];
+  const livePids = (live && Array.isArray(live.party) && live.party.length > 0 && Array.isArray(live.pokemon))
+    ? new Set([...live.party, ...live.pokemon].map(x => String(x.pid))) : null;
   const boxMons = Object.entries(collections[t]||{})
-    .filter(([pid, m]) => !teamPids.has(pid) && m && m.inTeam === false)
+    .filter(([pid, m]) => !teamPids.has(pid) && m && m.inTeam === false && (!livePids || livePids.has(pid) || m.fainted))
     .map(([pid, m]) => ({
       pid, nickname: m.nickname || m.speciesName, speciesName: m.speciesName, sprite: m.sprite,
       level: null, metLocationName: m.metLocationName || null, metLevel: m.metLevel,
       fainted: manualMap.hasOwnProperty(pid) ? manualMap[pid] : !!m.fainted, inTeam: false, box: m.box || null, boxName: m.boxName || null,
-      abilityName: m.abilityName || null, abilityId: m.abilityId ?? null, shiny: !!m.shiny,
+      abilityName: m.abilityName || null, altAbilityName: m.altAbilityName, abilityId: m.abilityId ?? null, shiny: !!m.shiny,
     }));
   _allMonsCache[t] = [...team, ...boxMons];
   return _allMonsCache[t];
