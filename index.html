@@ -3451,7 +3451,7 @@ const MERGED_LOSER_WHEEL = [
 ];
 
 const hearts = FBP('lives', 20); let teams = {}, history = [], tradesActive = [], tradesHistory = [];
-const tickets = FBP('tickets', 0); let pendingPrizes = {}; let mints = {}; let deathLives = {}; let capsules = {};   // capsules[t] = Cápsulas Habilidad sin usar
+const tickets = FBP('tickets', 0); let pendingPrizes = {}; let mints = {}; let deathLives = {}; let capsules = {}; let trueques = {};   // trueques[id] = { id, from, to, give:{mons,items}, want:{mons,items}, status, counterOf, legs }   // capsules[t] = Cápsulas Habilidad sin usar
 // (mints/deathLives: ver más abajo)   // deathLives[t] = pids de muertes ya tratadas (null = aún no inicializado)   // mints[t] = { choose:N (torneo: elige naturaleza), random:N (desafío: ruleta) }
 let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador reclamó su bonus diario
 let dailyContestRewardClaims = {};
@@ -4332,6 +4332,156 @@ function mapTrackerCaptureLocation(mapId, locationName){
   return customName || mapName || zoneName || `Zona #${id}`;
 }
 
+
+/* ---- TRUEQUES: Pokémon y objetos de la tienda, N:M. Cualquiera propone a cualquiera; el otro acepta, contraoferta o rechaza ---- */
+async function persistTrueques(){
+  render();
+  const ok = await trackedStoreSet('trueques', 'locke:trueques', trueques);
+  if(!ok) queueRetry('trueques', ()=>trackedStoreSet('trueques', 'locke:trueques', trueques));
+}
+function trueMonList(owner){ return allMonsOf(owner).filter(m => !m.isEgg && STEAL_PID_RE.test(String(m.pid || ''))); }
+function trueItemList(owner){ return (window.LKX && LKX.owned) ? LKX.owned(owner) : []; }   // sin los equipados
+function trueMonLabel(m){ return `${m.nickname} (${String(m.speciesName || '').replace(/-/g, ' ')})`; }
+function trueItemLabel(kind, id){ return `${(window.LKX && LKX.kinds[kind]) || kind} · ${(window.LKX && LKX.name(kind, id)) || id}`; }
+function trueSide(side){
+  const parts = [...(side.mons || []).map(m => m.label), ...(side.items || []).map(i => i.label)];
+  return parts.length ? parts.join(', ') : 'nada';
+}
+function trueColumnHtml(owner, side, preMons, preItems){
+  const mons = trueMonList(owner), items = trueItemList(owner);
+  const row = (value, kind, text, extra, checked) => `<label style="display:flex;gap:6px;align-items:center;padding:2px 0;font-size:12px"><input type="checkbox" class="tr-chk" data-side="${side}" data-t="${kind}" value="${lkEsc(value)}"${checked ? ' checked' : ''}> ${lkEsc(text)} <small style="opacity:.6">${extra}</small></label>`;
+  return `<div style="max-height:200px;overflow:auto;padding:6px;border:1px solid var(--border);border-radius:8px">
+    ${mons.map(m => row(m.pid, 'mon', trueMonLabel(m), m.inTeam ? 'equipo' : 'caja', preMons.includes(m.pid))).join('') || '<small>Sin Pokémon</small>'}
+    ${items.length ? '<hr style="opacity:.2;margin:6px 0">' : ''}
+    ${items.map(i => row(`${i.kind}:${i.id}`, 'item', trueItemLabel(i.kind, i.id), 'objeto', preItems.includes(`${i.kind}:${i.id}`))).join('')}
+  </div>`;
+}
+let trueDraft = null;
+function openTrueque(ownerOfPreset, counterOfId, presetPid){
+  const me = window.LOGIN_ME;
+  if(!me){ toast('Entra con tu usuario para proponer un trueque.'); return; }
+  notifOpen = false;
+  const others = TRAINERS.filter(t => t !== me);
+  const counter = counterOfId ? trueques[counterOfId] : null;
+  let target = counter ? counter.from : (others.includes(ownerOfPreset) ? ownerOfPreset : others[0]);
+  const pre = { give:{ mons:[], items:[] }, want:{ mons:[], items:[] } };
+  if(counter){                                                    // contraoferta: se parte de lo contrario de lo propuesto
+    pre.give = { mons: counter.want.mons.map(m => m.pid), items: counter.want.items.map(i => `${i.kind}:${i.id}`) };
+    pre.want = { mons: counter.give.mons.map(m => m.pid), items: counter.give.items.map(i => `${i.kind}:${i.id}`) };
+  } else if(presetPid){
+    if(ownerOfPreset === me) pre.give.mons.push(presetPid); else pre.want.mons.push(presetPid);
+  }
+  trueDraft = { counterOfId: counterOfId || null, pre };
+  openModal(`<h3>${counter ? '🔁 Contraoferta a ' + lkEsc(NAMES[target]) : '🔁 Nuevo trueque'}</h3>
+    <div class="field"><label>Con quién</label>
+      <select id="tr-target" ${counter ? 'disabled' : ''} onchange="refreshTrueque()">${others.map(t => `<option value="${t}"${t === target ? ' selected' : ''}>${lkEsc(NAMES[t])}</option>`).join('')}</select></div>
+    <div class="field"><label>Yo doy (Pokémon y objetos tuyos)</label><div id="tr-give">${trueColumnHtml(me, 'give', pre.give.mons, pre.give.items)}</div></div>
+    <div class="field"><label>Quiero (de ${lkEsc(NAMES[target])})</label><div id="tr-want">${trueColumnHtml(target, 'want', pre.want.mons, pre.want.items)}</div></div>
+    <div class="err-msg" id="tr-err"></div>
+    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Cancelar</button><button class="primary" onclick="submitTrueque()">${counter ? 'Enviar contraoferta' : 'Proponer'}</button></div>`);
+}
+function refreshTrueque(){
+  const target = document.getElementById('tr-target').value;
+  document.getElementById('tr-want').innerHTML = trueColumnHtml(target, 'want', [], []);
+}
+function readTrueSide(side, owner){
+  const mons = [], items = [];
+  document.querySelectorAll(`.tr-chk[data-side="${side}"]:checked`).forEach(c => {
+    if(c.dataset.t === 'mon'){
+      const m = trueMonList(owner).find(x => x.pid === c.value);
+      if(m) mons.push({ pid:m.pid, label:trueMonLabel(m) });
+    } else {
+      const [kind, id] = c.value.split(':');
+      items.push({ kind, id, label:trueItemLabel(kind, id) });
+    }
+  });
+  return { mons, items };
+}
+async function submitTrueque(){
+  const me = window.LOGIN_ME, err = document.getElementById('tr-err');
+  const target = document.getElementById('tr-target').value;
+  const give = readTrueSide('give', me), want = readTrueSide('want', target);
+  if(!give.mons.length && !give.items.length){ err.textContent = 'Elige qué das.'; return; }
+  if(!want.mons.length && !want.items.length){ err.textContent = 'Elige qué quieres a cambio.'; return; }
+  const counterOf = trueDraft && trueDraft.counterOfId;
+  if(counterOf) delete trueques[counterOf];                       // la oferta anterior se sustituye por la contraoferta
+  const id = crypto.randomUUID();
+  trueques[id] = { id, from:me, to:target, give, want, status:'pending', counterOf: counterOf || null, ts:Date.now() };
+  pushHistory(`🔁 ${NAMES[me]} ${counterOf ? 'contraoferta' : 'propone un trueque'} a ${NAMES[target]}.`);
+  closeModal();
+  await persistTrueques();
+}
+async function cancelTrueque(id){ delete trueques[id]; await persistTrueques(); }
+async function rejectTrueque(id){
+  const t = trueques[id]; if(!t || t.to !== window.LOGIN_ME) return;
+  t.status = 'rejected';
+  pushHistory(`❌ ${NAMES[t.to]} rechazó el trueque de ${NAMES[t.from]}.`);
+  await persistTrueques();
+}
+function counterTrueque(id){ const t = trueques[id]; if(t && t.to === window.LOGIN_ME) openTrueque(null, id); }
+async function acceptTrueque(id){
+  const me = window.LOGIN_ME, t = trueques[id];
+  if(!t || t.status !== 'pending' || t.to !== me || truequeBusy) return;
+  truequeBusy = true;
+  try{
+    // 1. comprobar que todo sigue siendo de quien lo da
+    const have = (owner, side) =>
+      side.mons.every(m => trueMonList(owner).some(x => x.pid === m.pid)) &&
+      side.items.every(i => trueItemList(owner).some(x => x.kind === i.kind && String(x.id) === String(i.id)));
+    if(!have(t.from, t.give) || !have(t.to, t.want)){ toast('⚠️ Algo del trueque ya no está disponible (se movió o se equipó). Pídele que lo proponga otra vez.'); return; }
+    // 2. nadie se puede quedar sin equipo: los Pokémon que llegan van al PC
+    for(const [owner, side] of [[t.from, t.give], [t.to, t.want]]){
+      const party = allMonsOf(owner).filter(m => m.inTeam).length;
+      const givenParty = side.mons.filter(m => allMonsOf(owner).find(x => x.pid === m.pid && x.inTeam)).length;
+      if(givenParty > 0 && party - givenParty < 1){ toast(`⚠️ ${NAMES[owner]} se quedaría sin Pokémon en el equipo. Que deje al menos uno.`); return; }
+    }
+    if(!confirm(`¿Aceptar? ${NAMES[t.from]} te da: ${trueSide(t.give)}. Tú das: ${trueSide(t.want)}.`)) return;
+    // 3. objetos de la tienda: se mueven ya
+    for(const i of t.give.items) await window.FBD.moveCosmetic(t.from, t.to, i.kind, i.id);
+    for(const i of t.want.items) await window.FBD.moveCosmetic(t.to, t.from, i.kind, i.id);
+    // 4. Pokémon: cada uno es un "tramo" del sistema del robo (se quita al dador y se entrega al receptor, en cualquier caja o equipo)
+    t.legs = [];
+    const legs = [...t.give.mons.map(m => ({ m, victim:t.from, thief:t.to })), ...t.want.mons.map(m => ({ m, victim:t.to, thief:t.from }))];
+    for(let n = 0; n < legs.length; n++){
+      const { m, victim, thief } = legs[n];
+      const legId = `${t.id}-${n}`;
+      const [pers, tid] = m.pid.split('-');
+      stealState[legId] = { id:legId, victim, others:TRAINERS.filter(x => x !== victim), status:'executing', thief, pid:m.pid, label:m.label, accepts:{}, source:'Trueque', tradeId:t.id, ts:Date.now() };
+      t.legs.push(legId);
+      await window.FBD.createGameOrderFor(victim, 'steal-' + legId, { kind:'take_mon', monpers:pers, montid:tid, any:1 });
+    }
+    t.status = 'executing';
+    pushHistory(`🤝 Trueque aceptado entre ${NAMES[t.from]} y ${NAMES[t.to]}.`);
+    await saveStealState();
+    await persistTrueques();
+  }catch(error){
+    console.error('No se pudo completar el trueque.', error);
+    t.status = 'error'; t.note = 'falló a mitad: ' + (error && error.message || 'error');
+    await persistTrueques();
+  } finally { truequeBusy = false; }
+}
+let truequeBusy = false;
+async function closeTrueque(id){ delete trueques[id]; await persistTrueques(); }
+// cierra los trueques cuando todos sus tramos han terminado (o avisa si alguno falló)
+async function settleTrueques(){
+  if(!loaded || !window.LOGIN_ME) return;
+  for(const t of Object.values(trueques)){
+    if(!t || t.status !== 'executing' || !t.legs) continue;
+    const legs = t.legs.map(id => stealState[id]);
+    if(legs.some(s => s && s.status === 'error')){
+      t.status = 'error'; t.note = 'no se pudo mover un Pokémon (' + (legs.find(s => s && s.status === 'error').note || 'error') + ')';
+      await persistTrueques();
+    } else if(legs.every(s => !s || s.status === 'done')){
+      delete trueques[t.id];
+      pushHistoryEvents([{ id:'trueque:' + t.id, text:`🤝 Trueque completado entre ${NAMES[t.from]} y ${NAMES[t.to]}: ${trueSide(t.give)} ⇄ ${trueSide(t.want)}` }]);
+      toast('🤝 Trueque completado.');
+      await persistTrueques();
+      for(const id of t.legs) delete stealState[id];
+      await saveStealState();
+    }
+  }
+}
+
 /* ---- ROBO DE POKÉMON: ruleta -> elegir -> aceptan los dos -> take_mon (víctima) -> give_mon (ladrón) ---- */
 const STEAL_PID_RE = /^[0-9A-Fa-f]{1,8}-[0-9A-Fa-f]{1,8}$/;
 async function saveStealState(){ return await trackedStoreSet('steals', 'locke:steals', stealState); }
@@ -4548,10 +4698,13 @@ function updateCapsulePreview(){
 }
 let capsuleBusy = false;
 async function useCapsule(){
-  const me = window.LOGIN_ME, sel = document.getElementById('cap-mon');
-  if(!me || !sel || capsuleBusy || (capsules[me] || 0) < 1) return;
-  const mon = mintCandidates().find(m => m.pid === sel.value);
-  if(!mon || !mon.altAbilityName) return;
+  const sel = document.getElementById('cap-mon');
+  if(!sel) return;
+  await doCapsule(mintCandidates().find(m => m.pid === sel.value));
+}
+async function doCapsule(mon){
+  const me = window.LOGIN_ME;
+  if(!me || !mon || !mon.altAbilityName || capsuleBusy || (capsules[me] || 0) < 1) return;
   capsuleBusy = true;
   try{
     const [pers, tid] = mon.pid.split('-');
@@ -4567,6 +4720,72 @@ async function useCapsule(){
     toast('No se pudo enviar la orden. Inténtalo de nuevo.');
   } finally { capsuleBusy = false; }
 }
+
+/* ---- Mejoras desde la ficha de un Pokémon (perfil > tus Pokémon > clic): solo salen si tienes menta o cápsula ---- */
+function upgradeSectionHtml(ownerTrainer, mon){
+  const me = window.LOGIN_ME;
+  if(!me || ownerTrainer !== me || mon.isEgg || !STEAL_PID_RE.test(String(mon.pid || ''))) return '';
+  const mm = normalizeMints(mints[me]), caps = capsules[me] || 0;
+  if(!mm.choose && !mm.random && !caps) return '';
+  const current = parseInt(mon.pid.split('-')[0], 16) % 25;
+  const pid = lkEsc(mon.pid);
+  const blocks = [];
+  if(mm.choose > 0){
+    blocks.push(`<div class="field"><label>🌿 Menta de naturaleza (${mm.choose}) · ahora: ${NATURE_NAMES[current]} (${natureEffect(current)})</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="up-nature" style="flex:1;min-width:180px">${NATURE_NAMES.map((nm,i)=>`<option value="${i}"${i === current ? ' disabled' : ''}>${nm} — ${natureEffect(i)}</option>`).join('')}</select>
+        <button class="primary" onclick="applyMintFromDetail('${pid}')">Cambiar</button>
+      </div></div>`);
+  }
+  if(mm.random > 0){
+    blocks.push(`<div class="field"><label>🌿 Menta al azar (${mm.random}) · ahora: ${NATURE_NAMES[current]}</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div id="up-wheel" style="flex:1;font-size:18px">🎰 ?</div>
+        <button class="primary" onclick="spinMintFromDetail('${pid}')">🎰 Girar</button>
+      </div></div>`);
+  }
+  if(caps > 0){
+    let msg, can = false;
+    if(mon.altAbilityName === undefined) msg = 'El tracker aún no ha subido este dato (reinícialo con el archivo nuevo).';
+    else if(mon.altAbilityName === '') msg = `Solo tiene una habilidad posible (${lkEsc(mon.abilityName || '?')}).`;
+    else { msg = `Ahora: <b>${lkEsc(mon.abilityName || '?')}</b> → con la cápsula: <b>${lkEsc(mon.altAbilityName)}</b>`; can = true; }
+    blocks.push(`<div class="field"><label>💊 Cápsula Habilidad (${caps})</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">${msg}</div>
+        <button class="primary" ${can ? '' : 'disabled'} onclick="applyCapsuleFromDetail('${pid}')">Usar</button>
+      </div></div>`);
+  }
+  return `<div style="grid-column:1/-1;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">${blocks.join('')}</div>`;
+}
+function myMonByPid(pid){ return allMonsOf(window.LOGIN_ME).find(m => m.pid === pid); }
+async function applyMintFromDetail(pid){
+  const mon = myMonByPid(pid), sel = document.getElementById('up-nature');
+  if(!mon || !sel || mintBusy) return;
+  const nature = parseInt(sel.value, 10);
+  if(nature === parseInt(mon.pid.split('-')[0], 16) % 25){ toast('Ya tiene esa naturaleza.'); return; }
+  mintBusy = true;
+  try{ await applyMint('choose', mon, nature); } finally { mintBusy = false; }
+}
+async function spinMintFromDetail(pid){
+  const mon = myMonByPid(pid);
+  if(!mon || mintBusy || normalizeMints(mints[window.LOGIN_ME]).random < 1) return;
+  mintBusy = true;
+  try{
+    const current = parseInt(mon.pid.split('-')[0], 16) % 25;
+    const options = NATURE_NAMES.map((_, i) => i).filter(i => i !== current);
+    const nature = options[Math.floor(Math.random() * options.length)];
+    const el = document.getElementById('up-wheel');
+    let i = 0;
+    const timer = setInterval(() => { if(el) el.textContent = '🎰 ' + NATURE_NAMES[i++ % 25]; }, 80);
+    await new Promise(r => setTimeout(r, 2200));
+    clearInterval(timer);
+    if(el) el.textContent = `🌿 ${NATURE_NAMES[nature]} (${natureEffect(nature)})`;
+    await new Promise(r => setTimeout(r, 1300));
+    await applyMint('random', mon, nature);
+  } finally { mintBusy = false; }
+}
+async function applyCapsuleFromDetail(pid){ await doCapsule(myMonByPid(pid)); }
+
 const mintOrderBusy = new Set();
 async function settleMintOrders(){
   const me = window.LOGIN_ME;
@@ -4603,10 +4822,23 @@ function myNotifications(){
   const me = window.LOGIN_ME;
   if(!me) return [];
   const list = (pendingPrizes[me] || []).map(p => ({ text:p.text, source:p.source||'', label:'Ver en mi perfil', fn:'openNotif()' }));
-  if((capsules[me] || 0) > 0) list.push({ text:`💊 Tienes ${capsules[me]} Cápsula${capsules[me] === 1 ? '' : 's'} Habilidad para usar (puedes probar antes qué habilidad saldría)`, source:'Premio', label:'Usar cápsula', fn:'openCapsule()' });
+  if((capsules[me] || 0) > 0) list.push({ text:`💊 Tienes ${capsules[me]} Cápsula${capsules[me] === 1 ? '' : 's'} Habilidad para usar. Pulsa un Pokémon tuyo en el perfil y verás qué habilidad saldría`, source:'Premio', label:'Ir a mis Pokémon', fn:'openNotif()' });
+  for(const t of Object.values(trueques)){
+    if(!t) continue;
+    const src = `Trueque con ${NAMES[t.from === me ? t.to : t.from]}`;
+    if(t.status === 'pending' && t.from === me)
+      list.push({ text:`🔁 ${t.counterOf ? 'Contraoferta' : 'Trueque'} pendiente: das ${trueSide(t.give)} por ${trueSide(t.want)}`, source:src, actions:[{ label:'Cancelar', fn:`cancelTrueque('${t.id}')` }] });
+    else if(t.status === 'pending' && t.to === me)
+      list.push({ text:`🔁 ${NAMES[t.from]} ${t.counterOf ? 'te contraoferta' : 'te propone'}: te da ${trueSide(t.give)} a cambio de ${trueSide(t.want)}`, source:src,
+        actions:[{ label:'Aceptar', fn:`acceptTrueque('${t.id}')` }, { label:'Contraoferta', fn:`counterTrueque('${t.id}')` }, { label:'Rechazar', fn:`rejectTrueque('${t.id}')` }] });
+    else if(t.status === 'rejected' && t.from === me)
+      list.push({ text:`❌ ${NAMES[t.to]} rechazó tu trueque (${trueSide(t.give)} por ${trueSide(t.want)})`, source:src, actions:[{ label:'Cerrar', fn:`closeTrueque('${t.id}')` }] });
+    else if(t.status === 'error' && (t.from === me || t.to === me))
+      list.push({ text:`⚠️ El trueque falló: ${t.note || 'error'}`, source:src, actions:[{ label:'Cerrar', fn:`closeTrueque('${t.id}')` }] });
+  }
   const mm = normalizeMints(mints[me]);
-  if(mm.choose > 0) list.push({ text:`🌿 Tienes ${mm.choose} menta${mm.choose === 1 ? '' : 's'} de naturaleza para usar (tú eliges la naturaleza)`, source:'Torneo', label:'Usar menta', fn:"openMint('choose')" });
-  if(mm.random > 0) list.push({ text:`🌿 Tienes ${mm.random} menta${mm.random === 1 ? '' : 's'} de naturaleza para usar (naturaleza al azar)`, source:'Desafío', label:'Usar menta (ruleta)', fn:"openMint('random')" });
+  if(mm.choose > 0) list.push({ text:`🌿 Tienes ${mm.choose} menta${mm.choose === 1 ? '' : 's'} de naturaleza para usar. Pulsa un Pokémon tuyo en el perfil (tú eliges la naturaleza)`, source:'Torneo', label:'Ir a mis Pokémon', fn:'openNotif()' });
+  if(mm.random > 0) list.push({ text:`🌿 Tienes ${mm.random} menta${mm.random === 1 ? '' : 's'} de naturaleza para usar. Pulsa un Pokémon tuyo en el perfil (naturaleza al azar)`, source:'Desafío', label:'Ir a mis Pokémon', fn:'openNotif()' });
   for(const s of Object.values(stealState)){
     if(!s) continue;
     const src = `Robo a ${NAMES[s.victim]}`;
@@ -4624,7 +4856,7 @@ function renderNotifWidget(){
   if(!me) return '';
   const items = list.map(p => `
     <div class="notif-item">${lkEsc(p.text)}<small>${lkEsc(p.source)}</small>
-      <button class="primary" type="button" onclick="${p.fn}">${p.label}</button>
+      ${(p.actions || [{ label:p.label, fn:p.fn }]).map(a => `<button class="primary" type="button" onclick="${a.fn}" style="margin-right:6px">${a.label}</button>`).join('')}
     </div>`).join('');
   return `
     <section id="notif-widget">
@@ -4632,6 +4864,7 @@ function renderNotifWidget(){
       ${notifOpen ? `<div class="notif-panel">
         <div class="notif-heading">NOTIFICACIONES <button type="button" onclick="toggleNotifs()" aria-label="Cerrar">×</button></div>
         ${n ? items : '<div class="notif-empty">0 notificaciones</div>'}
+        <button class="ghost" type="button" onclick="openTrueque()" style="width:100%;margin-top:6px">🔁 Nuevo trueque</button>
       </div>` : ''}
     </section>`;
 }
@@ -4839,6 +5072,7 @@ async function loadAll(){
     { key: 'locke:arenaJourney', def: { completed:[], winners:{}, postLeagueDone:false, postLeagueWinner:null, votes:{} } },
     { key: 'locke:challenge', def: null },
     { key: 'locke:steals', def: {} },
+    { key: 'locke:trueques', def: {} },
     { key: 'locke:dailyContest', def: { date:null, winner:null, attempts:{}, pieces:{iker:0,joel:0,alex:0}, stars:{iker:0,joel:0,alex:0} } },
     { key: 'locke:finalState', def: null },
     { key: 'locke:normas', def: [] },
@@ -4944,6 +5178,8 @@ async function loadAll(){
       && !saveInFlight['challenge'] && !challengeActionInFlight && !pendingSaves.has('challenge')){
     challengeState = challengeResult;
   }
+  { const truequesResult = batch['locke:trueques'];
+    if(!saveInFlight['trueques'] && !pendingSaves.has('trueques')) trueques = (truequesResult && typeof truequesResult === 'object') ? truequesResult : {}; }
   { const stealsResult = batch['locke:steals'];
     if(!saveInFlight['steals'] && !pendingSaves.has('steals')) stealState = (stealsResult && typeof stealsResult === 'object') ? stealsResult : {}; }
   if(!saveInFlight['dailyContest']) dailyContestState = normalizeDailyContestState(dailyContestResult);
@@ -4979,6 +5215,7 @@ async function loadAll(){
   lastLoadSignature = signature;
   if(!saveInFlight['duelBets']) setTimeout(resumeUnpaidDuelBetPayouts,0);
   setTimeout(()=>applyDeathLives().catch(error=>console.error(error)),0);
+  setTimeout(()=>settleTrueques().catch(error=>console.error(error)),0);
   return changed;
 }
 async function saveProfile(t){
@@ -12379,11 +12616,12 @@ function openPokemonDetail(ownerTrainer, pid){
           <span class="pd-value">${mon.metLocationName || 'Desconocido'}</span>
         </div>
       </div>
+      ${upgradeSectionHtml(ownerTrainer, mon)}
     </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal()">Cerrar</button>
       <button class="ghost" onclick="toggleManualFainted('${ownerTrainer}','${pid}')">${mon.fainted ? '💚 Marcar como vivo' : '💀 Marcar como debilitado'}</button>
-      <button class="primary" onclick="openOfferForPokemon('${ownerTrainer}','${pid}')">🔁 Ofertar por este Pokémon</button>
+      <button class="primary" onclick="openTrueque('${ownerTrainer}', null, '${pid}')">🔁 Proponer trueque</button>
     </div>
   `);
 }
@@ -13382,6 +13620,16 @@ async function updateCosmeticTrade(id,action){
   dirty();
   return true;
 }
+window.LKX = { owned: ownedCosmetics, name: cosmeticName, kinds: COSMETIC_KINDS };
+Object.assign(window.FBD,{
+  // trueque: añade el cosmético al receptor y se lo quita al dador (las reglas dejan borrar entradas del inventario)
+  async moveCosmetic(from,to,kind,id){
+    if(!COSMETIC_KINDS[kind]) throw new Error('tipo de cosmético no válido');
+    if(!(((FBS.inventory||{})[from]||{})[kind]||{})[id] || cosmeticEquipped(from,kind,id)) throw new Error('cosmético no disponible');
+    await set(ref(db,`inventory/${to}/${kind}/${id}`),true);
+    await set(ref(db,`inventory/${from}/${kind}/${id}`),null);
+  }
+});
 Object.assign(window.FBD,{
   // crea orders/<yo>/<id> SOLO si no existe (un premio no puede generar dos pedidos)
   async createGameOrder(id,order){
