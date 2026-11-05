@@ -3002,6 +3002,64 @@ button.primary:active{ box-shadow:0 1px 0 #6d0f1c; }
 @media(prefers-reduced-motion:reduce){ #snowfall,.rr-lights,.live-dot  }
 
 </style>
+<style id="tq-style">
+/* Trueques */
+.tq-page{ max-width:1100px; margin:0 auto; padding:6px 4px 90px; }
+.tq-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+.tq-title{ font-size:28px; font-weight:800; letter-spacing:.05em; color:var(--silver-bright); }
+.tq-sub{ color:var(--silver-dim); font-size:12px; margin-top:2px; }
+.tq-section{ margin:18px 0 8px; color:var(--lava-hot,#ff6a3d); font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+.tq-inbox{ display:grid; gap:10px; }
+.tq-card{ border:1px solid var(--border); border-radius:14px; background:rgba(26,7,10,.72); padding:12px 14px; }
+.tq-card.in{ border-color:rgba(0,255,255,.35); }
+.tq-card-top{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; font-size:12px; color:var(--silver-dim); }
+.tq-card-top b{ color:var(--silver-bright); }
+.tq-lane{ display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; }
+@media(max-width:700px){ .tq-lane{ grid-template-columns:1fr; } .tq-arrow{ transform:rotate(90deg); justify-self:center; } }
+.tq-side-label{ font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--silver-dim); margin-bottom:5px; }
+.tq-arrow{ font-size:22px; color:var(--neon-cyan); }
+.tq-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.tq-chip{ display:flex; align-items:center; gap:6px; padding:3px 10px 3px 4px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid var(--border); font-size:11px; color:var(--silver-bright); }
+.tq-chip img,.tq-chip .em{ width:30px; height:30px; object-fit:contain; display:flex; align-items:center; justify-content:center; font-size:18px; }
+.tq-actions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+.tq-partners{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.tq-partner{ padding:8px 16px; border-radius:999px; border:1px solid var(--border); background:transparent; color:var(--silver); font-weight:700; cursor:pointer; }
+.tq-partner.on{ background:linear-gradient(135deg,var(--ruby-deep,#7a1020),var(--sapphire,#1d4ed8)); color:#fff; border-color:transparent; }
+.tq-cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:820px){ .tq-cols{ grid-template-columns:1fr; } }
+.tq-col{ border:1px solid var(--border); border-radius:16px; background:rgba(18,6,10,.62); padding:12px; }
+.tq-col-title{ display:flex; justify-content:space-between; align-items:center; font-weight:800; color:var(--silver-bright); }
+.tq-col-title small{ color:var(--neon-cyan); font-weight:700; }
+.tq-tabs{ display:flex; gap:6px; margin:10px 0; flex-wrap:wrap; }
+.tq-tab{ padding:6px 12px; border-radius:9px; border:1px solid var(--border); background:transparent; color:var(--silver); cursor:pointer; font-size:12px; font-weight:700; }
+.tq-tab.on{ background:rgba(0,255,255,.12); color:var(--neon-cyan); border-color:var(--neon-cyan); }
+.tq-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(108px,1fr)); gap:8px; max-height:390px; overflow:auto; padding:3px; }
+.tq-item{ position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 6px 7px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.04); cursor:pointer; text-align:center; color:inherit; font:inherit; transition:transform .15s,border-color .15s,background .15s; }
+.tq-item:hover{ transform:translateY(-2px); border-color:var(--silver-dim); }
+.tq-item.sel{ border-color:var(--neon-cyan); background:rgba(0,255,255,.1); box-shadow:0 0 0 1px var(--neon-cyan) inset; }
+.tq-item.sel::after{ content:'✓'; position:absolute; top:4px; right:7px; color:var(--neon-cyan); font-weight:800; }
+.tq-item img,.tq-item .em{ width:66px; height:66px; object-fit:contain; display:flex; align-items:center; justify-content:center; font-size:36px; }
+.tq-item .nm{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; color:var(--silver-bright); }
+.tq-item .sb{ font-size:10px; color:var(--silver-dim); }
+.tq-empty{ grid-column:1/-1; padding:22px 10px; text-align:center; color:var(--silver-dim); font-size:12px; }
+.tq-bar{ position:sticky; bottom:10px; z-index:5; margin-top:14px; display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:10px 14px; border-radius:14px; background:rgba(26,7,10,.96); border:1px solid var(--border); box-shadow:0 8px 26px rgba(0,0,0,.45); }
+.tq-bar-sum{ font-size:12px; color:var(--silver); }
+.tq-bar-sum b{ color:var(--neon-cyan); }
+/* Inicio: accesos rápidos */
+.hm-tiles{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; max-width:1100px; margin:14px auto 4px; padding:0 4px; }
+.hm-tile{ display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:14px; border:1px solid var(--border); background:linear-gradient(135deg,rgba(26,7,10,.9),rgba(40,12,18,.7)); color:var(--silver-bright); cursor:pointer; text-align:left; font:inherit; transition:transform .15s,border-color .15s; }
+.hm-tile:hover{ transform:translateY(-3px); border-color:var(--neon-cyan); }
+.hm-tile .ic{ font-size:24px; }
+.hm-tile .v{ font-size:20px; font-weight:800; line-height:1; }
+.hm-tile .l{ font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--silver-dim); margin-top:3px; }
+.hm-tile.alert{ border-color:var(--neon-cyan); box-shadow:0 0 18px rgba(0,255,255,.18); }
+/* Arena: retoques visuales */
+@keyframes tqPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,106,61,.55); } 50%{ box-shadow:0 0 0 7px rgba(255,106,61,0); } }
+.arena-progress-step.current{ animation:tqPulse 1.7s ease-in-out infinite; }
+.arena-phase-title{ text-shadow:0 0 18px rgba(255,106,61,.35); }
+.arena-phase,.duel-card{ transition:border-color .2s, box-shadow .2s; }
+.duel-card:hover{ box-shadow:0 10px 34px rgba(0,0,0,.45); }
+</style>
 </head>
 <body>
 <div id="snowfall" aria-hidden="true"></div>
@@ -3018,6 +3076,7 @@ button.primary:active{ box-shadow:0 1px 0 #6d0f1c; }
       <button class="nav-btn" data-nav="shop" onclick="go('shop')"><span class="ni">🛍️</span><span class="nl">Tienda</span></button>
       <button class="nav-btn" data-nav="history" onclick="go('history')"><span class="ni">📜</span><span class="nl">Diario</span><span id="history-badge" class="nav-badge" style="display:none;"></span></button>
       <button class="nav-btn" data-nav="duel" onclick="go('duel')"><span class="ni">⚔️</span><span class="nl">Arena</span></button>
+      <button class="nav-btn" data-nav="trueques" onclick="go('trueques')"><span class="ni">🔁</span><span class="nl">Trueques</span></button>
       <button class="nav-btn" data-nav="routes" onclick="go('routes')"><span class="ni">🗺️</span><span class="nl">Pokémon de ruta</span></button>
       <button class="nav-btn" data-nav="normas" onclick="go('normas')"><span class="ni">📕</span><span class="nl">Normas</span></button>
       <button class="nav-btn" data-nav="casino" onclick="go('casino')"><span class="ni">🎰</span><span class="nl">Casino</span></button>
@@ -3451,7 +3510,7 @@ const MERGED_LOSER_WHEEL = [
 ];
 
 const hearts = FBP('lives', 20); let teams = {}, history = [], tradesActive = [], tradesHistory = [];
-const tickets = FBP('tickets', 0); let pendingPrizes = {}; let mints = {}; let deathLives = {}; let capsules = {}; let trueques = {};   // trueques[id] = { id, from, to, give:{mons,items}, want:{mons,items}, status, counterOf, legs }   // capsules[t] = Cápsulas Habilidad sin usar
+const tickets = FBP('tickets', 0); let pendingPrizes = {}; let mints = {}; let deathLives = {}; let capsules = {}; let trueques = {}; let trackerFolderDone = {}; let trackerDlClicked = false;   // trueques[id] = { id, from, to, give:{mons,items}, want:{mons,items}, status, counterOf, legs }   // capsules[t] = Cápsulas Habilidad sin usar
 // (mints/deathLives: ver más abajo)   // deathLives[t] = pids de muertes ya tratadas (null = aún no inicializado)   // mints[t] = { choose:N (torneo: elige naturaleza), random:N (desafío: ruleta) }
 let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador reclamó su bonus diario
 let dailyContestRewardClaims = {};
@@ -4333,6 +4392,35 @@ function mapTrackerCaptureLocation(mapId, locationName){
 }
 
 
+
+/* ---- DESCARGA DE LA CARPETA DEL TRACKER: cada jugador ve la suya (enlace en Firebase: config/downloads/<jugador>/url) y desaparece al confirmar que la tiene ---- */
+const DOWNLOAD_TRAINERS = ['alex', 'joel'];
+let trackerDlLockedUntil = 0;
+function trackerDownloadInfo(){
+  const me = window.LOGIN_ME;
+  if(!me || trackerFolderDone[me] || !DOWNLOAD_TRAINERS.includes(me)) return null;
+  const c = (((window.LKX && LKX.cfg ? LKX.cfg() : null) || {}).downloads || {})[me] || {};
+  const open = c.open === true && typeof c.url === 'string' && /^https?:\/\//i.test(c.url);   // abierta solo si Firebase lo dice
+  return { open, url: open ? c.url : '', name: c.name || 'Descargas', note: c.note || '' };
+}
+function downloadTrackerFolder(){
+  const c = trackerDownloadInfo();
+  if(!c) return;
+  if(!c.open){ trackerDlLockedUntil = Date.now() + 5000; render(); setTimeout(render, 5100); return; }
+  window.open(c.url, '_blank', 'noopener');
+  trackerDlClicked = true;
+  render();
+}
+async function confirmTrackerFolder(){
+  const me = window.LOGIN_ME;
+  if(!me) return;
+  trackerFolderDone[me] = true; trackerDlClicked = false;
+  pushHistory(`📦 ${NAMES[me]} ya tiene su carpeta del tracker.`);
+  render();
+  const ok = await saveProfile(me);
+  if(!ok) queueRetry('profile:'+me, ()=>saveProfile(me));
+}
+
 /* ---- TRUEQUES: Pokémon y objetos de la tienda, N:M. Cualquiera propone a cualquiera; el otro acepta, contraoferta o rechaza ---- */
 async function persistTrueques(){
   render();
@@ -4347,68 +4435,145 @@ function trueSide(side){
   const parts = [...(side.mons || []).map(m => m.label), ...(side.items || []).map(i => i.label)];
   return parts.length ? parts.join(', ') : 'nada';
 }
-function trueColumnHtml(owner, side, preMons, preItems){
-  const mons = trueMonList(owner), items = trueItemList(owner);
-  const row = (value, kind, text, extra, checked) => `<label style="display:flex;gap:6px;align-items:center;padding:2px 0;font-size:12px"><input type="checkbox" class="tr-chk" data-side="${side}" data-t="${kind}" value="${lkEsc(value)}"${checked ? ' checked' : ''}> ${lkEsc(text)} <small style="opacity:.6">${extra}</small></label>`;
-  return `<div style="max-height:200px;overflow:auto;padding:6px;border:1px solid var(--border);border-radius:8px">
-    ${mons.map(m => row(m.pid, 'mon', trueMonLabel(m), m.inTeam ? 'equipo' : 'caja', preMons.includes(m.pid))).join('') || '<small>Sin Pokémon</small>'}
-    ${items.length ? '<hr style="opacity:.2;margin:6px 0">' : ''}
-    ${items.map(i => row(`${i.kind}:${i.id}`, 'item', trueItemLabel(i.kind, i.id), 'objeto', preItems.includes(`${i.kind}:${i.id}`))).join('')}
-  </div>`;
-}
+const TQ_TABS = [['team','Equipo'],['box','Caja'],['items','Objetos']];
 let trueDraft = null;
+function newTrueDraft(target, counter){
+  const me = window.LOGIN_ME, others = TRAINERS.filter(t => t !== me);
+  const d = { target: others.includes(target) ? target : others[0], counterOfId: counter ? counter.id : null,
+    give:{ mons:[], items:[] }, want:{ mons:[], items:[] }, tab:{ give:'team', want:'team' } };
+  if(counter){                                                   // contraoferta: se parte de lo contrario de lo propuesto
+    d.target = counter.from;
+    d.give = { mons: counter.want.mons.map(m => m.pid), items: counter.want.items.map(i => `${i.kind}:${i.id}`) };
+    d.want = { mons: counter.give.mons.map(m => m.pid), items: counter.give.items.map(i => `${i.kind}:${i.id}`) };
+  }
+  return d;
+}
 function openTrueque(ownerOfPreset, counterOfId, presetPid){
   const me = window.LOGIN_ME;
   if(!me){ toast('Entra con tu usuario para proponer un trueque.'); return; }
   notifOpen = false;
-  const others = TRAINERS.filter(t => t !== me);
+  closeModal();
   const counter = counterOfId ? trueques[counterOfId] : null;
-  let target = counter ? counter.from : (others.includes(ownerOfPreset) ? ownerOfPreset : others[0]);
-  const pre = { give:{ mons:[], items:[] }, want:{ mons:[], items:[] } };
-  if(counter){                                                    // contraoferta: se parte de lo contrario de lo propuesto
-    pre.give = { mons: counter.want.mons.map(m => m.pid), items: counter.want.items.map(i => `${i.kind}:${i.id}`) };
-    pre.want = { mons: counter.give.mons.map(m => m.pid), items: counter.give.items.map(i => `${i.kind}:${i.id}`) };
-  } else if(presetPid){
-    if(ownerOfPreset === me) pre.give.mons.push(presetPid); else pre.want.mons.push(presetPid);
+  trueDraft = newTrueDraft(ownerOfPreset, counter);
+  if(!counter && presetPid){
+    if(ownerOfPreset === me) trueDraft.give.mons.push(presetPid); else trueDraft.want.mons.push(presetPid);
   }
-  trueDraft = { counterOfId: counterOfId || null, pre };
-  openModal(`<h3>${counter ? '🔁 Contraoferta a ' + lkEsc(NAMES[target]) : '🔁 Nuevo trueque'}</h3>
-    <div class="field"><label>Con quién</label>
-      <select id="tr-target" ${counter ? 'disabled' : ''} onchange="refreshTrueque()">${others.map(t => `<option value="${t}"${t === target ? ' selected' : ''}>${lkEsc(NAMES[t])}</option>`).join('')}</select></div>
-    <div class="field"><label>Yo doy (Pokémon y objetos tuyos)</label><div id="tr-give">${trueColumnHtml(me, 'give', pre.give.mons, pre.give.items)}</div></div>
-    <div class="field"><label>Quiero (de ${lkEsc(NAMES[target])})</label><div id="tr-want">${trueColumnHtml(target, 'want', pre.want.mons, pre.want.items)}</div></div>
-    <div class="err-msg" id="tr-err"></div>
-    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Cancelar</button><button class="primary" onclick="submitTrueque()">${counter ? 'Enviar contraoferta' : 'Proponer'}</button></div>`);
+  go('trueques');
 }
-function refreshTrueque(){
-  const target = document.getElementById('tr-target').value;
-  document.getElementById('tr-want').innerHTML = trueColumnHtml(target, 'want', [], []);
+function tqSprite(m){ return m.sprite || ''; }
+function tqImg(src, emoji){
+  return src ? `<img loading="lazy" src="${lkEsc(src)}" alt="" onerror="this.outerHTML='<span class=&quot;em&quot;>${emoji}</span>'">` : `<span class="em">${emoji}</span>`;
 }
-function readTrueSide(side, owner){
-  const mons = [], items = [];
-  document.querySelectorAll(`.tr-chk[data-side="${side}"]:checked`).forEach(c => {
-    if(c.dataset.t === 'mon'){
-      const m = trueMonList(owner).find(x => x.pid === c.value);
-      if(m) mons.push({ pid:m.pid, label:trueMonLabel(m) });
-    } else {
-      const [kind, id] = c.value.split(':');
-      items.push({ kind, id, label:trueItemLabel(kind, id) });
-    }
-  });
-  return { mons, items };
+function tqItemVisual(kind, id){
+  if(kind === 'characters' && window.characterAsset) return tqImg(window.characterAsset(id).src, '🧑');
+  if(kind === 'backgrounds') return tqImg(`fondos/fondo_${id}.png`, '🖼️');
+  return `<span class="em">${kind === 'palettes' ? '🎨' : '🏷️'}</span>`;
+}
+function tqMonCard(m, side){
+  const on = trueDraft[side].mons.includes(m.pid);
+  return `<button type="button" class="tq-item${on ? ' sel' : ''}" onclick="tqToggle('${side}','mon','${lkEsc(m.pid)}')">
+    ${tqImg(tqSprite(m), '❔')}
+    <span class="nm">${lkEsc(m.nickname)}</span>
+    <span class="sb">${lkEsc(String(m.speciesName || '').replace(/-/g, ' '))}${m.level ? ' · Nv.' + m.level : ''}</span>
+  </button>`;
+}
+function tqItemCard(it, side){
+  const value = `${it.kind}:${it.id}`, on = trueDraft[side].items.includes(value);
+  return `<button type="button" class="tq-item${on ? ' sel' : ''}" onclick="tqToggle('${side}','item','${lkEsc(value)}')">
+    ${tqItemVisual(it.kind, it.id)}
+    <span class="nm">${lkEsc((window.LKX && LKX.name(it.kind, it.id)) || it.id)}</span>
+    <span class="sb">${lkEsc((window.LKX && LKX.kinds[it.kind]) || it.kind)}</span>
+  </button>`;
+}
+function tqColumn(side, owner, title){
+  const d = trueDraft, mons = trueMonList(owner), items = trueItemList(owner);
+  const lists = { team: mons.filter(m => m.inTeam), box: mons.filter(m => !m.inTeam), items };
+  const counts = { team: lists.team.length, box: lists.box.length, items: items.length };
+  const picked = d[side].mons.length + d[side].items.length;
+  const tab = d.tab[side];
+  const cards = tab === 'items' ? items.map(i => tqItemCard(i, side)) : lists[tab].map(m => tqMonCard(m, side));
+  return `<div class="tq-col">
+    <div class="tq-col-title"><span>${title}</span><small>${picked ? picked + ' elegido' + (picked === 1 ? '' : 's') : ''}</small></div>
+    <div class="tq-tabs">${TQ_TABS.map(([k, label]) => `<button type="button" class="tq-tab${tab === k ? ' on' : ''}" onclick="tqTab('${side}','${k}')">${label} (${counts[k]})</button>`).join('')}</div>
+    <div class="tq-grid">${cards.join('') || `<div class="tq-empty">${tab === 'items' ? 'No hay objetos de la tienda disponibles (los equipados no se pueden ofrecer).' : 'No hay Pokémon aquí.'}</div>`}</div>
+  </div>`;
+}
+function ensureDraft(){ if(!trueDraft) trueDraft = newTrueDraft(null, null); }
+function tqToggle(side, kind, value){
+  ensureDraft();
+  const list = trueDraft[side][kind === 'mon' ? 'mons' : 'items'];
+  const i = list.indexOf(value);
+  if(i >= 0) list.splice(i, 1); else list.push(value);
+  render();
+}
+function tqTab(side, tab){ ensureDraft(); trueDraft.tab[side] = tab; render(); }
+function tqTarget(t){ ensureDraft(); trueDraft.target = t; trueDraft.want = { mons:[], items:[] }; trueDraft.tab.want = 'team'; render(); }
+function tqChips(side){
+  const chips = [...(side.mons || []).map(m => `<span class="tq-chip">${tqImg(m.sprite || '', '❔')}${lkEsc(m.label)}</span>`),
+    ...(side.items || []).map(i => `<span class="tq-chip">${tqItemVisual(i.kind, i.id)}${lkEsc(i.label)}</span>`)];
+  return `<div class="tq-chips">${chips.join('') || '<span class="tq-sub">nada</span>'}</div>`;
+}
+function tqTradeCard(t, me){
+  const mineSent = t.from === me, other = mineSent ? t.to : t.from;
+  const title = t.status === 'pending' ? (mineSent ? `${t.counterOf ? 'Contraoferta' : 'Trueque'} pendiente con <b>${lkEsc(NAMES[other])}</b>` : `<b>${lkEsc(NAMES[other])}</b> ${t.counterOf ? 'te contraoferta' : 'te propone un trueque'}`)
+    : t.status === 'rejected' ? `<b>${lkEsc(NAMES[t.to])}</b> rechazó tu trueque`
+    : t.status === 'executing' ? `Trueque en curso con <b>${lkEsc(NAMES[other])}</b>…`
+    : `Trueque con <b>${lkEsc(NAMES[other])}</b> · ⚠️ ${lkEsc(t.note || 'error')}`;
+  const btn = (label, fn, cls) => `<button class="${cls || 'ghost'}" onclick="${fn}">${label}</button>`;
+  let actions = '';
+  if(t.status === 'pending' && mineSent) actions = btn('Cancelar', `cancelTrueque('${t.id}')`);
+  else if(t.status === 'pending') actions = btn('Aceptar', `acceptTrueque('${t.id}')`, 'primary') + btn('Contraoferta', `counterTrueque('${t.id}')`) + btn('Rechazar', `rejectTrueque('${t.id}')`);
+  else if(t.status === 'rejected' || t.status === 'error') actions = btn('Cerrar', `closeTrueque('${t.id}')`);
+  return `<div class="tq-card${t.status === 'pending' && !mineSent ? ' in' : ''}">
+    <div class="tq-card-top"><span>${title}</span><span>${fmtTime(t.ts)}</span></div>
+    <div class="tq-lane">
+      <div><div class="tq-side-label">${mineSent ? 'Das' : `${lkEsc(NAMES[t.from])} te da`}</div>${tqChips(t.give)}</div>
+      <div class="tq-arrow">⇄</div>
+      <div><div class="tq-side-label">${mineSent ? 'Pides' : 'Pide a cambio'}</div>${tqChips(t.want)}</div>
+    </div>
+    ${actions ? `<div class="tq-actions">${actions}</div>` : ''}
+  </div>`;
+}
+function renderTrueques(app){
+  const me = window.LOGIN_ME;
+  if(!me){ app.innerHTML = '<div class="empty-state">Entra con tu usuario para usar los trueques.</div>'; return; }
+  if(!trueDraft) trueDraft = newTrueDraft(null, null);
+  const d = trueDraft, counter = d.counterOfId ? trueques[d.counterOfId] : null;
+  if(d.counterOfId && !counter){ trueDraft = newTrueDraft(null, null); return renderTrueques(app); }   // la oferta ya no existe
+  const mine = Object.values(trueques).filter(t => t && (t.from === me || t.to === me));
+  const others = TRAINERS.filter(t => t !== me);
+  app.innerHTML = `<div class="tq-page">
+    <div class="tq-head"><div><div class="tq-title">🔁 TRUEQUES</div><div class="tq-sub">Pokémon y objetos de la tienda, los que quieras por los que quieras.</div></div></div>
+    ${mine.length ? `<div class="tq-section">Tu bandeja</div><div class="tq-inbox">${mine.map(t => tqTradeCard(t, me)).join('')}</div>` : ''}
+    <div class="tq-section">${counter ? `Contraoferta a ${lkEsc(NAMES[counter.from])}` : 'Nuevo trueque'}</div>
+    <div class="tq-partners">${others.map(t => `<button type="button" class="tq-partner${d.target === t ? ' on' : ''}" ${counter ? 'disabled' : ''} onclick="tqTarget('${t}')">${lkEsc(NAMES[t])}</button>`).join('')}</div>
+    <div class="tq-cols">${tqColumn('give', me, 'Yo doy')}${tqColumn('want', d.target, `Quiero de ${lkEsc(NAMES[d.target])}`)}</div>
+    <div class="tq-bar">
+      <div class="tq-bar-sum">Das <b>${d.give.mons.length + d.give.items.length}</b> · Pides <b>${d.want.mons.length + d.want.items.length}</b></div>
+      <div style="display:flex;gap:8px">
+        ${counter ? `<button class="ghost" onclick="trueDraft=null;render()">Cancelar contraoferta</button>` : ''}
+        <button class="primary" onclick="submitTrueque()">${counter ? 'Enviar contraoferta' : 'Proponer trueque'}</button>
+      </div>
+    </div>
+  </div>`;
 }
 async function submitTrueque(){
-  const me = window.LOGIN_ME, err = document.getElementById('tr-err');
-  const target = document.getElementById('tr-target').value;
-  const give = readTrueSide('give', me), want = readTrueSide('want', target);
-  if(!give.mons.length && !give.items.length){ err.textContent = 'Elige qué das.'; return; }
-  if(!want.mons.length && !want.items.length){ err.textContent = 'Elige qué quieres a cambio.'; return; }
-  const counterOf = trueDraft && trueDraft.counterOfId;
+  const me = window.LOGIN_ME, d = trueDraft;
+  if(!d) return;
+  const give = { mons:[], items:[] }, want = { mons:[], items:[] };
+  for(const pid of d.give.mons){ const m = trueMonList(me).find(x => x.pid === pid); if(m) give.mons.push({ pid:m.pid, label:trueMonLabel(m), sprite:m.sprite || '' }); }
+  for(const pid of d.want.mons){ const m = trueMonList(d.target).find(x => x.pid === pid); if(m) want.mons.push({ pid:m.pid, label:trueMonLabel(m), sprite:m.sprite || '' }); }
+  for(const v of d.give.items){ const [kind, id] = v.split(':'); give.items.push({ kind, id, label:trueItemLabel(kind, id) }); }
+  for(const v of d.want.items){ const [kind, id] = v.split(':'); want.items.push({ kind, id, label:trueItemLabel(kind, id) }); }
+  if(!give.mons.length && !give.items.length){ toast('Elige qué das.'); return; }
+  if(!want.mons.length && !want.items.length){ toast('Elige qué quieres a cambio.'); return; }
+  const counterOf = d.counterOfId;
   if(counterOf) delete trueques[counterOf];                       // la oferta anterior se sustituye por la contraoferta
   const id = crypto.randomUUID();
-  trueques[id] = { id, from:me, to:target, give, want, status:'pending', counterOf: counterOf || null, ts:Date.now() };
-  pushHistory(`🔁 ${NAMES[me]} ${counterOf ? 'contraoferta' : 'propone un trueque'} a ${NAMES[target]}.`);
-  closeModal();
+  trueques[id] = { id, from:me, to:d.target, give, want, status:'pending', counterOf: counterOf || null, ts:Date.now() };
+  pushHistory(`🔁 ${NAMES[me]} ${counterOf ? 'contraoferta' : 'propone un trueque'} a ${NAMES[d.target]}.`);
+  trueDraft = null;
+  toast('🔁 Trueque enviado.');
   await persistTrueques();
 }
 async function cancelTrueque(id){ delete trueques[id]; await persistTrueques(); }
@@ -4823,6 +4988,14 @@ function myNotifications(){
   if(!me) return [];
   const list = (pendingPrizes[me] || []).map(p => ({ text:p.text, source:p.source||'', label:'Ver en mi perfil', fn:'openNotif()' }));
   if((capsules[me] || 0) > 0) list.push({ text:`💊 Tienes ${capsules[me]} Cápsula${capsules[me] === 1 ? '' : 's'} Habilidad para usar. Pulsa un Pokémon tuyo en el perfil y verás qué habilidad saldría`, source:'Premio', label:'Ir a mis Pokémon', fn:'openNotif()' });
+  const dl = trackerDownloadInfo();
+  if(dl){
+    const lockedNow = Date.now() < trackerDlLockedUntil;
+    list.unshift(trackerDlClicked && dl.open
+      ? { text:`📦 ¿Se ha descargado bien tu carpeta del tracker? Cuando la tengas guardada, desaparece de aquí.`, source:dl.name, actions:[{ label:'Sí, ya la tengo', fn:'confirmTrackerFolder()' }, { label:'Descargar otra vez', fn:'downloadTrackerFolder()' }] }
+      : { text:`📦 Tu carpeta del tracker${dl.open ? ' está lista para descargar' : ' llegará pronto'}${dl.note ? ': ' + dl.note : '.'}`, source:dl.name,
+          actions:[ lockedNow ? { label:'🔒 Aún no está abierto', fn:'void 0', red:true } : { label:'Descargar', fn:'downloadTrackerFolder()' } ] });
+  }
   for(const t of Object.values(trueques)){
     if(!t) continue;
     const src = `Trueque con ${NAMES[t.from === me ? t.to : t.from]}`;
@@ -4856,7 +5029,7 @@ function renderNotifWidget(){
   if(!me) return '';
   const items = list.map(p => `
     <div class="notif-item">${lkEsc(p.text)}<small>${lkEsc(p.source)}</small>
-      ${(p.actions || [{ label:p.label, fn:p.fn }]).map(a => `<button class="primary" type="button" onclick="${a.fn}" style="margin-right:6px">${a.label}</button>`).join('')}
+      ${(p.actions || [{ label:p.label, fn:p.fn }]).map(a => `<button class="primary" type="button" onclick="${a.fn}" style="margin-right:6px${a.red ? ';background:#b3202a;border-color:#ff5b5b;color:#fff;cursor:not-allowed' : ''}">${a.label}</button>`).join('')}
     </div>`).join('');
   return `
     <section id="notif-widget">
@@ -5142,6 +5315,7 @@ async function loadAll(){
     pendingPrizes[t] = profileResults[i].pendingPrizes || [];
     mints[t] = normalizeMints(profileResults[i].mints);
     capsules[t] = Math.max(0, parseInt(profileResults[i].capsules, 10) || 0);
+    trackerFolderDone[t] = !!profileResults[i].trackerFolderDone;
     deathLives[t] = Array.isArray(profileResults[i].deathLives) ? profileResults[i].deathLives.map(String) : null;
     dailyBonusDate[t] = profileResults[i].dailyBonusDate || null;
     dailyContestRewardClaims[t] = Array.isArray(profileResults[i].dailyContestRewardClaims) ? profileResults[i].dailyContestRewardClaims.filter(id=>typeof id === 'string') : [];
@@ -5220,7 +5394,7 @@ async function loadAll(){
 }
 async function saveProfile(t){
   teams[t] = normalizeTeamSpecies(teams[t]);
-  return await trackedStoreSet('profile:'+t, 'locke:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], mints: normalizeMints(mints[t]), deathLives: deathLives[t] ?? null, capsules: capsules[t] || 0, dailyBonusDate: dailyBonusDate[t]||null, dailyContestRewardClaims: dailyContestRewardClaims[t]||[], money: money[t]||0, medalLog: medalLog[t]||null, badges: badgeBits[t]||0, locationName: locationName[t]||null, trackerVersion: trackerVersion[t]||null, trackerLives: trackerLives[t]??null, trackerBadges: trackerBadgesAvailable[t] ? Array.from({length:GYM_COUNT}, (_,i)=>!!(badgeBits[t] & (1<<i))) : null });
+  return await trackedStoreSet('profile:'+t, 'locke:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], mints: normalizeMints(mints[t]), deathLives: deathLives[t] ?? null, capsules: capsules[t] || 0, trackerFolderDone: !!trackerFolderDone[t], dailyBonusDate: dailyBonusDate[t]||null, dailyContestRewardClaims: dailyContestRewardClaims[t]||[], money: money[t]||0, medalLog: medalLog[t]||null, badges: badgeBits[t]||0, locationName: locationName[t]||null, trackerVersion: trackerVersion[t]||null, trackerLives: trackerLives[t]??null, trackerBadges: trackerBadgesAvailable[t] ? Array.from({length:GYM_COUNT}, (_,i)=>!!(badgeBits[t] & (1<<i))) : null });
 }
 
 const DAILY_CONTEST_START = new Date('2026-10-07T10:00:00Z');
@@ -6811,6 +6985,7 @@ function render(){
   if(view === 'profile'){ renderProfile(app, currentTrainer); if(window.lkProfileCard) app.insertAdjacentHTML('afterbegin', `<div class="pf-wrap">${lkProfileCard(currentTrainer, true)}</div>`); return; }
   if(view === 'history') return renderHistory(app);
   if(view === 'duel') return renderDuel(app);
+  if(view === 'trueques') return renderTrueques(app);
   if(view === 'routes') return renderRouteAtlas(app);
   if(view === 'contest') return renderContest(app);
   if(view === 'normas') return renderNormas(app);
@@ -7299,6 +7474,13 @@ function renderHome(app){
         <path d="M0 15 Q50 7 100 15 T200 15 T300 15 T400 15 T500 15 T600 15 T700 15 T800 15 T900 15 T1000 15 T1100 15 T1200 15 V22 H0Z" fill="rgba(18,6,10,.95)"/>
       </svg>
     </section>
+    ${LOGIN_ME ? `<section class="hm-tiles">
+      <button class="hm-tile" onclick="go('profile','${LOGIN_ME}')"><span class="ic">❤️</span><span><div class="v">${hearts[LOGIN_ME] ?? 20}<small style="font-size:11px;opacity:.6">/20</small></div><div class="l">Vidas</div></span></button>
+      <button class="hm-tile" onclick="go('casino')"><span class="ic">🎟️</span><span><div class="v">${tickets[LOGIN_ME] ?? 0}</div><div class="l">Tickets</div></span></button>
+      <button class="hm-tile${myNotifications().length ? ' alert' : ''}" onclick="toggleNotifs()"><span class="ic">🔔</span><span><div class="v">${myNotifications().length}</div><div class="l">Pendientes</div></span></button>
+      <button class="hm-tile" onclick="go('trueques')"><span class="ic">🔁</span><span><div class="v">${Object.values(trueques).filter(t => t && (t.from === LOGIN_ME || t.to === LOGIN_ME)).length}</div><div class="l">Trueques</div></span></button>
+      <button class="hm-tile" onclick="go('duel')"><span class="ic">⚔️</span><span><div class="v">Arena</div><div class="l">Combates</div></span></button>
+    </section>` : ''}
     <section class="home-commandbar" aria-label="Accesos rápidos">
       <div class="home-command-copy">
         <span class="home-command-kicker">TU AVENTURA, EN MARCHA</span>
@@ -13620,7 +13802,7 @@ async function updateCosmeticTrade(id,action){
   dirty();
   return true;
 }
-window.LKX = { owned: ownedCosmetics, name: cosmeticName, kinds: COSMETIC_KINDS };
+window.LKX = { owned: ownedCosmetics, name: cosmeticName, kinds: COSMETIC_KINDS, cfg: () => cfg };
 Object.assign(window.FBD,{
   // trueque: añade el cosmético al receptor y se lo quita al dador (las reglas dejan borrar entradas del inventario)
   async moveCosmetic(from,to,kind,id){
