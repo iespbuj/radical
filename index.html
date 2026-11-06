@@ -14217,29 +14217,39 @@ for(const n of ['renderLocker','renderShop']){const f=window[n];window[n]=a=>{f(
 var w=setInterval(function(){if(typeof render==="function"){clearInterval(w);var o=render;render=function(){var r=o.apply(this,arguments);tag();return r};tag();}},50);})();
 </script>
 <style id="rw-fix-fondos">
-/* ===== v37: fondos sin corte duro =====
-   El paisaje se muestra entero (ancho completo, arriba) y su borde inferior
-   se disuelve poco a poco en el fondo oscuro. --rw-edge (0-1) = dónde acaba el
-   paisaje dentro de la imagen; lo detecta el script de abajo solo. */
-:root{ --rw-edge:.3; --rw-ar:16/9; }
+/* ===== v38: fondo a pantalla completa, sin vacío ni corte =====
+   Capa 1 (#rw-bg): el paisaje recortado, estirado a toda la pantalla y difuminado -> halo del mismo color.
+   Capa 2 (#rw-bg2): el paisaje nítido y entero, a todo el ancho arriba, que se funde con la capa 1. */
+:root{ --rw-ar:16/9; --rw-f1:60%; --rw-f2:100%; }
+#rw-bg,#rw-shade{ left:0 !important; }
 #rw-bg{
-  bottom:auto; height:auto; aspect-ratio:var(--rw-ar);
-  background:var(--rw-bg) top center/100% 100% no-repeat;
-  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 calc(var(--rw-edge)*55%),transparent calc(var(--rw-edge)*100% + 2%));
-          mask-image:linear-gradient(180deg,#000 0,#000 calc(var(--rw-edge)*55%),transparent calc(var(--rw-edge)*100% + 2%));
+  bottom:0; height:auto; aspect-ratio:auto; -webkit-mask-image:none; mask-image:none;
+  background:var(--rw-crop,var(--rw-bg)) center/100% 100% no-repeat;
+  filter:blur(26px) saturate(1.15) brightness(.85); transform:scale(1.12);
 }
-/* cabecera de Inicio: enseña la parte de arriba del paisaje (antes caía en el vacío oscuro) */
+#rw-bg2{
+  position:fixed; top:0; left:0; right:0; z-index:0; pointer-events:none;
+  aspect-ratio:var(--rw-ar);
+  background:var(--rw-crop,var(--rw-bg)) top center/100% 100% no-repeat;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 var(--rw-f1),transparent var(--rw-f2));
+          mask-image:linear-gradient(180deg,#000 0,#000 var(--rw-f1),transparent var(--rw-f2));
+}
+#rw-shade{ background:linear-gradient(180deg,rgba(10,3,6,.0) 0%,rgba(10,3,6,.22) 55%,rgba(10,3,6,.55) 100%) !important; }
+/* cabecera de Inicio: sin caja, se apoya directamente en el paisaje como en el diseño */
 #app .rr-hero{
-  background:linear-gradient(180deg,rgba(14,3,6,0) 55%,#0e0a0b 100%),
-    linear-gradient(90deg,rgba(14,3,6,.25),rgba(14,3,6,.05) 30%,rgba(14,3,6,.05) 70%,rgba(14,3,6,.25)),
-    url(fondos_secciones/bg_home.jpg) top center/100% auto no-repeat #0e0a0b !important;
+  background:linear-gradient(90deg,rgba(14,3,6,.35),rgba(14,3,6,0) 30%,rgba(14,3,6,0) 70%,rgba(14,3,6,.35)) !important;
+  border-color:transparent !important; box-shadow:none !important;
 }
+#app .rr-hero::before{ box-shadow:0 0 40px rgba(232,32,63,.35); }
 </style>
 <script>
 (function(){
-  var cache={}, DEF={edge:.3,ar:'16/9'};
+  var cache={}, c2=document.createElement('div'); c2.id='rw-bg2';
+  var bg=document.getElementById('rw-bg'); if(bg) bg.after(c2); else document.body.prepend(c2);
   function curUrl(){var v=getComputedStyle(document.body).getPropertyValue('--rw-bg');var m=/url\(["']?([^"')]+)/.exec(v);return m&&m[1];}
-  function apply(o){var s=document.documentElement.style;s.setProperty('--rw-edge',o.edge);s.setProperty('--rw-ar',o.ar);}
+  function apply(o){var s=document.documentElement.style;
+    s.setProperty('--rw-ar',o.ar);s.setProperty('--rw-f1',o.f1);s.setProperty('--rw-f2',o.f2);
+    if(o.crop)s.setProperty('--rw-crop','url('+o.crop+')');else s.removeProperty('--rw-crop');}
   function detect(img){
     var W=48,H=Math.min(img.naturalHeight,540),c=document.createElement('canvas');c.width=W;c.height=H;
     var x=c.getContext('2d');x.drawImage(img,0,0,W,H);
@@ -14254,8 +14264,16 @@ var w=setInterval(function(){if(typeof render==="function"){clearInterval(w);var
     if(cache[u]){apply(cache[u]);return;}
     var img=new Image();
     img.onload=function(){
-      var o={edge:DEF.edge,ar:img.naturalWidth+'/'+img.naturalHeight};
-      try{var e=detect(img);if(e)o.edge=Math.min(.9,e).toFixed(3);}catch(err){}
+      var NW=img.naturalWidth,NH=img.naturalHeight;
+      var o={ar:NW+'/'+NH,f1:'16%',f2:'33%',crop:null};
+      try{
+        var e=detect(img);
+        if(e){
+          var ch=Math.max(20,Math.round(NH*e)-4),cv=document.createElement('canvas');
+          cv.width=NW;cv.height=ch;cv.getContext('2d').drawImage(img,0,0,NW,ch,0,0,NW,ch);
+          o.crop=cv.toDataURL('image/jpeg',.92);o.ar=NW+'/'+ch;o.f1='62%';o.f2='100%';
+        }
+      }catch(err){}
       cache[u]=o;if(curUrl()===u)apply(o);
     };
     img.src=u;
