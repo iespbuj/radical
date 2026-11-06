@@ -14226,5 +14226,13 @@ var w=setInterval(function(){if(typeof render==="function"){clearInterval(w);var
   border-color:transparent !important; box-shadow:none !important;
 }
 </style>
+<script>
+/* v40: precarga de todos los fondos al abrir la web (cambiar de subpágina ya no espera a la imagen) */
+(function(){
+  var names=['home','normas','shop','duel','routes','casino','calendar','trueques','history','final'], keep=[];
+  function go(){names.forEach(function(n,i){setTimeout(function(){var im=new Image();im.decoding='async';im.src='fondos_secciones/bg_'+n+'.jpg';keep.push(im);},i*250);});}
+  if(document.readyState==='complete')go();else window.addEventListener('load',go);
+})();
+</script>
 </body>
 </html>
