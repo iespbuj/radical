@@ -3060,6 +3060,317 @@ button.primary:active{ box-shadow:0 1px 0 #6d0f1c; }
 .arena-phase,.duel-card{ transition:border-color .2s, box-shadow .2s; }
 .duel-card:hover{ box-shadow:0 10px 34px rgba(0,0,0,.45); }
 </style>
+<style id="rework-css">
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@1,800;1,900&display=swap');
+/* ===== Fondos por sección + paneles estilo Inicio/Arena (sin tocar colores, menú ni fuentes) ===== */
+:root{ --rw-bg:url(fondos_secciones/bg_home.jpg); }
+body[data-view="normas"]{ --rw-bg:url(fondos_secciones/bg_normas.jpg); }
+body[data-view="shop"]{ --rw-bg:url(fondos_secciones/bg_shop.jpg); }
+body[data-view="duel"]{ --rw-bg:url(fondos_secciones/bg_duel.jpg); }
+body[data-view="routes"]{ --rw-bg:url(fondos_secciones/bg_routes.jpg); }
+body[data-view="casino"]{ --rw-bg:url(fondos_secciones/bg_casino.jpg); }
+body[data-view="calendar"]{ --rw-bg:url(fondos_secciones/bg_calendar.jpg); }
+body[data-view="trueques"]{ --rw-bg:url(fondos_secciones/bg_trueques.jpg); }
+body[data-view="history"]{ --rw-bg:url(fondos_secciones/bg_history.jpg); }
+body[data-view="final"],body[data-view="contest"]{ --rw-bg:url(fondos_secciones/bg_final.jpg); }
+
+/* el fondo va detrás de la zona de contenido, a la derecha del menú (como en tu diseño) */
+#rw-bg{
+  position:fixed; top:0; bottom:0; left:248px; right:0; z-index:0; pointer-events:none;
+  background:var(--rw-bg) center/cover no-repeat;
+}
+#rw-shade{
+  position:fixed; top:0; bottom:0; left:248px; right:0; z-index:0; pointer-events:none;
+  background:linear-gradient(180deg,rgba(10,3,6,.05) 0%,rgba(10,3,6,.25) 60%,rgba(10,3,6,.5) 100%);
+}
+.shell{ position:relative; z-index:1; }
+body.casino-mode, body{ background-color:#0e0a0b; }
+.stage, .stage::before{ background:transparent !important; }
+.stage::before{ display:none !important; }
+#snowfall{ opacity:.4; }
+@media (max-width:900px){ #rw-bg,#rw-shade{ left:0; } }
+
+/* paneles de las subpáginas: cristal oscuro con borde rojo, igual que Inicio/Arena */
+#app :is(.kpi,.panel,.contest-card,.duel-card,.elo-card,.final-cat-card,.final-intro-card,.final-podium-card,
+.loteria-entry-card,.machine-card,.prof-card,.rivalry-card,.route-atlas-card,.setup-card,.side-card,
+.tc-damage-card,.tomb-card,.tq-card,.trade-card,.type-calc-card,.final-gate,.cz-zone,.lk-trade,
+.pick-mon-item,.norma-item,.history-item,.empty-state,.hall-card){
+  background-color:rgba(24,6,11,.78);
+  border-color:rgba(232,64,90,.45);
+  box-shadow:0 8px 26px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.03);
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  transition:transform .2s ease, border-color .2s ease, box-shadow .25s ease;
+}
+#app :is(.duel-card,.machine-card,.tq-card,.trade-card,.side-card,.final-cat-card,.pick-mon-item,.norma-item,.hall-card,.kpi):hover{
+  border-color:#ff4d63;
+  box-shadow:0 0 0 1px rgba(255,77,99,.35), 0 0 22px rgba(232,64,90,.45), 0 10px 30px rgba(0,0,0,.5);
+  transform:translateY(-2px);
+}
+
+/* hover de botones como en tu diseño: brillo rojo */
+#app button:not(.nav-btn):not(:disabled){ transition:transform .15s ease, box-shadow .2s ease, border-color .2s ease, filter .2s ease; }
+#app button:not(.nav-btn):not(:disabled):hover{
+  filter:brightness(1.1);
+  box-shadow:0 0 0 1px rgba(255,77,99,.5), 0 0 18px rgba(232,64,90,.5);
+}
+
+/* ================= INICIO — forma de tu diseño ================= */
+#app .rr-hero{
+  min-height:250px; border:1px solid rgba(255,77,99,.55); border-radius:14px;
+  background:linear-gradient(180deg,rgba(20,4,8,.15),rgba(20,4,8,.55)), var(--rw-bg) center 35%/cover no-repeat !important;
+  box-shadow:0 0 0 1px rgba(255,77,99,.15), 0 0 30px rgba(232,32,63,.35), 0 14px 40px rgba(0,0,0,.55);
+}
+#app .rr-hero::before{
+  inset:12% 18% 10%; background:linear-gradient(180deg,rgba(24,5,10,.85),rgba(14,3,6,.92));
+  clip-path:polygon(6% 0,100% 0,94% 100%,0 100%);
+  box-shadow:none; border-top:2px solid #ff3d5a;
+}
+#app .rr-hero::after{ content:""; position:absolute; inset:12% 18% 10%; pointer-events:none;
+  clip-path:polygon(6% 0,100% 0,94% 100%,0 100%); box-shadow:inset 0 0 0 1px rgba(255,77,99,.6);
+  background:linear-gradient(115deg,transparent 70%,rgba(255,61,90,.25) 71%,transparent 74%); }
+#app .rr-lights,#app .rr-wave{ display:none; }
+#app .rr-center{ z-index:4; }
+#app .rr-kicker{ color:#e9dfe1; letter-spacing:5px; font-size:12px; }
+#app .rr-title{
+  font-style:italic; font-weight:900; letter-spacing:.01em; font-size:clamp(38px,6vw,70px);
+  background:linear-gradient(90deg,#e9e2e3 0%,#ffffff 30%,#d9d2d3 57%,#ff3d5a 58.5%,#c8102e 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 4px 14px rgba(0,0,0,.6));
+}
+#app .rr-sub{ display:flex; align-items:center; justify-content:center; gap:14px; color:#fff; font-weight:700; }
+#app .rr-sub::before,#app .rr-sub::after{ content:""; width:70px; height:1px; background:linear-gradient(90deg,transparent,#ff4d63,transparent); }
+#app .rr-art{ z-index:5; }
+
+#app .home-commandbar{
+  background:linear-gradient(160deg,rgba(30,6,12,.88),rgba(16,3,7,.9)) !important;
+  border:1px solid rgba(255,77,99,.55) !important; border-radius:14px !important;
+  box-shadow:0 0 22px rgba(232,32,63,.25), 0 10px 30px rgba(0,0,0,.5) !important;
+}
+#app .home-command-kicker{ color:#ffd0d6; }
+#app .home-command-kicker::before{ content:"◓ "; color:#ff3d5a; }
+#app .home-command-copy h2{ color:#fff; }
+#app .home-quicklinks button{
+  background:rgba(20,4,8,.75) !important; border:1px solid rgba(255,77,99,.45) !important; border-radius:12px !important;
+  transition:transform .2s ease, box-shadow .25s ease, border-color .2s ease !important;
+}
+#app .home-quicklinks button:hover{
+  border-color:#ff4d63 !important; background:rgba(60,8,18,.85) !important;
+  box-shadow:0 0 0 1px rgba(255,77,99,.4), 0 0 24px rgba(232,32,63,.55) !important;
+}
+
+#app .rr-daily{
+  background:linear-gradient(90deg,rgba(30,6,12,.9),rgba(16,3,7,.9)) !important;
+  border:1px solid rgba(255,77,99,.55) !important; border-radius:14px !important;
+}
+#app .rr-daily button{
+  background:linear-gradient(180deg,#ff3d5a,#b80f2c) !important; color:#fff !important; border:1px solid rgba(255,150,165,.6) !important;
+  border-radius:999px !important; padding:10px 26px !important; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  box-shadow:0 0 18px rgba(232,32,63,.55);
+}
+
+#app .pf-card{
+  border:2px solid var(--pr,#e63946) !important; border-radius:14px;
+  box-shadow:0 0 18px color-mix(in srgb,var(--pr,#e63946) 40%,transparent), 0 10px 26px rgba(0,0,0,.5);
+}
+#app .pf-card::before{ display:none; }
+#app .pf-card:hover{ box-shadow:0 0 0 1px var(--pr,#e63946), 0 0 34px color-mix(in srgb,var(--pr,#e63946) 70%,transparent), 0 14px 30px rgba(0,0,0,.55); }
+#app .rr-info{ background:rgba(20,4,8,.8) !important; border-color:rgba(255,77,99,.35) !important; }
+#app .rr-locker{
+  border:2px solid #ff3d5a !important; border-radius:14px !important;
+  background:radial-gradient(circle at 50% 35%,rgba(255,61,90,.3),transparent 65%),linear-gradient(180deg,rgba(40,6,12,.92),rgba(16,3,7,.95)) !important;
+  box-shadow:0 0 26px rgba(232,32,63,.45) !important;
+}
+#app .rr-locker b{ color:#ffc23d; }
+
+/* ================= ARENA — forma de tu diseño ================= */
+#app .arena-journey,#app .arena-challenge-section > *,#app .arena-phase,#app .arena-completed{
+  background:linear-gradient(160deg,rgba(30,6,12,.88),rgba(16,3,7,.9)) !important;
+  border:1px solid rgba(255,77,99,.55) !important; border-radius:14px !important;
+  box-shadow:0 0 22px rgba(232,32,63,.25), 0 10px 30px rgba(0,0,0,.5) !important;
+}
+#app .arena-journey-title::before{ content:"◓ "; color:#ff3d5a; }
+#app .arena-ready-player{ background:rgba(10,2,5,.6) !important; border-color:rgba(255,77,99,.3) !important; }
+#app .arena-journey-stage{ background:rgba(10,2,5,.55) !important; border:1px solid rgba(255,77,99,.3) !important; border-radius:10px !important; transition:border-color .2s, box-shadow .25s, transform .2s; }
+#app .arena-journey-stage:hover{ border-color:#ff4d63 !important; box-shadow:0 0 20px rgba(232,32,63,.45); transform:translateY(-2px); }
+#app .arena-postleague{ background:rgba(10,2,5,.6) !important; border:1px solid rgba(255,77,99,.45) !important; border-radius:12px !important; }
+
+/* ===== v5: bloque de cabecera homogéneo (banner + "tu aventura") ===== */
+#app .rr-hero{
+  background:transparent !important; border:none !important; box-shadow:none !important;
+  overflow:visible; min-height:260px; margin-bottom:0 !important; border-radius:0;
+}
+#app .rr-hero::before{
+  inset:8% 9% 4%;
+  background:linear-gradient(180deg,rgba(28,5,11,.94),rgba(14,3,6,.96));
+  clip-path:polygon(5% 0,100% 0,95% 100%,0 100%);
+  border:none;
+}
+#app .rr-hero::after{
+  inset:8% 9% 4%;
+  clip-path:polygon(5% 0,100% 0,95% 100%,0 100%);
+  background:
+    linear-gradient(90deg,transparent,rgba(255,61,90,.9) 20%,rgba(255,61,90,.9) 80%,transparent) top/100% 2px no-repeat,
+    linear-gradient(90deg,transparent,rgba(255,61,90,.6) 20%,rgba(255,61,90,.6) 80%,transparent) bottom/100% 1px no-repeat,
+    linear-gradient(115deg,transparent 78%,rgba(255,61,90,.35) 79%,transparent 81%),
+    linear-gradient(115deg,transparent 18%,rgba(255,61,90,.18) 19%,transparent 20.5%);
+  box-shadow:none;
+}
+#app .rr-art{ bottom:-6px; height:120%; max-height:320px; }
+#app .rr-art.l{ left:2%; } #app .rr-art.r{ right:2%; }
+
+#app .rr-title{
+  background:linear-gradient(90deg,#ffffff 0%,#e6dcdd 20%,#ff3d5a 40%,#c8102e 50%,#ff3d5a 60%,#e6dcdd 80%,#ffffff 100%);
+  background-size:200% 100%;
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:rwTitleFlow 7s ease-in-out infinite alternate;
+}
+@keyframes rwTitleFlow{ from{ background-position:0% 50%; } to{ background-position:100% 50%; } }
+
+#app .home-commandbar{
+  position:relative; z-index:6; margin-top:-14px !important;
+  box-shadow:0 -6px 30px rgba(232,32,63,.25), 0 10px 30px rgba(0,0,0,.5) !important;
+}
+#app .home-commandbar::before{
+  content:""; position:absolute; left:10%; right:10%; top:-1px; height:2px;
+  background:linear-gradient(90deg,transparent,#ff3d5a,transparent); filter:drop-shadow(0 0 6px #ff3d5a);
+}
+@media (prefers-reduced-motion: reduce){ #app .rr-title{ animation:none; } }
+
+/* ===== v6: fiel a la captura ===== */
+#app .rr-hero{
+  overflow:hidden !important; border-radius:12px !important; min-height:250px; padding:30px 20px 34px;
+  border:1px solid rgba(255,77,99,.5) !important;
+  background:linear-gradient(90deg,rgba(14,3,6,.25),rgba(14,3,6,.05) 30%,rgba(14,3,6,.05) 70%,rgba(14,3,6,.25)),
+    url(fondos_secciones/bg_home.jpg) center 60%/cover no-repeat !important;
+  box-shadow:0 0 26px rgba(232,32,63,.3), 0 12px 34px rgba(0,0,0,.5) !important;
+}
+#app .rr-hero::before{ inset:9% 15% 14%; clip-path:polygon(7% 0,100% 0,93% 100%,0 100%);
+  background:linear-gradient(180deg,rgba(26,5,10,.93),rgba(12,2,5,.95)); }
+#app .rr-hero::after{ inset:9% 15% 14%; clip-path:polygon(7% 0,100% 0,93% 100%,0 100%);
+  background:
+   linear-gradient(90deg,transparent 5%,rgba(255,61,90,.85) 30%,rgba(255,61,90,.85) 70%,transparent 95%) top/100% 2px no-repeat,
+   radial-gradient(circle at 12% 55%,transparent 30px,rgba(255,255,255,.035) 31px 36px,transparent 37px),
+   radial-gradient(circle at 88% 45%,transparent 30px,rgba(255,255,255,.035) 31px 36px,transparent 37px); }
+/* rayo rojo diagonal brillante */
+#app .rr-lights{ display:block !important; animation:none; position:absolute; inset:0; height:auto; z-index:1; filter:none;
+  background:
+   linear-gradient(118deg,transparent 0 13.6%,#ff3d5a 13.8%,rgba(255,61,90,.0) 14.6%,transparent 100%),
+   linear-gradient(118deg,transparent 0 84.4%,rgba(255,61,90,0) 84.6%,#ff3d5a 85.4%,transparent 85.6%);
+  filter:drop-shadow(0 0 6px #ff3d5a); opacity:.9; }
+#app .rr-art{ height:108%; max-height:270px; bottom:-4px; z-index:5; }
+#app .rr-art.l{ left:3%; } #app .rr-art.r{ right:3%; }
+#app .rr-center{ max-width:none; }
+#app .rr-kicker{ font-size:11px; letter-spacing:5px; color:#d8cfd1; }
+#app .rr-title{
+  font-family:'Montserrat',var(--f-display),sans-serif; font-style:italic; font-weight:800;
+  font-size:clamp(34px,4.6vw,62px); white-space:nowrap; display:inline-block; padding:0 .08em; letter-spacing:.005em; line-height:1.05; margin:8px 0 8px;
+  background:
+    linear-gradient(100deg,transparent 35%,rgba(255,255,255,.75) 50%,transparent 65%) 0 0/50% 100% no-repeat,
+    linear-gradient(90deg,#c9c2c4 0%,#ffffff 25%,#d2cbcd 65%,#ff3d5a 65.6%,#e8203f 80%,#b80f2c 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:rwShine 6s ease-in-out infinite alternate;
+  filter:drop-shadow(0 3px 10px rgba(0,0,0,.6));
+}
+@keyframes rwShine{ from{ background-position:-60% 0,0 0; } to{ background-position:160% 0,0 0; } }
+#app .rr-sub{ font-size:13px; letter-spacing:1px; }
+#app .home-commandbar{ margin-top:-10px !important; border-radius:0 0 12px 12px !important; border-top-color:transparent !important; }
+#app .home-command-copy{ padding-right:18px; border-right:1px solid rgba(255,77,99,.25); }
+
+/* ===== v9 ===== */
+#app .home-commandbar{ margin-top:18px !important; border-radius:12px !important; border-top-color:rgba(255,77,99,.55) !important; }
+#app .rr-hero + .home-commandbar{ margin-top:-10px !important; border-radius:0 0 12px 12px !important; border-top-color:transparent !important; }
+#app .hm-tiles{ margin:16px auto 0 !important; max-width:none; padding:0; }
+#app .hm-tile{
+  background:rgba(20,4,8,.8) !important; border:1px solid rgba(255,77,99,.45) !important; border-radius:12px !important;
+  transition:transform .2s ease, box-shadow .25s ease, border-color .2s ease, background .2s ease !important;
+}
+#app :is(.hm-tile,.home-quicklinks button,.rr-daily button):hover{
+  transform:translateY(-3px) !important; border-color:#ff4d63 !important; background:rgba(60,8,18,.88) !important;
+  box-shadow:0 0 0 1px rgba(255,77,99,.45), 0 0 26px rgba(232,32,63,.6), 0 10px 24px rgba(0,0,0,.5) !important;
+  filter:brightness(1.08);
+}
+#app .rr-daily button:hover{ background:linear-gradient(180deg,#ff5a73,#c8102e) !important; }
+
+/* color del título moviéndose de lado a lado */
+#app .rr-title{
+  background-image:linear-gradient(90deg,#ffffff 0%,#d2cbcd 18%,#ff3d5a 34%,#c8102e 50%,#ff3d5a 66%,#d2cbcd 82%,#ffffff 100%) !important;
+  background-size:250% 100% !important; background-repeat:no-repeat !important;
+  -webkit-background-clip:text !important; background-clip:text !important; color:transparent;
+  animation:rwFlow 8s ease-in-out infinite alternate !important;
+}
+@keyframes rwFlow{ from{ background-position:0% 50%; } to{ background-position:100% 50%; } }
+
+/* ===== v10: hover más guapo (brillo que barre + borde que late) ===== */
+#app :is(.hm-tile,.home-quicklinks button,.rr-daily button,button.primary,button.ghost,button.danger-outline,.arena-vote-chip,.arena-stage-action){
+  position:relative; overflow:hidden; isolation:isolate;
+}
+#app :is(.hm-tile,.home-quicklinks button,.rr-daily button,button.primary,button.ghost,button.danger-outline,.arena-vote-chip,.arena-stage-action)::after{
+  content:""; position:absolute; top:0; bottom:0; left:-60%; width:45%; z-index:-1; pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.22),rgba(255,90,115,.35),transparent);
+  transform:skewX(-20deg); opacity:0;
+}
+#app :is(.hm-tile,.home-quicklinks button,.rr-daily button,button.primary,button.ghost,button.danger-outline,.arena-vote-chip,.arena-stage-action):hover::after{
+  opacity:1; animation:rwSweep .7s ease-out forwards;
+}
+@keyframes rwSweep{ from{ left:-60%; } to{ left:120%; } }
+#app :is(.hm-tile,.home-quicklinks button,.rr-daily button,button.primary,button.ghost,button.danger-outline,.arena-vote-chip,.arena-stage-action):not(:disabled):hover{
+  transform:translateY(-3px) scale(1.02) !important;
+  border-color:#ff5a73 !important;
+  animation:rwPulse 1.4s ease-in-out infinite;
+}
+@keyframes rwPulse{
+  0%,100%{ box-shadow:0 0 0 1px rgba(255,90,115,.5), 0 0 18px rgba(232,32,63,.45), 0 10px 24px rgba(0,0,0,.5); }
+  50%{ box-shadow:0 0 0 1px rgba(255,140,155,.8), 0 0 34px rgba(255,61,90,.8), 0 12px 28px rgba(0,0,0,.55); }
+}
+#app :is(.hm-tile,.home-quicklinks button):hover :is(.ic,span:first-child){ transform:scale(1.18) rotate(-6deg); transition:transform .25s cubic-bezier(.2,.9,.3,1.5); display:inline-block; }
+#app :is(.hm-tile,.home-quicklinks button):hover b{ color:#fff; text-shadow:0 0 10px rgba(255,90,115,.8); }
+
+/* Menú lateral: brillo y barrido sin alterar el estado activo ni la paleta. */
+:root{
+  --rw-nav-glow:color-mix(in srgb,var(--danger) 42%,transparent);
+  --rw-nav-glow-soft:color-mix(in srgb,var(--danger) 20%,transparent);
+  --rw-nav-shine:color-mix(in srgb,var(--silver-bright) 15%,transparent);
+}
+.rail-nav .nav-btn{
+  isolation:isolate;
+  transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease,color .24s ease;
+}
+.rail-nav .nav-btn::after{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:-1;
+  background-image:linear-gradient(110deg,transparent 32%,var(--rw-nav-shine) 48%,var(--rw-nav-glow-soft) 54%,transparent 70%);
+  background-size:300% 100%; background-position:100% 0; opacity:0;
+  transition:opacity .2s ease;
+}
+.rail-nav .nav-btn:is(:hover,:focus-visible){
+  transform:translateX(4px);
+  border-color:var(--danger);
+  box-shadow:0 0 16px var(--rw-nav-glow),inset 0 0 18px var(--rw-nav-glow-soft);
+}
+.rail-nav .nav-btn:is(:hover,:focus-visible)::after{
+  opacity:1; animation:rwNavSweep .85s ease-out forwards;
+}
+.rail-nav .nav-btn .ni{
+  transition:transform .25s ease,filter .25s ease;
+}
+.rail-nav .nav-btn:is(:hover,:focus-visible) .ni{
+  background:var(--panel-2);
+  transform:scale(1.12) rotate(-7deg);
+  filter:drop-shadow(0 0 5px var(--rw-nav-glow));
+}
+.rail-nav .nav-btn.active:is(:hover,:focus-visible) .ni{
+  background:linear-gradient(135deg,var(--ruby),var(--ruby-deep));
+}
+.rail-nav .nav-btn:is(:hover,:focus-visible) .nl{
+  text-shadow:0 0 10px var(--rw-nav-glow);
+}
+@keyframes rwNavSweep{ from{background-position:100% 0;} to{background-position:0% 0;} }
+@media(max-width:900px){ .rail-nav .nav-btn:is(:hover,:focus-visible){transform:none;} }
+@media(prefers-reduced-motion:reduce){
+  .rail-nav .nav-btn,.rail-nav .nav-btn .ni,.rail-nav .nav-btn::after{transition:none;}
+  .rail-nav .nav-btn:is(:hover,:focus-visible),.rail-nav .nav-btn:is(:hover,:focus-visible) .ni{transform:none;}
+  .rail-nav .nav-btn:is(:hover,:focus-visible)::after{animation:none;}
+}
+</style>
 </head>
 <body>
 <div id="snowfall" aria-hidden="true"></div>
@@ -13901,5 +14212,9 @@ for(const n of ['renderLocker','renderShop']){const f=window[n];window[n]=a=>{f(
 @keyframes lksweep{ to{ left:130%; } }
 @media (prefers-reduced-motion:reduce){ .lk .it.lk-new,.lk .it.lk-new::before{ animation:none; } }
 </style>
+<script>
+(function(){var a=document.createElement("div");a.id="rw-bg";var b=document.createElement("div");b.id="rw-shade";document.body.prepend(b);document.body.prepend(a);function tag(){try{document.body.dataset.view=(typeof view!=="undefined"&&view)||"home"}catch(e){}}
+var w=setInterval(function(){if(typeof render==="function"){clearInterval(w);var o=render;render=function(){var r=o.apply(this,arguments);tag();return r};tag();}},50);})();
+</script>
 </body>
 </html>
