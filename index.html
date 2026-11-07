@@ -4685,21 +4685,22 @@ function mapTrackerLocation(mapId){
   return place ? (place.zona || place.nombre_mapa || `Zona #${id}`) : (GAME_MAP_NAMES[id] || `Zona #${id}`);
 }
 
+// Zonas de Radical Red: el "lugar de captura" de cada Pokémon es el número de zona del juego. La tabla sale de la propia ROM
+// (nombres a partir de ROM+3F1CAC); la primera, Pueblo Paleta, vale 88. Comprobado con el juego: en Ciudad Verde la RAM da 89.
+const RR_ZONE_START = 88;
+const RR_ZONES = ["Pueblo Paleta", "Ciudad Verde", "Ciudad Plateada", "Ciudad Celeste", "Pueblo Lavanda", "Ciudad Carmín", "Ciudad Azulona", "Ciudad Fucsia", "Isla Canela", "Meseta Añil", "Ciudad Azafrán", "Ruta 4", "Ruta 10", "Ruta 1", "Ruta 2", "Ruta 3", "Ruta 4", "Ruta 5", "Ruta 6", "Ruta 7", "Ruta 8", "Ruta 9", "Ruta 10", "Ruta 11", "Ruta 12", "Ruta 13", "Ruta 14", "Ruta 15", "Ruta 16", "Ruta 17", "Ruta 18", "Ruta 19", "Ruta 20", "Ruta 21", "Ruta 22", "Ruta 23", "Ruta 24", "Ruta 25", "Bosque Verde", "Mt. Moon", "S.S. Anne", "Vía subterránea", "Vía subterránea", "Cueva Diglett", "Calle Victoria", "Guarida Rocket", "Silph S.A.", "Mansión Pokémon", "Zona Safari", "Liga Pokémon", "Túnel Roca", "Islas espuma", "Torre Pokémon", "Cueva Celeste", "Central Energía", "Isla Prima", "Isla Secunda", "Isla Tera", "Isla Quarta", "Isla Inta", "Isla Sétima", "Isla Exta", "Camino Candente", "Playa Tesoro", "Cabo Extremo", "Puente Unión", "Puerto Isla Tera", "Exta Archi.", "Sétima Archi.", "Lab. Prof. Oak", "Ovena Archi.", "Lugar de recreo", "Aquarinto", "Prado Isla Inta", "Pilar recuerdo", "Isla Aislada", "Vía verde", "Vía acuática", "Valle Ruinas", "Torre Desafío", "Entrada al cañón", "Cañón Sétano", "Ruinas Sete", "Idos Archi.", "Itres Archi.", "Icuatro Archi.", "Roca Ombligo", "MT. Ascuas", "Bosque Baya", "Cueva Glaciada", "Almacén Rocket", "Torre Desafío", "Cueva Punteada", "Cueva Perdida", "Bosquejo", "Cueva Cambiante", "Cámaras sete", "Vía Isla Tera", "Llave Sete", "Isla Origen", "Lab. Prof. Oak", "Cámara Tulipdos", "Cámara Trisante", "Cámara Quarciso", "Cámara Hibinca", "Cámara Seiris", "Cámara Pasiete", "Balneario Ascuas", "Cc Azulona"];
+function rrZoneName(id){
+  const n = Number(id);
+  if(!Number.isFinite(n)) return null;
+  const i = n - RR_ZONE_START;
+  return (i >= 0 && i < RR_ZONES.length) ? RR_ZONES[i] : null;
+}
 function mapTrackerCaptureLocation(mapId, locationName){
   const customName = typeof locationName === 'string' ? locationName.trim() : '';
   if(mapId === null || mapId === undefined || mapId === '' || !Number.isFinite(Number(mapId)) || Number(mapId) <= 0){
     return customName || null;
   }
-  const id = String(mapId);
-  const place = GAME_MAP_LOOKUP[id];
-  const mapName = place && typeof place.nombre_mapa === 'string'
-    ? place.nombre_mapa.trim()
-    : String(GAME_MAP_NAMES[id] || '').trim();
-  const zoneName = place && typeof place.zona === 'string' ? place.zona.trim() : '';
-  if(mapName && mapName !== zoneName && (!customName || customName === zoneName)){
-    return mapName;
-  }
-  return customName || mapName || zoneName || `Zona #${id}`;
+  return rrZoneName(mapId) || customName || `Zona #${Number(mapId)}`;
 }
 
 
