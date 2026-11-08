@@ -3821,7 +3821,14 @@ const MERGED_LOSER_WHEEL = [
 ];
 
 const hearts = FBP('lives', 20); let teams = {}, history = [], tradesActive = [], tradesHistory = [];
-const tickets = FBP('tickets', 0); let pendingPrizes = {}; let mints = {}; let deathLives = {}; let capsules = {}; let trueques = {}; let origins = {};   // origins[t][personalidad] = 'Robados' (los de la web 'Casino' se reconocen solos: legendario con captura a Nv.1) let trackerFolderDone = {}; let trackerDlClicked = false;   // trueques[id] = { id, from, to, give:{mons,items}, want:{mons,items}, status, counterOf, legs }   // capsules[t] = Cápsulas Habilidad sin usar
+const tickets = FBP('tickets', 0);
+let pendingPrizes = {};   // premios pendientes de aplicar a mano
+let mints = {};           // mints[t] = { choose:N (torneo), random:N (desafío) }
+let deathLives = {};      // deathLives[t] = pids de muertes ya tratadas (null = sin inicializar)
+let capsules = {};        // capsules[t] = Cápsulas Habilidad sin usar
+let trueques = {};        // trueques[id] = { id, from, to, give:{mons,items}, want:{mons,items}, status, counterOf, legs }
+let origins = {};         // origins[t][personalidad] = 'Robados' (los del casino se reconocen solos: legendario capturado a Nv.1)
+let trackerFolderDone = {}; let trackerDlClicked = false;
 // (mints/deathLives: ver más abajo)   // deathLives[t] = pids de muertes ya tratadas (null = aún no inicializado)   // mints[t] = { choose:N (torneo: elige naturaleza), random:N (desafío: ruleta) }
 let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador reclamó su bonus diario
 let dailyContestRewardClaims = {};
