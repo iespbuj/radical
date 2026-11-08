@@ -7387,11 +7387,26 @@ function availableMonsOf(t){
 }
 
 function routeAtlasMons(t){
-  const snapshotMons = trackerSnapshots[t] && trackerSnapshots[t].pokemon;
-  if(Array.isArray(snapshotMons)){
-    return trainerTrackerTeam({party:snapshotMons})
-      .filter(m=>!m.isEgg)
-      .map(m=>({...m, speciesName:m.species, nickname:m.nickname || m.species}));
+  const snap = trackerSnapshots[t];
+  if(snap && (Array.isArray(snap.pokemon) || Array.isArray(snap.party))){
+    // equipo + cajas del último snapshot del tracker (antes solo se miraban las cajas y el equipo no salía)
+    const party = trainerTrackerTeam({ party: Array.isArray(snap.party) ? snap.party : [] });
+    const partyPids = new Set(party.map(m => String(m.pid)));
+    const boxes = trainerTrackerTeam({ party: Array.isArray(snap.pokemon) ? snap.pokemon : [] })
+      .filter(m => !partyPids.has(String(m.pid)));
+    const live = [...party, ...boxes].filter(m => !m.isEgg)
+      .map(m => ({ ...m, speciesName:m.species, nickname:m.nickname || m.species }));
+    // encuentros caídos: ya no están en el juego, pero siguen en el registro como muertos
+    const livePids = new Set(live.map(m => String(m.pid)));
+    const reg = collections[t] && collections[t].pids ? collections[t].pids : (collections[t] || {});
+    const dead = Object.entries(reg)
+      .filter(([pid, r]) => r && r.fainted && !livePids.has(String(pid)))
+      .map(([pid, r]) => ({
+        pid, nickname:r.nickname || normalizeSpeciesName(r.speciesName || r.species),
+        speciesName:normalizeSpeciesName(r.speciesName || r.species), sprite:r.sprite,
+        level:r.level ?? null, metLocationName:r.metLocationName || null, fainted:true,
+      }));
+    return [...live, ...dead];
   }
   const manualMap = manualFainted[t] || {};
   const team = (teams[t] || []).map(p => ({
