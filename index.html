@@ -3821,7 +3821,7 @@ const MERGED_LOSER_WHEEL = [
 ];
 
 const hearts = FBP('lives', 20); let teams = {}, history = [], tradesActive = [], tradesHistory = [];
-const tickets = FBP('tickets', 0); let pendingPrizes = {}; let mints = {}; let deathLives = {}; let capsules = {}; let trueques = {}; let trackerFolderDone = {}; let trackerDlClicked = false;   // trueques[id] = { id, from, to, give:{mons,items}, want:{mons,items}, status, counterOf, legs }   // capsules[t] = Cápsulas Habilidad sin usar
+const tickets = FBP('tickets', 0); let pendingPrizes = {}; let mints = {}; let deathLives = {}; let capsules = {}; let trueques = {}; let origins = {};   // origins[t][personalidad] = 'Robados' (los de la web 'Casino' se reconocen solos: legendario con captura a Nv.1) let trackerFolderDone = {}; let trackerDlClicked = false;   // trueques[id] = { id, from, to, give:{mons,items}, want:{mons,items}, status, counterOf, legs }   // capsules[t] = Cápsulas Habilidad sin usar
 // (mints/deathLives: ver más abajo)   // deathLives[t] = pids de muertes ya tratadas (null = aún no inicializado)   // mints[t] = { choose:N (torneo: elige naturaleza), random:N (desafío: ruleta) }
 let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador reclamó su bonus diario
 let dailyContestRewardClaims = {};
@@ -4914,8 +4914,10 @@ async function acceptTrueque(id){
     }
     if(!confirm(`¿Aceptar? ${NAMES[t.from]} te da: ${trueSide(t.give)}. Tú das: ${trueSide(t.want)}.`)) return;
     // 3. objetos de la tienda: se mueven ya
-    for(const i of t.give.items) await window.FBD.moveCosmetic(t.from, t.to, i.kind, i.id);
-    for(const i of t.want.items) await window.FBD.moveCosmetic(t.to, t.from, i.kind, i.id);
+    if(t.from !== t.to){
+      for(const i of t.give.items) await window.FBD.moveCosmetic(t.from, t.to, i.kind, i.id);
+      for(const i of t.want.items) await window.FBD.moveCosmetic(t.to, t.from, i.kind, i.id);
+    }
     // 4. Pokémon: cada uno es un "tramo" del sistema del robo (se quita al dador y se entrega al receptor, en cualquier caja o equipo)
     t.legs = [];
     const legs = [...t.give.mons.map(m => ({ m, victim:t.from, thief:t.to })), ...t.want.mons.map(m => ({ m, victim:t.to, thief:t.from }))];
@@ -5055,6 +5057,7 @@ async function settleStealOrders(){
       const g = FBS.orders['steal-' + s.id + '-give'];
       if(g && g.status === 'done'){
         s.status = 'done'; toast(`🦹 ${s.label} ya está en tu PC.`); await persistSteal();
+        if(!s.tradeId) await setOrigin(me, s.pid, 'Robados');
         window.FBD.removeGameOrder('steal-' + s.id + '-give').catch(()=>{});
       }
     }
@@ -5268,13 +5271,22 @@ async function settleMintOrders(){
   const me = window.LOGIN_ME;
   if(!loaded || !me || !window.FBS || !FBS.orders) return;
   for(const [oid, o] of Object.entries(FBS.orders)){
-    if(!o || (o.kind !== 'set_nature' && o.kind !== 'set_ability') || !(oid.startsWith('mint-') || oid.startsWith('cap-')) || mintOrderBusy.has(oid)) continue;
+    if(!o || !['set_nature','set_ability','add_item'].includes(o.kind) || !(oid.startsWith('mint-') || oid.startsWith('cap-') || oid.startsWith('item-')) || mintOrderBusy.has(oid)) continue;
     if(o.status !== 'done' && o.status !== 'error') continue;
     mintOrderBusy.add(oid);
     try{
       await window.FBD.removeGameOrder(oid);
       if(o.status === 'done'){
-        toast(o.kind === 'set_ability' ? '💊 Habilidad cambiada.' : `🌿 Naturaleza cambiada a ${NATURE_NAMES[o.nature] || ''}.`);
+        if(o.kind === 'add_item') toast(`🎁 ${o.label || 'Objeto'} ya está en tu mochila.`);
+        else if(o.kind === 'set_ability') toast('💊 Habilidad cambiada.');
+        else {
+          toast(`🌿 Naturaleza cambiada a ${NATURE_NAMES[o.nature] || ''}.`);
+          // al cambiar la naturaleza cambia la personalidad: el origen "Robados" pasa a la nueva
+          const oldKey = persKey(o.monpers), newKey = persKey(o.newpers);
+          if(o.newpers && origins[me] && origins[me][oldKey]){ origins[me][newKey] = origins[me][oldKey]; delete origins[me][oldKey]; const ok = await saveProfile(me); if(!ok) queueRetry('profile:'+me, ()=>saveProfile(me)); }
+        }
+      } else if(o.kind === 'add_item'){
+        await addPendingPrize(me, `${o.label || 'Objeto'} — no se pudo entregar solo (${o.note || 'error'}): dáselo a mano`, 'Premio');
       } else if(o.kind === 'set_ability'){
         capsules[me] = (capsules[me] || 0) + 1;                      // se devuelve la cápsula
         toast(`⚠️ No se pudo usar la cápsula (${o.note || 'error'}). Te la devolvemos.`);
@@ -5627,6 +5639,7 @@ async function loadAll(){
     pendingPrizes[t] = profileResults[i].pendingPrizes || [];
     mints[t] = normalizeMints(profileResults[i].mints);
     capsules[t] = Math.max(0, parseInt(profileResults[i].capsules, 10) || 0);
+    origins[t] = (profileResults[i].origins && typeof profileResults[i].origins === 'object') ? profileResults[i].origins : {};
     trackerFolderDone[t] = !!profileResults[i].trackerFolderDone;
     deathLives[t] = Array.isArray(profileResults[i].deathLives) ? profileResults[i].deathLives.map(String) : null;
     dailyBonusDate[t] = profileResults[i].dailyBonusDate || null;
@@ -5706,7 +5719,7 @@ async function loadAll(){
 }
 async function saveProfile(t){
   teams[t] = normalizeTeamSpecies(teams[t]);
-  return await trackedStoreSet('profile:'+t, 'locke:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], mints: normalizeMints(mints[t]), deathLives: deathLives[t] ?? null, capsules: capsules[t] || 0, trackerFolderDone: !!trackerFolderDone[t], dailyBonusDate: dailyBonusDate[t]||null, dailyContestRewardClaims: dailyContestRewardClaims[t]||[], money: money[t]||0, medalLog: medalLog[t]||null, badges: badgeBits[t]||0, locationName: locationName[t]||null, trackerVersion: trackerVersion[t]||null, trackerLives: trackerLives[t]??null, trackerBadges: trackerBadgesAvailable[t] ? Array.from({length:GYM_COUNT}, (_,i)=>!!(badgeBits[t] & (1<<i))) : null });
+  return await trackedStoreSet('profile:'+t, 'locke:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], mints: normalizeMints(mints[t]), deathLives: deathLives[t] ?? null, capsules: capsules[t] || 0, origins: origins[t] || {}, trackerFolderDone: !!trackerFolderDone[t], dailyBonusDate: dailyBonusDate[t]||null, dailyContestRewardClaims: dailyContestRewardClaims[t]||[], money: money[t]||0, medalLog: medalLog[t]||null, badges: badgeBits[t]||0, locationName: locationName[t]||null, trackerVersion: trackerVersion[t]||null, trackerLives: trackerLives[t]??null, trackerBadges: trackerBadgesAvailable[t] ? Array.from({length:GYM_COUNT}, (_,i)=>!!(badgeBits[t] & (1<<i))) : null });
 }
 
 const DAILY_CONTEST_START = new Date('2026-10-07T10:00:00Z');
@@ -7010,7 +7023,25 @@ async function grantCosmeticPrize(t, text, source){
     return true;
   }catch(e){ return false; }
 }
+
+/* ---- OBJETOS DE PREMIO: se entregan solos en la mochila del jugador (orden add_item) ---- */
+const ITEM_PRIZES = {
+  'restaurar todo': { item:19,  name:'Restaurar Todo' },
+  'banda focus':    { item:196, name:'Banda Focus' },
+  'pesa recia':     { item:181, name:'Pesa Recia' },
+  'baya meloc':     { item:153, name:'Baya Meloc' },
+};
+async function deliverItemPrize(t, qty, def, source){
+  const label = `${qty > 1 ? qty + ' ' : ''}${def.name}`;
+  try{
+    await window.FBD.createGameOrderFor(t, 'item-' + crypto.randomUUID(), { kind:'add_item', item:def.item, qty, label });
+    pushHistory(`🎁 ${NAMES[t]} recibe ${label} (${source}): se entrega en su mochila cuando abra el juego.`);
+    return true;
+  }catch(error){ console.error('No se pudo crear la entrega del objeto.', error); return false; }
+}
 async function addPendingPrize(t, text, source){
+  const itemPrize = String(text).match(/^(?:(\d+)\s+)?(Restaurar Todo|Banda Focus|Pesa Recia|Baya Meloc)$/i);
+  if(itemPrize && await deliverItemPrize(t, parseInt(itemPrize[1] || '1', 10), ITEM_PRIZES[itemPrize[2].toLowerCase()], source)) return;   // si no se puede, sigue como aviso manual
   const capPrize = String(text).match(/^(?:(\d+)\s+)?C[áa]psulas?\s+Habilidad$/i);
   if(capPrize){ await addCapsules(t, parseInt(capPrize[1] || '1', 10), source); return; }
   const mintPrize = String(text).match(/^(\d+)\s+Mentas?\s+de\s+Naturaleza$/i);
@@ -7356,12 +7387,32 @@ function overCapMonsOf(t){
 // Todos los Pokémon de un entrenador: equipo (con su flag de debilitado real)
 // + los que estén en cajas (nunca debilitados, eso solo existe en equipo).
 // Sirve tanto para "ver un Pokémon en detalle" como para "elegir con cuál ofertar".
+
+/* ---- ORIGEN DE UN POKÉMON: "Casino" (legendarios que entrega la web) y "Robados" (los que se roban) se enseñan como su lugar de captura ---- */
+const WEB_LEGENDARIES = new Set(['articuno','zapdos','moltres','mewtwo','mew']);
+const SPECIAL_PLACES = ['Casino', 'Robados'];
+function persKey(x){ return String(x || '').split('-')[0].toUpperCase().replace(/^0+(?=.)/, ''); }
+function originOf(t, m){
+  if(!m) return null;
+  const saved = (origins[t] || {})[persKey(m.pid)];
+  if(saved) return saved;
+  const sp = String(m.speciesName || m.species || '').toLowerCase().replace(/[^a-z]/g, '');
+  // la web entrega los legendarios en nivel 1; un legendario capturado a Nv.1 solo puede venir del casino
+  if(WEB_LEGENDARIES.has(sp) && Number(m.metLevel) === 1) return 'Casino';
+  return null;
+}
+async function setOrigin(t, pidOrPers, label){
+  origins[t] = origins[t] || {};
+  origins[t][persKey(pidOrPers)] = label;
+  const ok = await saveProfile(t);
+  if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
+}
 function allMonsOf(t){
   if(_allMonsCache[t]) return _allMonsCache[t];
   const manualMap = manualFainted[t]||{};
   const team = (teams[t]||[]).map(p => ({
     pid: p.pid, nickname: p.isEgg ? 'Huevo' : p.nickname, speciesName: p.isEgg ? 'Huevo' : p.species, sprite: p.sprite,
-    level: p.isEgg ? null : p.level, metLocationName: p.metLocationName || null, metLevel: p.isEgg ? null : p.metLevel,
+    level: p.isEgg ? null : p.level, metLocationName: originOf(t, p) || p.metLocationName || null, metLevel: p.isEgg ? null : p.metLevel,
     fainted: p.isEgg ? false : (manualMap.hasOwnProperty(p.pid) ? manualMap[p.pid] : !!p.fainted), inTeam: true,
     isEgg: !!p.isEgg, eggScale: p.eggScale || 1, altAbilityName: p.isEgg ? undefined : p.altAbilityName, abilityName: p.isEgg ? null : (p.abilityName || null), abilityId: p.isEgg ? null : (p.abilityId ?? null), shiny: p.isEgg ? false : !!p.shiny,
   }));
@@ -7375,7 +7426,7 @@ function allMonsOf(t){
     .filter(([pid, m]) => !teamPids.has(pid) && m && m.inTeam === false && (!livePids || livePids.has(pid) || m.fainted))
     .map(([pid, m]) => ({
       pid, nickname: m.nickname || m.speciesName, speciesName: m.speciesName, sprite: m.sprite,
-      level: null, metLocationName: m.metLocationName || null, metLevel: m.metLevel,
+      level: null, metLocationName: originOf(t, { pid, ...m }) || m.metLocationName || null, metLevel: m.metLevel,
       fainted: manualMap.hasOwnProperty(pid) ? manualMap[pid] : !!m.fainted, inTeam: false, box: m.box || null, boxName: m.boxName || null,
       abilityName: m.abilityName || null, altAbilityName: m.altAbilityName, abilityId: m.abilityId ?? null, shiny: !!m.shiny,
     }));
@@ -7395,7 +7446,7 @@ function routeAtlasMons(t){
     const boxes = trainerTrackerTeam({ party: Array.isArray(snap.pokemon) ? snap.pokemon : [] })
       .filter(m => !partyPids.has(String(m.pid)));
     const live = [...party, ...boxes].filter(m => !m.isEgg)
-      .map(m => ({ ...m, speciesName:m.species, nickname:m.nickname || m.species }));
+      .map(m => ({ ...m, speciesName:m.species, nickname:m.nickname || m.species, metLocationName: originOf(t, m) || m.metLocationName }));
     // encuentros caídos: ya no están en el juego, pero siguen en el registro como muertos
     const livePids = new Set(live.map(m => String(m.pid)));
     const reg = collections[t] && collections[t].pids ? collections[t].pids : (collections[t] || {});
@@ -7404,14 +7455,14 @@ function routeAtlasMons(t){
       .map(([pid, r]) => ({
         pid, nickname:r.nickname || normalizeSpeciesName(r.speciesName || r.species),
         speciesName:normalizeSpeciesName(r.speciesName || r.species), sprite:r.sprite,
-        level:r.level ?? null, metLocationName:r.metLocationName || null, fainted:true,
+        level:r.level ?? null, metLocationName:originOf(t, { pid, ...r }) || r.metLocationName || null, metLevel:r.metLevel, fainted:true,
       }));
     return [...live, ...dead];
   }
   const manualMap = manualFainted[t] || {};
   const team = (teams[t] || []).map(p => ({
     pid:p.pid, nickname:p.nickname, speciesName:normalizeSpeciesName(p.species),
-    sprite:p.sprite, level:p.level, metLocationName:p.metLocationName,
+    sprite:p.sprite, level:p.level, metLocationName:originOf(t, p) || p.metLocationName,
     fainted:manualMap.hasOwnProperty(p.pid) ? manualMap[p.pid] : !!p.fainted,
   }));
   const seen = new Set(team.map(m=>String(m.pid)));
@@ -7421,7 +7472,7 @@ function routeAtlasMons(t){
     .map(([pid,m])=>({
       pid, nickname:m.nickname || normalizeSpeciesName(m.speciesName || m.species),
       speciesName:normalizeSpeciesName(m.speciesName || m.species), sprite:m.sprite,
-      level:null, metLocationName:m.metLocationName || null,
+      level:null, metLocationName:originOf(t, { pid, ...m }) || m.metLocationName || null,
       fainted:manualMap.hasOwnProperty(pid) ? manualMap[pid] : !!m.fainted,
     }));
   return [...team, ...boxes];
@@ -7435,7 +7486,8 @@ function renderRouteAtlas(app){
     const place = m.metLocationName || 'Lugar desconocido';
     (grouped[place] ||= []).push(m);
   });
-  const routes = Object.entries(grouped).sort(([a],[b])=>a.localeCompare(b,'es'));
+  const placeRank = n => SPECIAL_PLACES.indexOf(n) >= 0 ? 1 : 0;   // lugares normales primero; 'Casino' y 'Robados' al final
+  const routes = Object.entries(grouped).sort(([a],[b]) => placeRank(a) - placeRank(b) || a.localeCompare(b,'es'));
   app.innerHTML = `
     <div class="section-label">🗺️ Pokémon de ruta</div>
     <div class="section-sub" style="margin-bottom:16px;">El registro de tus encuentros, ordenado por el lugar donde capturaste cada Pokémon.</div>
@@ -11763,6 +11815,17 @@ async function recordChallengeGame(gameWinner){
   }
 }
 
+
+// Robo directo (sin ruleta ni elección: el Pokémon ya está decidido, como en un desafío). Pasa por el mismo sistema de órdenes.
+async function startDirectSteal(victim, thief, mon, source){
+  const id = crypto.randomUUID();
+  const [pers, tid] = mon.pid.split('-');
+  stealState[id] = { id, victim, others:TRAINERS.filter(x => x !== victim), status:'executing', thief, pid:mon.pid, label:mon.label, accepts:{}, source, ts:Date.now() };
+  await window.FBD.createGameOrderFor(victim, 'steal-' + id, { kind:'take_mon', monpers:pers, montid:tid, any:1 });
+  pushHistory(`🦹 ${NAMES[thief]} se queda ${mon.label} de ${NAMES[victim]} (${source}).`);
+  await saveStealState();
+  render();
+}
 async function resolveChallengeReward(winner, loser){
   const { stakeId, stakeMonLabel } = challengeState;
   const src = `Desafío ganado a ${NAMES[loser]}`;
@@ -11786,7 +11849,16 @@ async function resolveChallengeReward(winner, loser){
   } else if(stakeId === 'steal_money'){
     await addPendingPrize(winner, 'Robar 100.000 monedas (manual en PKHeX: +100k a ti, -100k a él)', src);
   } else if(stakeId === 'steal_pokemon'){
-    await addPendingPrize(winner, `Te quedas con ${stakeMonLabel || 'el Pokémon apostado'} de ${NAMES[loser]}`, src);
+    // si el Pokémon apostado era del perdedor y se puede mover solo, se mueve de verdad; si no, queda como aviso manual
+    const stakePid = challengeState.stakeMonPid;
+    const mon = (stakePid && loser === challengeState.opponent) ? allMonsOf(loser).find(m => m.pid === stakePid && !m.isEgg) : null;
+    const loserParty = allMonsOf(loser).filter(m => m.inTeam).length;
+    let moved = false;
+    if(mon && STEAL_PID_RE.test(String(mon.pid)) && !(mon.inTeam && loserParty < 2)){
+      try{ await startDirectSteal(loser, winner, { pid:mon.pid, label:`${mon.nickname} (${String(mon.speciesName || '').replace(/-/g, ' ')})` }, src); moved = true; }
+      catch(error){ console.error('No se pudo iniciar el robo del desafío.', error); }
+    }
+    if(!moved) await addPendingPrize(winner, `Te quedas con ${stakeMonLabel || 'el Pokémon apostado'} de ${NAMES[loser]}`, src);
   } else if(stakeId === 'rename'){
     await addPendingPrize(winner, `Puedes ponerle el apodo que quieras a ${stakeMonLabel || 'el Pokémon apostado'} de ${NAMES[loser]}`, src);
   }
