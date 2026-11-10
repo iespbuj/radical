@@ -3371,6 +3371,32 @@ body.casino-mode, body{ background-color:#0e0a0b; }
   .rail-nav .nav-btn:is(:hover,:focus-visible)::after{animation:none;}
 }
 </style>
+<style id="castigos-style">
+.pf-card{ position:relative; }
+.cs-ill-badge{ position:absolute; z-index:6; top:8px; right:8px; padding:4px 10px; border-radius:999px; font:800 10px/1 var(--f-ui,inherit); letter-spacing:.14em;
+  color:#ff5d5d; background:rgba(8,0,2,.9); border:1px solid #ff3b3b; box-shadow:0 0 14px rgba(255,40,40,.6),inset 0 0 8px rgba(255,40,40,.25); animation:csIllPulse 1.8s ease-in-out infinite; }
+@keyframes csIllPulse{ 0%,100%{ box-shadow:0 0 10px rgba(255,40,40,.4),inset 0 0 6px rgba(255,40,40,.2); } 50%{ box-shadow:0 0 22px rgba(255,40,40,.85),inset 0 0 10px rgba(255,40,40,.4); } }
+.cs-wrap{ max-width:1100px; margin:14px auto 4px; padding:0 4px; display:grid; gap:10px; }
+.cs-block{ border:1px solid var(--border); border-radius:14px; background:rgba(22,7,11,.78); padding:12px 14px; }
+.cs-block.cs-tasks{ border-color:rgba(0,255,255,.45); box-shadow:0 0 22px rgba(0,255,255,.12); }
+.cs-block.cs-wall{ border-color:rgba(255,120,90,.4); }
+.cs-block.cs-ill{ border-color:#ff3b3b; background:linear-gradient(135deg,rgba(40,0,6,.9),rgba(10,0,3,.92)); box-shadow:0 0 26px rgba(255,40,40,.3); }
+.cs-h{ font:800 11px/1 var(--f-ui,inherit); letter-spacing:.16em; text-transform:uppercase; color:var(--silver-bright); margin-bottom:8px; }
+.cs-row{ display:flex; align-items:center; gap:12px; padding:7px 0; border-top:1px solid rgba(255,255,255,.06); }
+.cs-row:first-of-type{ border-top:0; }
+.cs-row .ic{ font-size:22px; }
+.cs-row .tx{ flex:1; font-size:13px; color:var(--silver-bright); }
+.cs-row .tx small{ display:block; margin-top:2px; font-size:10px; color:var(--silver-dim); }
+.cs-eggs{ display:flex; gap:14px; justify-content:center; margin:16px 0; flex-wrap:wrap; }
+.cs-egg{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 22px; border-radius:16px; border:1px solid var(--border); background:rgba(255,255,255,.05); color:var(--silver-bright); cursor:pointer; font:inherit; transition:transform .15s,border-color .15s; }
+.cs-egg span{ font-size:54px; filter:drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+.cs-egg:hover{ transform:translateY(-4px) rotate(-3deg); border-color:var(--neon-cyan); }
+/* modo ilegal: la página entera se oscurece mientras alguien tenga una ilegalidad pendiente */
+#illegal-veil{ position:fixed; inset:0; z-index:40; pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,.18) 25%, rgba(0,0,0,.72) 100%); box-shadow:inset 0 0 160px 30px rgba(110,0,16,.55); animation:csVeil 4.5s ease-in-out infinite; }
+@keyframes csVeil{ 0%,100%{ opacity:.88; } 50%{ opacity:1; } }
+body.illegal-mode #rw-bg{ filter:brightness(.55) saturate(.7); }
+</style>
 </head>
 <body>
 <div id="snowfall" aria-hidden="true"></div>
@@ -3827,6 +3853,7 @@ let mints = {};           // mints[t] = { choose:N (torneo), random:N (desafío)
 let deathLives = {};      // deathLives[t] = pids de muertes ya tratadas (null = sin inicializar)
 let capsules = {};        // capsules[t] = Cápsulas Habilidad sin usar
 let trueques = {};        // trueques[id] = { id, from, to, give:{mons,items}, want:{mons,items}, status, counterOf, legs }
+let castigos = {};        // castigos[id] = { type:'die2'|'eggpick'|'nick'|'illegal', ... } (ver bloque CASTIGOS)
 let origins = {};         // origins[t][personalidad] = 'Robados' (los del casino se reconocen solos: legendario capturado a Nv.1)
 let trackerFolderDone = {}; let trackerDlClicked = false;
 // (mints/deathLives: ver más abajo)   // deathLives[t] = pids de muertes ya tratadas (null = aún no inicializado)   // mints[t] = { choose:N (torneo: elige naturaleza), random:N (desafío: ruleta) }
@@ -4903,43 +4930,49 @@ async function rejectTrueque(id){
   await persistTrueques();
 }
 function counterTrueque(id){ const t = trueques[id]; if(t && t.to === window.LOGIN_ME) openTrueque(null, id); }
+// Comprueba si un trueque se puede hacer ahora. Devuelve el aviso si no se puede, o '' si todo está bien.
+function trueNotAvailable(t){
+  const have = (owner, side) =>
+    side.mons.every(m => trueMonList(owner).some(x => x.pid === m.pid)) &&
+    side.items.every(i => trueItemList(owner).some(x => x.kind === i.kind && String(x.id) === String(i.id)));
+  if(!have(t.from, t.give) || !have(t.to, t.want)) return '⚠️ Algo ya no está disponible (se movió o se equipó).';
+  for(const [owner, side] of [[t.from, t.give], [t.to, t.want]]){      // nadie se queda sin equipo: los Pokémon que llegan van al PC
+    const party = allMonsOf(owner).filter(m => m.inTeam).length;
+    const givenParty = side.mons.filter(m => allMonsOf(owner).find(x => x.pid === m.pid && x.inTeam)).length;
+    if(givenParty > 0 && party - givenParty < 1) return `⚠️ ${NAMES[owner]} se quedaría sin Pokémon en el equipo. Que deje al menos uno.`;
+  }
+  return '';
+}
+// Ejecuta un trueque ya validado: los objetos de la tienda cambian al momento y cada Pokémon es un "tramo" del sistema del robo.
+async function runTruequeLegs(t, historyText){
+  if(t.from !== t.to){
+    for(const i of t.give.items) await window.FBD.moveCosmetic(t.from, t.to, i.kind, i.id);
+    for(const i of t.want.items) await window.FBD.moveCosmetic(t.to, t.from, i.kind, i.id);
+  }
+  t.legs = [];
+  const legs = [...t.give.mons.map(m => ({ m, victim:t.from, thief:t.to })), ...t.want.mons.map(m => ({ m, victim:t.to, thief:t.from }))];
+  for(let n = 0; n < legs.length; n++){
+    const { m, victim, thief } = legs[n];
+    const legId = `${t.id}-${n}`;
+    const [pers, tid] = m.pid.split('-');
+    stealState[legId] = { id:legId, victim, others:TRAINERS.filter(x => x !== victim), status:'executing', thief, pid:m.pid, label:m.label, accepts:{}, source:'Trueque', tradeId:t.id, ts:Date.now() };
+    t.legs.push(legId);
+    await window.FBD.createGameOrderFor(victim, 'steal-' + legId, { kind:'take_mon', monpers:pers, montid:tid, any:1 });
+  }
+  t.status = 'executing';
+  pushHistory(historyText);
+  await saveStealState();
+  await persistTrueques();
+}
 async function acceptTrueque(id){
   const me = window.LOGIN_ME, t = trueques[id];
   if(!t || t.status !== 'pending' || t.to !== me || truequeBusy) return;
   truequeBusy = true;
   try{
-    // 1. comprobar que todo sigue siendo de quien lo da
-    const have = (owner, side) =>
-      side.mons.every(m => trueMonList(owner).some(x => x.pid === m.pid)) &&
-      side.items.every(i => trueItemList(owner).some(x => x.kind === i.kind && String(x.id) === String(i.id)));
-    if(!have(t.from, t.give) || !have(t.to, t.want)){ toast('⚠️ Algo del trueque ya no está disponible (se movió o se equipó). Pídele que lo proponga otra vez.'); return; }
-    // 2. nadie se puede quedar sin equipo: los Pokémon que llegan van al PC
-    for(const [owner, side] of [[t.from, t.give], [t.to, t.want]]){
-      const party = allMonsOf(owner).filter(m => m.inTeam).length;
-      const givenParty = side.mons.filter(m => allMonsOf(owner).find(x => x.pid === m.pid && x.inTeam)).length;
-      if(givenParty > 0 && party - givenParty < 1){ toast(`⚠️ ${NAMES[owner]} se quedaría sin Pokémon en el equipo. Que deje al menos uno.`); return; }
-    }
+    const problem = trueNotAvailable(t);
+    if(problem){ toast(problem + ' Pídele que lo proponga otra vez.'); return; }
     if(!confirm(`¿Aceptar? ${NAMES[t.from]} te da: ${trueSide(t.give)}. Tú das: ${trueSide(t.want)}.`)) return;
-    // 3. objetos de la tienda: se mueven ya
-    if(t.from !== t.to){
-      for(const i of t.give.items) await window.FBD.moveCosmetic(t.from, t.to, i.kind, i.id);
-      for(const i of t.want.items) await window.FBD.moveCosmetic(t.to, t.from, i.kind, i.id);
-    }
-    // 4. Pokémon: cada uno es un "tramo" del sistema del robo (se quita al dador y se entrega al receptor, en cualquier caja o equipo)
-    t.legs = [];
-    const legs = [...t.give.mons.map(m => ({ m, victim:t.from, thief:t.to })), ...t.want.mons.map(m => ({ m, victim:t.to, thief:t.from }))];
-    for(let n = 0; n < legs.length; n++){
-      const { m, victim, thief } = legs[n];
-      const legId = `${t.id}-${n}`;
-      const [pers, tid] = m.pid.split('-');
-      stealState[legId] = { id:legId, victim, others:TRAINERS.filter(x => x !== victim), status:'executing', thief, pid:m.pid, label:m.label, accepts:{}, source:'Trueque', tradeId:t.id, ts:Date.now() };
-      t.legs.push(legId);
-      await window.FBD.createGameOrderFor(victim, 'steal-' + legId, { kind:'take_mon', monpers:pers, montid:tid, any:1 });
-    }
-    t.status = 'executing';
-    pushHistory(`🤝 Trueque aceptado entre ${NAMES[t.from]} y ${NAMES[t.to]}.`);
-    await saveStealState();
-    await persistTrueques();
+    await runTruequeLegs(t, `🤝 Trueque aceptado entre ${NAMES[t.from]} y ${NAMES[t.to]}.`);
   }catch(error){
     console.error('No se pudo completar el trueque.', error);
     t.status = 'error'; t.note = 'falló a mitad: ' + (error && error.message || 'error');
@@ -5278,13 +5311,15 @@ async function settleMintOrders(){
   const me = window.LOGIN_ME;
   if(!loaded || !me || !window.FBS || !FBS.orders) return;
   for(const [oid, o] of Object.entries(FBS.orders)){
-    if(!o || !['set_nature','set_ability','add_item'].includes(o.kind) || !(oid.startsWith('mint-') || oid.startsWith('cap-') || oid.startsWith('item-')) || mintOrderBusy.has(oid)) continue;
+    if(!o || !['set_nature','set_ability','add_item','give_egg','set_nickname'].includes(o.kind) || !(oid.startsWith('mint-') || oid.startsWith('cap-') || oid.startsWith('item-') || oid.startsWith('egg-') || oid.startsWith('nick-')) || mintOrderBusy.has(oid)) continue;
     if(o.status !== 'done' && o.status !== 'error') continue;
     mintOrderBusy.add(oid);
     try{
       await window.FBD.removeGameOrder(oid);
-      if(o.status === 'done'){
-        if(o.kind === 'add_item') toast(`🎁 ${o.label || 'Objeto'} ya está en tu mochila.`);
+      if(o.kind === 'set_nickname'){ await finishNickname(oid, o); }
+      else if(o.status === 'done'){
+        if(o.kind === 'give_egg') toast('🥚 Tienes un huevo nuevo en el PC. ¡A caminar para que se abra!');
+        else if(o.kind === 'add_item') toast(`🎁 ${o.label || 'Objeto'} ya está en tu mochila.`);
         else if(o.kind === 'set_ability') toast('💊 Habilidad cambiada.');
         else {
           toast(`🌿 Naturaleza cambiada a ${NATURE_NAMES[o.nature] || ''}.`);
@@ -5292,6 +5327,8 @@ async function settleMintOrders(){
           const oldKey = persKey(o.monpers), newKey = persKey(o.newpers);
           if(o.newpers && origins[me] && origins[me][oldKey]){ origins[me][newKey] = origins[me][oldKey]; delete origins[me][oldKey]; const ok = await saveProfile(me); if(!ok) queueRetry('profile:'+me, ()=>saveProfile(me)); }
         }
+      } else if(o.kind === 'give_egg'){
+        await addPendingPrize(me, `Huevo sorpresa — no se pudo entregar solo (${o.note || 'error'}): dáselo a mano`, 'Premio');
       } else if(o.kind === 'add_item'){
         await addPendingPrize(me, `${o.label || 'Objeto'} — no se pudo entregar solo (${o.note || 'error'}): dáselo a mano`, 'Premio');
       } else if(o.kind === 'set_ability'){
@@ -5319,6 +5356,7 @@ function myNotifications(){
   if(!me) return [];
   const list = (pendingPrizes[me] || []).map(p => ({ text:p.text, source:p.source||'', label:'Ver en mi perfil', fn:'openNotif()' }));
   if((capsules[me] || 0) > 0) list.push({ text:`💊 Tienes ${capsules[me]} Cápsula${capsules[me] === 1 ? '' : 's'} Habilidad para usar. Pulsa un Pokémon tuyo en el perfil y verás qué habilidad saldría`, source:'Premio', label:'Ir a mis Pokémon', fn:'openNotif()' });
+  for(const t of myCastigoTasks()) list.push({ text:`${t.icon} ${t.text}`, source:t.source || 'Pendiente', label:t.label, fn:t.fn });
   const dl = trackerDownloadInfo();
   if(dl){
     const lockedNow = Date.now() < trackerDlLockedUntil;
@@ -5577,6 +5615,7 @@ async function loadAll(){
     { key: 'locke:challenge', def: null },
     { key: 'locke:steals', def: {} },
     { key: 'locke:trueques', def: {} },
+    { key: 'locke:castigos', def: {} },
     { key: 'locke:dailyContest', def: { date:null, winner:null, attempts:{}, pieces:{iker:0,joel:0,alex:0}, stars:{iker:0,joel:0,alex:0} } },
     { key: 'locke:finalState', def: null },
     { key: 'locke:normas', def: [] },
@@ -5684,6 +5723,8 @@ async function loadAll(){
       && !saveInFlight['challenge'] && !challengeActionInFlight && !pendingSaves.has('challenge')){
     challengeState = challengeResult;
   }
+  { const castigosResult = batch['locke:castigos'];
+    if(!saveInFlight['castigos'] && !pendingSaves.has('castigos')) castigos = (castigosResult && typeof castigosResult === 'object') ? castigosResult : {}; }
   { const truequesResult = batch['locke:trueques'];
     if(!saveInFlight['trueques'] && !pendingSaves.has('trueques')) trueques = (truequesResult && typeof truequesResult === 'object') ? truequesResult : {}; }
   { const stealsResult = batch['locke:steals'];
@@ -7031,6 +7072,382 @@ async function grantCosmeticPrize(t, text, source){
   }catch(e){ return false; }
 }
 
+
+/* =====================================================================================================
+   CASTIGOS Y PREMIOS CON ELECCIÓN
+   - die2:     "Mueren 2 Pokémon": el afectado elige cuáles (de su equipo). Hasta que lo hace, los otros lo ven en el muro de la vergüenza.
+   - eggpick:  "Elegir entre 3 huevos": tres huevos sorpresa, se elige a ciegas.
+   - nick:     apodo del desafío: el ganador elige el apodo, el perdedor solo ve "aceptar" y no ve el apodo hasta que llega a su juego.
+   - illegal:  "Permiso para una ilegalidad": marca al jugador como ilegal (símbolo en su perfil y página oscura) hasta que lo quita.
+   ===================================================================================================== */
+const RR_EGG_POOL = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,277,278,279,280,281,282,283,284,285,286,287,288,289,290,291,292,293,294,295,296,297,298,299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,332,333,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,362,363,364,365,366,367,368,369,370,371,372,373,374,375,376,377,378,379,380,381,382,383,384,385,386,387,388,389,390,391,392,393,394,411,440,441,442,443,444,445,446,447,448,449,450,451,452,453,454,455,456,457,458,459,460,461,462,463,464,465,466,467,468,469,470,471,472,473,474,475,476,477,478,479,480,481,482,483,484,485,486,487,488,489,490,491,492,493,494,495,499,500,501,502,503,504,505,506,507,508,509,510,511,512,513,514,515,516,517,518,519,520,521,522,523,524,525,526,527,528,529,530,531,532,548,549,550,551,552,553,554,555,556,557,558,559,560,561,562,563,564,565,566,567,568,569,570,571,572,573,574,575,576,577,578,579,580,581,582,583,584,585,586,587,588,589,590,591,592,593,594,595,596,597,598,599,600,601,602,603,604,605,606,607,608,609,610,611,612,613,614,615,616,617,618,619,620,621,622,623,624,625,626,627,628,629,630,631,632,633,634,635,636,637,638,639,640,641,642,643,644,645,646,647,648,649,650,651,652,653,654,655,656,657,658,659,660,661,662,663,664,665,666,667,668,669,670,671,672,673,674,675,676,677,678,679,680,681,682,683,684,685,689,690,706,758,759,760,761,762,763,764,765,766,767,768,769,770,771,772,773,774,775,776,777,778,779,780,781,782,783,784,785,786,787,788,789,790,791,792,793,794,795,796,797,798,799,800,801,802,803,804,805,806,807,808,809,810,811,815,816,817,818,819,820,821,822,823,835,836,840,841,842,843,844,845,846,847,850,852,859,860,861,862,863,864,868,921,922,923,924,925,926,927,928,929,931,932,933,934,935,936,937,938,939,940,941,942,943,944,945,946,947,948,949,950,951,952,953,954,955,956,957,958,959,960,961,962,963,964,965,966,967,968,969,970,971,972,973,974,975,976,977,978,979,980,981,982,983,984,985,986,987,988,991,992,993,994,995,996,997,998,1100,1101,1102,1103,1104,1105,1106,1107,1108,1109,1110,1111,1112,1113,1114,1115,1116,1117,1118,1119,1120,1121,1122,1123,1124,1125,1126,1127,1128,1129,1130,1131,1132,1133,1134,1135,1136,1137,1138,1139,1140,1141,1142,1143,1144,1145,1146,1147,1148,1149,1150,1151,1152,1153,1154,1155,1156,1157,1158,1159,1160,1161,1162,1163,1164,1165,1166,1167,1168,1169,1170,1171,1172,1173,1174,1175,1176,1186,1198,1199,1200,1268,1270,1273,1302,1305,1308,1314,1315,1318,1319,1320,1321,1322,1323,1324,1325,1326,1327,1328,1329,1330,1331,1332,1333,1334,1335,1336,1337,1338,1339,1340,1341,1342,1343,1344,1345,1346,1347,1348,1349,1350,1351,1352,1361,1362,1363,1369,1371,1375];   // especies posibles de un huevo: sin legendarios, singulares, ultraentes ni pseudolegendarios
+function randomEggSpecies(){ return RR_EGG_POOL[Math.floor(Math.random() * RR_EGG_POOL.length)]; }
+async function persistCastigos(){
+  render();
+  const ok = await trackedStoreSet('castigos', 'locke:castigos', castigos);
+  if(!ok) queueRetry('castigos', ()=>trackedStoreSet('castigos', 'locke:castigos', castigos));
+  syncIllegalMode();
+}
+async function addCastigo(rec){
+  const id = crypto.randomUUID();
+  castigos[id] = { id, ts:Date.now(), ...rec };
+  await persistCastigos();
+  return id;
+}
+async function removeCastigo(id){ delete castigos[id]; await persistCastigos(); }
+
+// marcar Pokémon como muertos (misma marca manual que el botón de la ficha; el cementerio y las vidas siguen su regla de siempre)
+async function markDead(trainer, pids){
+  const map = { ...(manualFainted[trainer] || {}) };
+  pids.forEach(pid => { map[pid] = true; });
+  manualFainted[trainer] = map;
+  const ok = await trackedStoreSet('manualFainted:'+trainer, 'locke:manualFainted:'+trainer, manualFainted[trainer]);
+  if(!ok) queueRetry('manualFainted:'+trainer, ()=>trackedStoreSet('manualFainted:'+trainer, 'locke:manualFainted:'+trainer, manualFainted[trainer]));
+}
+
+/* ---- huevos ---- */
+async function deliverEgg(t, species, source){
+  try{
+    await window.FBD.createGameOrderFor(t, 'egg-' + crypto.randomUUID(), { kind:'give_egg', species });
+    pushHistory(`🥚 ${NAMES[t]} recibe un huevo sorpresa (${source}): aparecerá en su PC.`);
+    return true;
+  }catch(error){ console.error('No se pudo crear la entrega del huevo.', error); return false; }
+}
+function openEggPick(id){
+  const c = castigos[id];
+  if(!c || c.type !== 'eggpick' || c.player !== window.LOGIN_ME) return;
+  notifOpen = false;
+  openModal(`<h3>🥚 Elige un huevo</h3>
+    <div class="capline">Los tres son sorpresa: no se sabe qué hay dentro. Solo te llevas el que elijas, y se abrirá cuando camines con él.</div>
+    <div class="cs-eggs">${[0,1,2].map(i => `<button type="button" class="cs-egg" onclick="pickEgg('${id}',${i})"><span>🥚</span><small>Huevo ${i + 1}</small></button>`).join('')}</div>
+    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Ahora no</button></div>`);
+}
+let eggPickBusy = false;
+async function pickEgg(id, i){
+  const c = castigos[id];
+  if(!c || c.type !== 'eggpick' || eggPickBusy) return;
+  eggPickBusy = true;
+  try{
+    if(!(await deliverEgg(c.player, c.species[i], c.source || 'Premio'))){ toast('No se pudo enviar el huevo. Inténtalo de nuevo.'); return; }
+    closeModal();
+    await removeCastigo(id);
+  } finally { eggPickBusy = false; }
+}
+
+/* ---- mueren 2 Pokémon ---- */
+let dieDraft = null;
+function openDie2(id){
+  const c = castigos[id];
+  if(!c || c.type !== 'die2' || c.status !== 'pending' || c.player !== window.LOGIN_ME) return;
+  const party = allMonsOf(c.player).filter(m => m.inTeam && !m.isEgg);
+  if(!party.length){ toast('No veo tu equipo todavía: abre el juego con el tracker y vuelve a intentarlo.'); return; }
+  notifOpen = false;
+  dieDraft = { id, need: Math.min(c.count || 2, party.length), picked: [] };
+  renderDie2Modal();
+}
+function renderDie2Modal(){
+  const d = dieDraft, c = d && castigos[d.id];
+  if(!c) return;
+  const party = allMonsOf(c.player).filter(m => m.inTeam && !m.isEgg);
+  openModal(`<h3>☠️ Elige ${d.need} Pokémon que mueren</h3>
+    <div class="capline">Sale de tu equipo. Los otros dos lo ven hasta que lo hagas. Los elegidos pasan a muertos.</div>
+    <div class="tq-grid" style="max-height:340px">${party.map(m => `<button type="button" class="tq-item${d.picked.includes(m.pid) ? ' sel' : ''}" onclick="toggleDie2('${lkEsc(m.pid)}')">
+      ${tqImg(tqSprite(m), '❔')}<span class="nm">${lkEsc(m.nickname)}</span><span class="sb">${lkEsc(String(m.speciesName || '').replace(/-/g, ' '))}${m.level ? ' · Nv.' + m.level : ''}</span></button>`).join('')}</div>
+    <div class="capline" style="margin-top:8px">Elegidos: <b>${d.picked.length}</b> / ${d.need}</div>
+    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Ahora no</button>
+      <button class="primary" ${d.picked.length === d.need ? '' : 'disabled'} onclick="confirmDie2()">Confirmar</button></div>`);
+}
+function toggleDie2(pid){
+  const d = dieDraft; if(!d) return;
+  const i = d.picked.indexOf(pid);
+  if(i >= 0) d.picked.splice(i, 1); else if(d.picked.length < d.need) d.picked.push(pid);
+  renderDie2Modal();
+}
+let dieBusy = false;
+async function confirmDie2(){
+  const d = dieDraft, c = d && castigos[d.id];
+  if(!c || dieBusy || d.picked.length !== d.need) return;
+  dieBusy = true;
+  try{
+    const mons = allMonsOf(c.player).filter(m => d.picked.includes(m.pid));
+    await markDead(c.player, d.picked);
+    pushHistory(`☠️ ${NAMES[c.player]} sacrifica a ${mons.map(m => `${m.nickname}${m.nickname !== m.speciesName ? ' (' + m.speciesName + ')' : ''}`).join(' y ')}.`);
+    dieDraft = null; closeModal();
+    await removeCastigo(d.id);
+  } finally { dieBusy = false; }
+}
+
+/* ---- apodo del desafío ---- */
+const NICK_CHARS = (() => {
+  const m = { ' ':0x00, '!':0xAB, '?':0xAC, '.':0xAD, '-':0xAE, "'":0xB4, 'á':0x17, 'é':0x1B, 'í':0x6F, 'ó':0x23, 'ú':0x27, 'ñ':0x29 };
+  for(let i = 0; i < 10; i++) m[String(i)] = 0xA1 + i;
+  for(let i = 0; i < 26; i++){ m[String.fromCharCode(65 + i)] = 0xBB + i; m[String.fromCharCode(97 + i)] = 0xD5 + i; }
+  return m;
+})();
+function encodeNick(text){
+  const chars = [...String(text)];
+  if(chars.length < 1 || chars.length > 10 || chars.some(c => !(c in NICK_CHARS))) return null;
+  const bytes = chars.map(c => NICK_CHARS[c]);
+  while(bytes.length < 10) bytes.push(0xFF);
+  return bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join('');
+}
+async function startNicknameCastigo(winner, loser, mon, source){
+  await addCastigo({ type:'nick', from:winner, to:loser, status:'choose', mon: mon || null, source });
+  pushHistory(`✏️ ${NAMES[winner]} ganó el apodo: puede ponerle nombre a un Pokémon de ${NAMES[loser]} (${source}).`);
+}
+function openNickPick(id){
+  const c = castigos[id];
+  if(!c || c.type !== 'nick' || c.status !== 'choose' || c.from !== window.LOGIN_ME) return;
+  notifOpen = false;
+  const mons = trueMonList(c.to);
+  const preset = c.mon && mons.find(m => m.pid === c.mon.pid);
+  openModal(`<h3>✏️ Apodo para un Pokémon de ${lkEsc(NAMES[c.to])}</h3>
+    <div class="capline">${lkEsc(NAMES[c.to])} no verá el apodo: solo le saldrá "aceptar", y lo descubrirá cuando llegue a su juego.</div>
+    <div class="field"><label>Pokémon</label>
+      <select id="nick-mon" ${preset ? 'disabled' : ''}>${(preset ? [preset] : mons).map(m => `<option value="${lkEsc(m.pid)}">${lkEsc(trueMonLabel(m))} · ${m.inTeam ? 'equipo' : 'caja'}</option>`).join('')}</select></div>
+    <div class="field"><label>Apodo (hasta 10 caracteres: letras, números, espacio y ! ? . - ' á é í ó ú ñ)</label>
+      <input id="nick-text" maxlength="10" autocomplete="off" placeholder="Apodo"></div>
+    <div class="err-msg" id="nick-err"></div>
+    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Ahora no</button><button class="primary" onclick="sendNick('${id}')">Enviar</button></div>`);
+}
+async function sendNick(id){
+  const c = castigos[id], err = document.getElementById('nick-err');
+  if(!c || c.status !== 'choose') return;
+  const sel = document.getElementById('nick-mon'), text = (document.getElementById('nick-text').value || '').trim();
+  const mon = trueMonList(c.to).find(m => m.pid === (sel && sel.value));
+  const hex = encodeNick(text);
+  if(!mon){ err.textContent = 'Ese Pokémon ya no está disponible.'; return; }
+  if(!hex){ err.textContent = 'El apodo debe tener entre 1 y 10 caracteres válidos (sin símbolos raros).'; return; }
+  c.mon = { pid:mon.pid, label:String(mon.speciesName || '').replace(/-/g, ' '), sprite:mon.sprite || '' };
+  c.nickhex = hex; c.status = 'proposed';
+  pushHistory(`✏️ ${NAMES[c.from]} ya eligió el apodo para un Pokémon de ${NAMES[c.to]} (sorpresa).`);
+  closeModal();
+  await persistCastigos();
+}
+let nickBusy = false;
+async function acceptNick(id){
+  const c = castigos[id], me = window.LOGIN_ME;
+  if(!c || c.type !== 'nick' || c.status !== 'proposed' || c.to !== me || nickBusy) return;
+  nickBusy = true;
+  try{
+    const [pers, tid] = c.mon.pid.split('-');
+    const orderId = 'nick-' + crypto.randomUUID();
+    await window.FBD.createGameOrder(orderId, { kind:'set_nickname', monpers:pers, montid:tid, nickhex:c.nickhex });
+    c.status = 'applying'; c.orderId = orderId;
+    toast('🎭 Aceptado. Cuando el juego y el tracker estén abiertos, tu Pokémon tendrá su apodo nuevo.');
+    await persistCastigos();
+  }catch(error){
+    console.error('No se pudo crear la orden del apodo.', error);
+    toast('No se pudo aceptar. Inténtalo de nuevo.');
+  } finally { nickBusy = false; }
+}
+// la orden del apodo ha terminado (la llama el bucle de órdenes)
+async function finishNickname(oid, order){
+  const c = Object.values(castigos).find(x => x && x.type === 'nick' && x.orderId === oid);
+  if(!c) return;
+  if(order.status === 'done'){ toast('🎭 Tu Pokémon ya tiene su apodo nuevo. ¡Míralo en el juego!'); delete castigos[c.id]; }
+  else { toast(`⚠️ No se pudo poner el apodo (${order.note || 'error'}). Puedes volver a aceptarlo.`); c.status = 'proposed'; delete c.orderId; }
+  await persistCastigos();
+}
+
+
+/* ---- CAMBIO POR HUEVO: los otros dos votan qué Pokémon del EQUIPO del afectado se cambia por un huevo sorpresa ---- */
+function eggSwapVoters(c){ return TRAINERS.filter(t => t !== c.player); }
+let voteDraft = null, voteBusy = false;
+function openEggSwapVote(id){
+  const c = castigos[id], me = window.LOGIN_ME;
+  if(!c || c.type !== 'eggswap' || c.status !== 'voting' || !eggSwapVoters(c).includes(me) || (c.votes || {})[me]) return;
+  const party = allMonsOf(c.player).filter(m => m.inTeam && !m.isEgg);
+  if(party.length < 2){ toast(`${NAMES[c.player]} necesita al menos 2 Pokémon en el equipo para este cambio.`); return; }
+  notifOpen = false;
+  voteDraft = { id, pick:null };
+  renderEggSwapModal();
+}
+function renderEggSwapModal(){
+  const d = voteDraft, c = d && castigos[d.id];
+  if(!c) return;
+  const party = allMonsOf(c.player).filter(m => m.inTeam && !m.isEgg);
+  openModal(`<h3>🗳️ ¿Qué Pokémon de ${lkEsc(NAMES[c.player])} se cambia por un huevo?</h3>
+    <div class="capline">Solo del equipo. Si los dos votáis el mismo, sale ese; si no, se echa a suertes entre los dos votados. No se hace hasta que votéis los dos.</div>
+    <div class="tq-grid" style="max-height:340px">${party.map(m => `<button type="button" class="tq-item${d.pick === m.pid ? ' sel' : ''}" onclick="pickVote('${lkEsc(m.pid)}')">
+      ${tqImg(tqSprite(m), '❔')}<span class="nm">${lkEsc(m.nickname)}</span><span class="sb">${lkEsc(String(m.speciesName || '').replace(/-/g, ' '))}${m.level ? ' · Nv.' + m.level : ''}</span></button>`).join('')}</div>
+    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Ahora no</button>
+      <button class="primary" ${d.pick ? '' : 'disabled'} onclick="confirmVote()">Votar</button></div>`);
+}
+function pickVote(pid){ if(voteDraft){ voteDraft.pick = pid; renderEggSwapModal(); } }
+async function confirmVote(){
+  const d = voteDraft, c = d && castigos[d.id], me = window.LOGIN_ME;
+  if(!c || !d.pick || voteBusy) return;
+  voteBusy = true;
+  try{
+    c.votes = { ...(c.votes || {}), [me]: d.pick };
+    closeModal(); voteDraft = null;
+    if(eggSwapVoters(c).every(v => c.votes[v])) await resolveEggSwap(c);
+    else { pushHistory(`🗳️ ${NAMES[me]} ya ha votado qué Pokémon de ${NAMES[c.player]} se cambia por un huevo.`); await persistCastigos(); }
+  } finally { voteBusy = false; }
+}
+async function resolveEggSwap(c){
+  const voters = eggSwapVoters(c), [a, b] = voters.map(v => c.votes[v]);
+  const pid = a === b ? a : (Math.random() < 0.5 ? a : b);
+  const mon = allMonsOf(c.player).find(m => m.pid === pid && m.inTeam && !m.isEgg);
+  if(!mon){ c.status = 'error'; c.note = 'el Pokémon elegido ya no está en el equipo'; await persistCastigos(); return; }
+  const [pers, tid] = pid.split('-');
+  try{
+    await window.FBD.createGameOrderFor(c.player, 'swap-' + c.id, { kind:'take_mon', monpers:pers, montid:tid });
+    c.chosen = { pid, label:`${mon.nickname} (${String(mon.speciesName || '').replace(/-/g, ' ')})` };
+    c.status = 'executing';
+    pushHistory(`🗳️ ${voters.map(v => NAMES[v]).join(' y ')} ${a === b ? 'coinciden' : 'no coinciden: sale uno al azar'}: ${NAMES[c.player]} cambia a ${c.chosen.label} por un huevo sorpresa.`);
+  }catch(error){ console.error('No se pudo iniciar el cambio por huevo.', error); c.status = 'error'; c.note = 'no se pudo enviar la orden al juego'; }
+  await persistCastigos();
+}
+// Lo ejecuta el navegador del afectado: cuando el juego ha quitado el Pokémon, le entrega el huevo. Si el huevo falla, se reintenta (el Pokémon ya no está).
+const eggSwapBusy = new Set();
+async function settleCastigoOrders(){
+  const me = window.LOGIN_ME;
+  if(!loaded || !me || !window.FBS || !FBS.orders) return;
+  for(const c of Object.values(castigos)){
+    if(!c || c.type !== 'eggswap' || c.player !== me || !['executing', 'egg'].includes(c.status) || eggSwapBusy.has(c.id)) continue;
+    const takeId = 'swap-' + c.id, eggId = 'egg-swap-' + c.id, o = FBS.orders[takeId];
+    eggSwapBusy.add(c.id);
+    try{
+      if(c.status === 'executing'){
+        if(o && o.status === 'error'){
+          c.status = 'error'; c.note = o.note || 'no se pudo quitar el Pokémon';
+          await window.FBD.removeGameOrder(takeId); await persistCastigos();
+          continue;
+        }
+        if(!o || o.status !== 'taken') continue;
+        c.status = 'egg'; c.raw = o.raw || '';           // el Pokémon ya no está en el juego: se anota y se pasa a entregar el huevo
+        await persistCastigos();
+      }
+      if(!FBS.orders[eggId]) await window.FBD.createGameOrderFor(me, eggId, { kind:'give_egg', species:randomEggSpecies() });
+      if(FBS.orders[takeId]) await window.FBD.removeGameOrder(takeId);
+      pushHistory(`🥚 ${NAMES[me]} cambió a ${c.chosen ? c.chosen.label : 'un Pokémon'} por un huevo sorpresa.`);
+      delete castigos[c.id];
+      await persistCastigos();
+    }catch(error){ console.error('Cambio por huevo: se reintenta.', error); }
+    finally{ eggSwapBusy.delete(c.id); }
+  }
+}
+
+/* ---- CAMBIAR UN POKÉMON POR OTRO DE OTRO EQUIPO (premio del ganador): elige el suyo y el que quiere, y se hace solo ---- */
+let swapDraft = null, swapBusy = false;
+function openForcedSwap(id){
+  const c = castigos[id], me = window.LOGIN_ME;
+  if(!c || c.type !== 'swap' || c.status !== 'pending' || c.player !== me) return;
+  notifOpen = false;
+  swapDraft = { id, mine:null, target:TRAINERS.find(t => t !== me), theirs:null };
+  renderForcedSwapModal();
+}
+function swapCard(m, selected, fn){
+  return `<button type="button" class="tq-item${selected ? ' sel' : ''}" onclick="${fn}('${lkEsc(m.pid)}')">${tqImg(tqSprite(m), '❔')}<span class="nm">${lkEsc(m.nickname)}</span><span class="sb">${lkEsc(String(m.speciesName || '').replace(/-/g, ' '))} · ${m.inTeam ? 'equipo' : 'caja'}</span></button>`;
+}
+function renderForcedSwapModal(){
+  const d = swapDraft, c = d && castigos[d.id];
+  if(!c) return;
+  const me = c.player, others = TRAINERS.filter(t => t !== me);
+  const mine = trueMonList(me), theirs = trueMonList(d.target);
+  openModal(`<h3>🔁 Cambia un Pokémon por otro de otro equipo</h3>
+    <div class="capline">Eliges el tuyo y el que quieres. Se hace solo, sin pedir permiso. Puede ser del equipo o de la caja.</div>
+    <div class="tq-section" style="margin-top:6px">Tu Pokémon</div>
+    <div class="tq-grid" style="max-height:190px">${mine.map(m => swapCard(m, d.mine === m.pid, 'swapPickMine')).join('') || '<div class="tq-empty">Sin Pokémon</div>'}</div>
+    <div class="tq-section">Quieres uno de…</div>
+    <div class="tq-partners" style="margin-bottom:8px">${others.map(t => `<button type="button" class="tq-partner${d.target === t ? ' on' : ''}" onclick="swapPickTarget('${t}')">${lkEsc(NAMES[t])}</button>`).join('')}</div>
+    <div class="tq-grid" style="max-height:190px">${theirs.map(m => swapCard(m, d.theirs === m.pid, 'swapPickTheirs')).join('') || '<div class="tq-empty">No hay Pokémon aquí</div>'}</div>
+    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Ahora no</button>
+      <button class="primary" ${d.mine && d.theirs ? '' : 'disabled'} onclick="confirmForcedSwap()">Cambiar</button></div>`);
+}
+function swapPickMine(pid){ if(swapDraft){ swapDraft.mine = pid; renderForcedSwapModal(); } }
+function swapPickTheirs(pid){ if(swapDraft){ swapDraft.theirs = pid; renderForcedSwapModal(); } }
+function swapPickTarget(t){ if(swapDraft){ swapDraft.target = t; swapDraft.theirs = null; renderForcedSwapModal(); } }
+async function confirmForcedSwap(){
+  const d = swapDraft, c = d && castigos[d.id], me = window.LOGIN_ME;
+  if(!c || swapBusy) return;
+  const mine = trueMonList(me).find(m => m.pid === d.mine), theirs = trueMonList(d.target).find(m => m.pid === d.theirs);
+  if(!mine || !theirs){ toast('Ese Pokémon ya no está disponible.'); return; }
+  swapBusy = true;
+  try{
+    const t = { id:crypto.randomUUID(), from:me, to:d.target, status:'pending', counterOf:null, ts:Date.now(), forced:true,
+      give:{ mons:[{ pid:mine.pid, label:trueMonLabel(mine), sprite:mine.sprite || '' }], items:[] },
+      want:{ mons:[{ pid:theirs.pid, label:trueMonLabel(theirs), sprite:theirs.sprite || '' }], items:[] } };
+    const problem = trueNotAvailable(t);
+    if(problem){ toast(problem); return; }
+    trueques[t.id] = t;
+    try{
+      await runTruequeLegs(t, `🔁 ${NAMES[me]} cambia ${t.give.mons[0].label} por ${t.want.mons[0].label} de ${NAMES[d.target]} (premio).`);
+    }catch(error){
+      console.error('No se pudo iniciar el cambio.', error);
+      t.status = 'error'; t.note = 'falló al empezar: ' + (error && error.message || 'error'); await persistTrueques(); return;
+    }
+    swapDraft = null; closeModal();
+    await removeCastigo(c.id);
+  } finally { swapBusy = false; }
+}
+
+/* ---- ilegalidad ---- */
+function activeIllegals(){ return Object.values(castigos).filter(c => c && c.type === 'illegal' && c.status === 'active'); }
+function illegalBadge(t){
+  return activeIllegals().some(c => c.player === t)
+    ? `<div class="cs-ill-badge" title="Tiene una ilegalidad pendiente">☠️ ILEGAL</div>` : '';
+}
+async function clearIllegal(id){
+  const c = castigos[id];
+  if(!c || c.type !== 'illegal' || c.player !== window.LOGIN_ME) return;
+  pushHistory(`✅ ${NAMES[c.player]} ha hecho su ilegalidad.`);
+  await removeCastigo(id);
+}
+function syncIllegalMode(){
+  const on = activeIllegals().length > 0;
+  document.body.classList.toggle('illegal-mode', on);
+  let veil = document.getElementById('illegal-veil');
+  if(on && !veil){ veil = document.createElement('div'); veil.id = 'illegal-veil'; document.body.appendChild(veil); }
+  if(!on && veil) veil.remove();
+}
+setInterval(syncIllegalMode, 1500);
+
+/* ---- pantalla principal: tus tareas, muro de la vergüenza y avisos de ilegalidad ---- */
+function myCastigoTasks(){
+  const me = window.LOGIN_ME, list = [];
+  if(!me) return list;
+  for(const c of Object.values(castigos)){
+    if(!c) continue;
+    if(c.type === 'die2' && c.status === 'pending' && c.player === me)
+      list.push({ icon:'☠️', text:`Te toca elegir qué ${c.count || 2} Pokémon de tu equipo mueren`, source:c.source, label:'Elegir', fn:`openDie2('${c.id}')` });
+    else if(c.type === 'eggpick' && c.player === me)
+      list.push({ icon:'🥚', text:'Elige uno de tres huevos sorpresa', source:c.source, label:'Elegir huevo', fn:`openEggPick('${c.id}')` });
+    else if(c.type === 'nick' && c.status === 'choose' && c.from === me)
+      list.push({ icon:'✏️', text:`Ponle un apodo a un Pokémon de ${NAMES[c.to]}`, source:c.source, label:'Elegir apodo', fn:`openNickPick('${c.id}')` });
+    else if(c.type === 'nick' && c.status === 'proposed' && c.to === me)
+      list.push({ icon:'🎭', text:`${NAMES[c.from]} te ha puesto un apodo a tu ${c.mon ? c.mon.label : 'Pokémon'}. Es sorpresa: no lo verás hasta que llegue a tu juego`, source:c.source, label:'Aceptar', fn:`acceptNick('${c.id}')` });
+    else if(c.type === 'eggswap' && c.status === 'voting' && eggSwapVoters(c).includes(me) && !(c.votes || {})[me])
+      list.push({ icon:'🗳️', text:`Vota qué Pokémon del equipo de ${NAMES[c.player]} se cambia por un huevo`, source:c.source, label:'Votar', fn:`openEggSwapVote('${c.id}')` });
+    else if(c.type === 'eggswap' && c.status === 'error' && c.player === me)
+      list.push({ icon:'⚠️', text:`El cambio por un huevo falló: ${c.note || 'error'}`, source:c.source, label:'Cerrar', fn:`removeCastigo('${c.id}')` });
+    else if(c.type === 'swap' && c.status === 'pending' && c.player === me)
+      list.push({ icon:'🔁', text:'Cambia un Pokémon tuyo por otro de otro equipo (eliges los dos)', source:c.source, label:'Elegir cambio', fn:`openForcedSwap('${c.id}')` });
+    else if(c.type === 'illegal' && c.status === 'active' && c.player === me)
+      list.push({ icon:'☠️', text:'Tienes una ilegalidad pendiente. Cuando la hagas, quítala de tu perfil', source:c.source, label:'Ya la hice', fn:`clearIllegal('${c.id}')` });
+  }
+  return list;
+}
+function renderCastigosHome(){
+  const me = window.LOGIN_ME;
+  const tasks = myCastigoTasks();
+  const wall = Object.values(castigos).filter(c => c && ((c.type === 'die2' && c.status === 'pending') || (c.type === 'eggswap' && ['voting', 'executing', 'egg'].includes(c.status))));
+  const ill = activeIllegals();
+  if(!tasks.length && !wall.length && !ill.length) return '';
+  const when = ts => { const m = Math.max(1, Math.round((Date.now() - (ts || Date.now())) / 60000)); return m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
+  return `<section class="cs-wrap">
+    ${tasks.length ? `<div class="cs-block cs-tasks"><div class="cs-h">📌 Te toca a ti</div>${tasks.map(t => `<div class="cs-row"><span class="ic">${t.icon}</span><span class="tx">${lkEsc(t.text)}${t.source ? `<small>${lkEsc(t.source)}</small>` : ''}</span><button class="primary" onclick="${t.fn}">${t.label}</button></div>`).join('')}</div>` : ''}
+    ${wall.length ? `<div class="cs-block cs-wall"><div class="cs-h">🪦 Muro de la vergüenza</div>${wall.map(c => c.type === 'die2'
+      ? `<div class="cs-row"><span class="ic">☠️</span><span class="tx"><b>${lkEsc(NAMES[c.player])}</b> aún tiene que sacrificar ${c.count || 2} Pokémon de su equipo<small>${lkEsc(c.source || '')} · ${when(c.ts)}</small></span></div>`
+      : `<div class="cs-row"><span class="ic">🥚</span><span class="tx"><b>${lkEsc(NAMES[c.player])}</b> ${c.status === 'voting'
+          ? `cambia un Pokémon de su equipo por un huevo: votan ${eggSwapVoters(c).map(v => `${lkEsc(NAMES[v])} ${(c.votes || {})[v] ? '✅' : '⏳'}`).join(' · ')}`
+          : `cambia ${lkEsc(c.chosen ? c.chosen.label : 'un Pokémon')} por un huevo (esperando a su juego)`}<small>${lkEsc(c.source || '')} · ${when(c.ts)}</small></span></div>`).join('')}</div>` : ''}
+    ${ill.length ? `<div class="cs-block cs-ill"><div class="cs-h">☠️ Ilegalidad en curso</div>${ill.map(c => `<div class="cs-row"><span class="ic">☠️</span><span class="tx"><b>${lkEsc(NAMES[c.player])}</b> tiene permiso para una ilegalidad<small>la página seguirá a oscuras hasta que la haga</small></span></div>`).join('')}</div>` : ''}
+  </section>`;
+}
+
 /* ---- OBJETOS DE PREMIO: se entregan solos en la mochila del jugador (orden add_item) ---- */
 const ITEM_PRIZES = {
   'restaurar todo': { item:19,  name:'Restaurar Todo' },
@@ -7047,6 +7464,20 @@ async function deliverItemPrize(t, qty, def, source){
   }catch(error){ console.error('No se pudo crear la entrega del objeto.', error); return false; }
 }
 async function addPendingPrize(t, text, source){
+  // premios con elección o con efecto propio (castigos y huevos)
+  if(/ilegalidad/i.test(text)){ await addCastigo({ type:'illegal', player:t, status:'active', source }); pushHistory(`☠️ ${NAMES[t]} tiene permiso para una ilegalidad (${source}).`); return; }
+  if(/^mueren\s+2\s+pok/i.test(text)){ await addCastigo({ type:'die2', player:t, count:2, status:'pending', source }); pushHistory(`☠️ ${NAMES[t]} tiene que elegir 2 Pokémon de su equipo que mueren (${source}).`); return; }
+  if(/^elegir entre 3 huevos$/i.test(text)){ await addCastigo({ type:'eggpick', player:t, status:'pending', species:[randomEggSpecies(), randomEggSpecies(), randomEggSpecies()], source }); pushHistory(`🥚 ${NAMES[t]} puede elegir entre 3 huevos sorpresa (${source}).`); return; }
+  if(/^huevo random$/i.test(text) && await deliverEgg(t, randomEggSpecies(), source)) return;
+  if(/^se cambia un pok.+huevo random/i.test(text)){
+    const party = allMonsOf(t).filter(m => m.inTeam && !m.isEgg).length;
+    if(!(party > 0 && party < 2)){        // con un solo Pokémon en el equipo no se puede quitar uno: queda como aviso
+      await addCastigo({ type:'eggswap', player:t, status:'voting', votes:{}, source });
+      pushHistory(`🗳️ A ${NAMES[t]} se le cambia un Pokémon de su equipo por un huevo: lo votan los otros dos (${source}).`);
+      return;
+    }
+  }
+  if(/^cambiar un pok.+otro equipo/i.test(text)){ await addCastigo({ type:'swap', player:t, status:'pending', source }); pushHistory(`🔁 ${NAMES[t]} puede cambiar un Pokémon por otro de otro equipo (${source}).`); return; }
   const itemPrize = String(text).match(/^(?:(\d+)\s+)?(Restaurar Todo|Banda Focus|Pesa Recia|Baya Meloc)$/i);
   if(itemPrize && await deliverItemPrize(t, parseInt(itemPrize[1] || '1', 10), ITEM_PRIZES[itemPrize[2].toLowerCase()], source)) return;   // si no se puede, sigue como aviso manual
   const capPrize = String(text).match(/^(?:(\d+)\s+)?C[áa]psulas?\s+Habilidad$/i);
@@ -7157,7 +7588,7 @@ async function settleItemOrders(){
     }
   }
 }
-window.onGameOrders = ()=>{ settleMintOrders().catch(error=>console.error(error)); settleStealOrders().catch(error=>console.error(error)); settleGameOrders().catch(error=>console.error(error)); settleItemOrders().catch(error=>console.error(error)); };
+window.onGameOrders = ()=>{ settleCastigoOrders().catch(error=>console.error(error)); settleMintOrders().catch(error=>console.error(error)); settleStealOrders().catch(error=>console.error(error)); settleGameOrders().catch(error=>console.error(error)); settleItemOrders().catch(error=>console.error(error)); };
 setInterval(()=>{ if(loaded && window.LOGIN_ME) window.onGameOrders(); }, 5000);
 
 function openGiftPrize(fromTrainer, id){
@@ -7773,7 +8204,7 @@ window.lkProfileCard = function(t, big){
   const online = Object.values(((window.FBS&&FBS.presence)||{})[t]||{}).some(Boolean);
   const stars = Object.keys(p.tournamentStarClaims||{}).length;
   const bg = a.background ? `background-image:url(fondos/fondo_${lkEsc(a.background)}.png),var(--pf-fb);` : '';
-  return `<article class="pf-card${big?' big':''}${t===LOGIN_ME?' me':''}" style="${pal}" ${big?'':`onclick="go('profile','${t}')"`}>
+  return `<article class="pf-card${big?' big':''}${t===LOGIN_ME?' me':''}" style="${pal}" ${big?'':`onclick="go('profile','${t}')"`}>${illegalBadge(t)}
     <div class="pf-ban" style="${bg}"></div>
     ${character ? `<img class="pf-ch" src="${character.src}" ${window.characterFallbackAttrs(character.fallback)} alt="">` : `<div class="pf-ch pf-ph">🎅</div>`}
     ${ret ? '<div class="pf-stamp">🚩 ABANDONÓ</div>' : ''}
@@ -7860,6 +8291,7 @@ function renderHome(app){
         <path d="M0 15 Q50 7 100 15 T200 15 T300 15 T400 15 T500 15 T600 15 T700 15 T800 15 T900 15 T1000 15 T1100 15 T1200 15 V22 H0Z" fill="rgba(18,6,10,.95)"/>
       </svg>
     </section>
+    ${renderCastigosHome()}
     ${LOGIN_ME ? `<section class="hm-tiles">
       <button class="hm-tile" onclick="go('profile','${LOGIN_ME}')"><span class="ic">❤️</span><span><div class="v">${hearts[LOGIN_ME] ?? 20}<small style="font-size:11px;opacity:.6">/20</small></div><div class="l">Vidas</div></span></button>
       <button class="hm-tile" onclick="go('casino')"><span class="ic">🎟️</span><span><div class="v">${tickets[LOGIN_ME] ?? 0}</div><div class="l">Tickets</div></span></button>
@@ -11867,7 +12299,10 @@ async function resolveChallengeReward(winner, loser){
     }
     if(!moved) await addPendingPrize(winner, `Te quedas con ${stakeMonLabel || 'el Pokémon apostado'} de ${NAMES[loser]}`, src);
   } else if(stakeId === 'rename'){
-    await addPendingPrize(winner, `Puedes ponerle el apodo que quieras a ${stakeMonLabel || 'el Pokémon apostado'} de ${NAMES[loser]}`, src);
+    // el Pokémon apostado era del rival (opponent); si perdió el rival, el apodo va a ese Pokémon; si no, el ganador elige cuál
+    const stakeMon = (challengeState.stakeMonPid && loser === challengeState.opponent) ? allMonsOf(loser).find(m => m.pid === challengeState.stakeMonPid) : null;
+    try{ await startNicknameCastigo(winner, loser, stakeMon ? { pid:stakeMon.pid, label:String(stakeMon.speciesName || '').replace(/-/g, ' ') } : null, src); }
+    catch(error){ console.error('No se pudo crear el apodo del desafío.', error); await addPendingPrize(winner, `Puedes ponerle el apodo que quieras a ${stakeMonLabel || 'el Pokémon apostado'} de ${NAMES[loser]}`, src); }
   }
 }
 async function closeChallenge(){
