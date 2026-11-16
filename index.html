@@ -4950,16 +4950,19 @@ async function runTruequeLegs(t, historyText){
     for(const i of t.want.items) await window.FBD.moveCosmetic(t.to, t.from, i.kind, i.id);
   }
   t.legs = [];
+  const legRecords = {};
   const legs = [...t.give.mons.map(m => ({ m, victim:t.from, thief:t.to })), ...t.want.mons.map(m => ({ m, victim:t.to, thief:t.from }))];
   for(let n = 0; n < legs.length; n++){
     const { m, victim, thief } = legs[n];
     const legId = `${t.id}-${n}`;
     const [pers, tid] = m.pid.split('-');
-    stealState[legId] = { id:legId, victim, others:TRAINERS.filter(x => x !== victim), status:'executing', thief, pid:m.pid, label:m.label, accepts:{}, source:'Trueque', tradeId:t.id, ts:Date.now() };
+    stealState[legId] = legRecords[legId] = { id:legId, victim, others:TRAINERS.filter(x => x !== victim), status:'executing', thief, pid:m.pid, label:m.label, accepts:{}, source:'Trueque', tradeId:t.id, ts:Date.now() };
     t.legs.push(legId);
     await window.FBD.createGameOrderFor(victim, 'steal-' + legId, { kind:'take_mon', monpers:pers, montid:tid, any:1 });
   }
   t.status = 'executing';
+  for(const id of t.legs) stealState[id] = legRecords[id];       // por si una recarga reemplazó los registros mientras se creaban las órdenes
+  trueques[t.id] = t;
   pushHistory(historyText);
   await saveStealState();
   await persistTrueques();
@@ -5059,25 +5062,28 @@ async function acceptSteal(id){
   const s = stealState[id], me = window.LOGIN_ME;
   if(!s || s.status !== 'accept' || (me !== s.thief && me !== s.victim)) return;
   s.accepts = { ...(s.accepts||{}), [me]: true };
-  if(s.accepts[s.thief] && s.accepts[s.victim]){
-    const [pers, tid] = s.pid.split('-');
-    try{
-      await window.FBD.createGameOrderFor(s.victim, 'steal-' + id, { kind:'take_mon', monpers:pers, montid:tid });
-      s.status = 'executing';
-      pushHistory(`🦹 Robo aceptado: ${s.label} pasa de ${NAMES[s.victim]} a ${NAMES[s.thief]}.`);
-    }catch(error){
-      console.error('No se pudo crear la orden de robo.', error);
-      s.accepts[me] = false; toast('No se pudo iniciar el robo. Inténtalo de nuevo.'); render(); return;
-    }
-  }
-  await persistSteal();
+  await persistSteal();      // la ejecución la lanza el navegador de la víctima en cuanto constan las dos aceptaciones (ver settleStealOrders)
 }
 async function closeSteal(id){ delete stealState[id]; await persistSteal(); }
 // Se ejecuta cada pocos segundos (window.onGameOrders): avanza los robos con las órdenes que lee este navegador.
+const stealStarting = new Set();
 async function settleStealOrders(){
   const me = window.LOGIN_ME;
   if(!me || !window.FBS || !FBS.orders) return;
   for(const s of Object.values(stealState)){
+    // aceptadas las dos partes: el navegador de la víctima manda al juego quitar el Pokémon (una sola vez, aunque se llame varias)
+    if(s && s.status === 'accept' && s.victim === me && s.accepts && s.accepts[s.thief] && s.accepts[s.victim] && !stealStarting.has(s.id)){
+      stealStarting.add(s.id);
+      try{
+        const [pers, tid] = s.pid.split('-');
+        if(!FBS.orders['steal-' + s.id]) await window.FBD.createGameOrder('steal-' + s.id, { kind:'take_mon', monpers:pers, montid:tid });
+        s.status = 'executing';
+        pushHistory(`🦹 Robo aceptado: ${s.label} pasa de ${NAMES[s.victim]} a ${NAMES[s.thief]}.`);
+        await persistSteal();
+      }catch(error){ console.error('No se pudo crear la orden de robo.', error); }
+      finally{ stealStarting.delete(s.id); }
+      continue;
+    }
     if(!s || s.status !== 'executing') continue;
     if(s.victim === me){
       const o = FBS.orders['steal-' + s.id];
@@ -5588,9 +5594,56 @@ async function loadTrackerStates(){
 let saveInFlight = {}; // clave -> contador: >0 mientras hay un guardado en curso para esa clave.
                         // Mientras este >0, loadAll() NO pisa esos datos con lo que traiga el
                         // servidor (podria ser de un instante justo antes de este guardado).
+// Estados compartidos entre los tres jugadores (castigos, trueques y robos). Se guardan con una MEZCLA ATÓMICA DE TRES VÍAS
+// (lo que había al cargar, lo que he cambiado yo, lo que hay ahora): si dos personas pulsan a la vez, los dos cambios se suman
+// en vez de pisarse (por ejemplo, dos votos o dos aceptaciones).
+const SHARED_MERGE_KEYS = new Set(['locke:castigos', 'locke:trueques', 'locke:steals']);
+const sharedBase = {};
+function jclone(x){ return x === undefined ? undefined : JSON.parse(JSON.stringify(x)); }
+function rememberSharedBase(key, value){ sharedBase[key] = jclone(value) || {}; }
+function merge3(base, local, remote){
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  if(same(local, base)) return remote;                                   // yo no he tocado esto: vale lo que haya ahora
+  if(same(remote, base)) return local;                                   // nadie más lo ha tocado: vale lo mío
+  if(remote === undefined && base !== undefined) return undefined;       // otro lo terminó y lo borró: se queda borrado
+  const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+  if(isObj(local) && isObj(remote) && (isObj(base) || base === undefined)){
+    const out = {};
+    for(const k of new Set([...Object.keys(local), ...Object.keys(remote), ...Object.keys(base || {})])){
+      const r = merge3(base ? base[k] : undefined, local[k], remote[k]);
+      if(r !== undefined) out[k] = r;
+    }
+    return out;
+  }
+  return local;                                                          // los dos cambiaron el mismo valor: gana el último en guardar
+}
+function syncInto(target, src){                                          // actualiza el objeto local SIN cambiar la identidad de sus registros
+  for(const k of Object.keys(target)) if(!(k in src)) delete target[k];
+  for(const [k, v] of Object.entries(src)){
+    const t = target[k];
+    if(t && v && typeof t === 'object' && typeof v === 'object' && !Array.isArray(t) && !Array.isArray(v)) syncInto(t, v);
+    else target[k] = v;
+  }
+}
+async function saveSharedMerged(storageKey, local){
+  const base = sharedBase[storageKey] || {};
+  let merged = null;
+  try{
+    await FBD.mergeLegacy(storageKey, cur => {
+      const remote = cur ? JSON.parse(cur) : {};
+      merged = merge3(base, jclone(local) || {}, remote) || {};
+      return JSON.stringify(merged);
+    });
+  }catch(e){ console.error('No se pudo guardar ' + storageKey, e); return false; }
+  syncInto(local, merged);
+  rememberSharedBase(storageKey, merged);
+  FBS.legacy[storageKey] = JSON.stringify(merged);
+  return true;
+}
 async function trackedStoreSet(flightKey, storageKey, value){
   saveInFlight[flightKey] = (saveInFlight[flightKey]||0) + 1;
   try{
+    if(SHARED_MERGE_KEYS.has(storageKey) && typeof FBD.mergeLegacy === 'function') return await saveSharedMerged(storageKey, value);
     return await storeSet(storageKey, value);
   } finally {
     saveInFlight[flightKey] = Math.max((saveInFlight[flightKey]||1) - 1, 0);
@@ -5724,11 +5777,11 @@ async function loadAll(){
     challengeState = challengeResult;
   }
   { const castigosResult = batch['locke:castigos'];
-    if(!saveInFlight['castigos'] && !pendingSaves.has('castigos')) castigos = (castigosResult && typeof castigosResult === 'object') ? castigosResult : {}; }
+    if(!saveInFlight['castigos'] && !pendingSaves.has('castigos')){ castigos = (castigosResult && typeof castigosResult === 'object') ? castigosResult : {}; rememberSharedBase('locke:castigos', castigos); } }
   { const truequesResult = batch['locke:trueques'];
-    if(!saveInFlight['trueques'] && !pendingSaves.has('trueques')) trueques = (truequesResult && typeof truequesResult === 'object') ? truequesResult : {}; }
+    if(!saveInFlight['trueques'] && !pendingSaves.has('trueques')){ trueques = (truequesResult && typeof truequesResult === 'object') ? truequesResult : {}; rememberSharedBase('locke:trueques', trueques); } }
   { const stealsResult = batch['locke:steals'];
-    if(!saveInFlight['steals'] && !pendingSaves.has('steals')) stealState = (stealsResult && typeof stealsResult === 'object') ? stealsResult : {}; }
+    if(!saveInFlight['steals'] && !pendingSaves.has('steals')){ stealState = (stealsResult && typeof stealsResult === 'object') ? stealsResult : {}; rememberSharedBase('locke:steals', stealState); } }
   if(!saveInFlight['dailyContest']) dailyContestState = normalizeDailyContestState(dailyContestResult);
   if(!saveInFlight['finalState']) finalState = finalResult;
   if(!saveInFlight['normas']) normas = normasResult;
@@ -7282,18 +7335,19 @@ async function confirmVote(){
   try{
     c.votes = { ...(c.votes || {}), [me]: d.pick };
     closeModal(); voteDraft = null;
-    if(eggSwapVoters(c).every(v => c.votes[v])) await resolveEggSwap(c);
-    else { pushHistory(`🗳️ ${NAMES[me]} ya ha votado qué Pokémon de ${NAMES[c.player]} se cambia por un huevo.`); await persistCastigos(); }
+    pushHistory(`🗳️ ${NAMES[me]} ya ha votado qué Pokémon de ${NAMES[c.player]} se cambia por un huevo.`);
+    await persistCastigos();       // cuando constan los dos votos, el navegador del afectado lo resuelve (ver settleCastigoOrders)
   } finally { voteBusy = false; }
 }
 async function resolveEggSwap(c){
   const voters = eggSwapVoters(c), [a, b] = voters.map(v => c.votes[v]);
-  const pid = a === b ? a : (Math.random() < 0.5 ? a : b);
+  const hash = [...String(c.id)].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) >>> 0, 7);   // desempate 'al azar' pero igual en todos los navegadores
+  const pid = a === b ? a : (hash % 2 === 0 ? a : b);
   const mon = allMonsOf(c.player).find(m => m.pid === pid && m.inTeam && !m.isEgg);
   if(!mon){ c.status = 'error'; c.note = 'el Pokémon elegido ya no está en el equipo'; await persistCastigos(); return; }
   const [pers, tid] = pid.split('-');
   try{
-    await window.FBD.createGameOrderFor(c.player, 'swap-' + c.id, { kind:'take_mon', monpers:pers, montid:tid });
+    if(!FBS.orders['swap-' + c.id]) await window.FBD.createGameOrder('swap-' + c.id, { kind:'take_mon', monpers:pers, montid:tid });
     c.chosen = { pid, label:`${mon.nickname} (${String(mon.speciesName || '').replace(/-/g, ' ')})` };
     c.status = 'executing';
     pushHistory(`🗳️ ${voters.map(v => NAMES[v]).join(' y ')} ${a === b ? 'coinciden' : 'no coinciden: sale uno al azar'}: ${NAMES[c.player]} cambia a ${c.chosen.label} por un huevo sorpresa.`);
@@ -7306,6 +7360,12 @@ async function settleCastigoOrders(){
   const me = window.LOGIN_ME;
   if(!loaded || !me || !window.FBS || !FBS.orders) return;
   for(const c of Object.values(castigos)){
+    // votados por los dos: lo resuelve el navegador del afectado (así no se resuelve dos veces)
+    if(c && c.type === 'eggswap' && c.status === 'voting' && c.player === me && eggSwapVoters(c).every(v => (c.votes || {})[v]) && !eggSwapBusy.has(c.id)){
+      eggSwapBusy.add(c.id);
+      try{ await resolveEggSwap(c); } finally { eggSwapBusy.delete(c.id); }
+      continue;
+    }
     if(!c || c.type !== 'eggswap' || c.player !== me || !['executing', 'egg'].includes(c.status) || eggSwapBusy.has(c.id)) continue;
     const takeId = 'swap-' + c.id, eggId = 'egg-swap-' + c.id, o = FBS.orders[takeId];
     eggSwapBusy.add(c.id);
@@ -14246,6 +14306,8 @@ function inventoryTransaction(mutate){
 }
 window.FBD={
   setLegacy:(k,raw)=>set(ref(db,'legacy/'+k),raw),
+  // lectura-modificación-escritura ATÓMICA de un estado compartido: updater(textoActual) -> textoNuevo
+  mergeLegacy:(k,updater)=>runTransaction(ref(db,'legacy/'+k),cur=>updater(cur),{applyLocally:false}),
   getTrackerState:async trainer=>{
     if(!['iker','joel','alex'].includes(trainer)) throw new Error('Entrenador no válido para Tracker Sync');
     if(trackerStateErrors[trainer]) throw trackerStateErrors[trainer];
