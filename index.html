@@ -14332,7 +14332,7 @@ button:disabled{opacity:.45;cursor:default}
   background:radial-gradient(ellipse at 25% 50%,var(--rb) 0 40%,transparent 42%),radial-gradient(ellipse at 75% 50%,var(--rb) 0 40%,transparent 42%);filter:drop-shadow(0 2px 1px #0007)}
 .lk .locked{filter:none}.lk .locked .lid{filter:saturate(.35) brightness(.55)}
 .lk .locked .lid::before{content:"";position:absolute;inset:0;border-radius:inherit;
-  background:radial-gradient(circle at 20% 15%,#fff8 0 2px,transparent 3px) 0 0/14px 14px,linear-gradient(180deg,#dfeeff55,#dfeeff11 50%,#fff6);box-shadow:inset 0 0 0 2px #e6f2ff66}
+  background:linear-gradient(180deg,#dfeeff55,#dfeeff11 50%,#fff6);box-shadow:inset 0 0 0 2px #e6f2ff66}
 .lk .locked .lid b{filter:grayscale(.6)}
 .lk .pend{filter:drop-shadow(0 0 8px #f4c95daa)}
 .lk .today{animation:lkhalo 2.2s ease-in-out infinite;z-index:2}
@@ -14385,6 +14385,38 @@ button:disabled{opacity:.45;cursor:default}
 .lk .door.swing .rays{opacity:1}
 @media (prefers-reduced-motion:reduce){.lk .door .spk,.lk .door .flash{display:none}.lk .unlocking .lid,.lk .door.swing .lid{animation:none}}
 @keyframes picTw{50%{transform:scale(1.2) rotate(20deg)}}
+
+/* interiores variados */
+.lk .door .in,.lk .door[data-pic] .in{box-shadow:inset 0 0 0 2px #f4d78a,inset 0 6px 16px #000c,inset 0 -10px 18px #0008}
+.lk .door .mn{position:relative;z-index:2;padding:5px 7px;border-radius:9px;max-width:86%;color:#3a0a12;text-shadow:none;
+  background:linear-gradient(180deg,#fffbe6,#f4d78a);box-shadow:0 3px 8px #000a,0 0 0 1.5px #7a5212}
+.lk .door:nth-child(6n+1) .in{background:
+  radial-gradient(circle at 22% 25%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 18%,#fff 0 1.2px,transparent 2px),radial-gradient(circle at 48% 40%,#fffbe6 0 1px,transparent 2px),radial-gradient(circle at 82% 52%,#fff 0 1px,transparent 2px),
+  radial-gradient(circle at 75% 22%,#fff6d0 0 8%,#fff6d033 12%,transparent 22%),
+  radial-gradient(120% 50% at 50% 110%,#e9f3ff 0 45%,transparent 46%),
+  linear-gradient(180deg,#05103a,#1b3a8a 70%,#3d6fd1)}
+.lk .door:nth-child(6n+2) .in{background:
+  radial-gradient(60% 40% at 50% 100%,#ffd86b,#ff7a1a 40%,#c22b10 70%,transparent 72%),
+  linear-gradient(180deg,transparent 70%,#3a1a0e 70%),
+  repeating-linear-gradient(0deg,#6b2a1a 0 10px,#4a1a10 10px 12px),
+  repeating-linear-gradient(90deg,transparent 0 20px,#00000033 20px 22px)}
+.lk .door:nth-child(6n+3) .in{background:
+  repeating-linear-gradient(-45deg,#fff 0 10px,#d62839 10px 20px);box-shadow:inset 0 0 0 2px #f4d78a,inset 0 0 26px #000a}
+.lk .door:nth-child(6n+4) .in{background:
+  linear-gradient(135deg,transparent 40%,#2e7d46 40% 60%,transparent 60%) 50% 100%/60% 55% no-repeat,
+  linear-gradient(225deg,transparent 40%,#1f5e33 40% 60%,transparent 60%) 50% 100%/60% 55% no-repeat,
+  radial-gradient(circle at 30% 30%,#fff 0 1.5px,transparent 2.5px) 0 0/16px 18px,
+  radial-gradient(circle at 70% 70%,#fff 0 1px,transparent 2px) 0 0/22px 20px,
+  linear-gradient(180deg,#0c3b2a,#14532d 60%,#e9f3ff 61%)}
+.lk .door:nth-child(6n+5) .in{background:
+  linear-gradient(90deg,transparent 44%,#f4d78a 44% 56%,transparent 56%),
+  linear-gradient(0deg,transparent 44%,#f4d78a 44% 56%,transparent 56%),
+  radial-gradient(circle at 25% 25%,#ffffff22 0 3px,transparent 4px) 0 0/14px 14px,
+  linear-gradient(160deg,#7b2fb8,#3a0f6b)}
+.lk .door:nth-child(6n) .in{background:
+  radial-gradient(circle at 50% 45%,#fffbe6 0 6%,#ffe08a 14%,transparent 40%),
+  repeating-conic-gradient(from 0deg at 50% 45%,#f4c95d33 0 8deg,transparent 8deg 20deg),
+  radial-gradient(circle at 50% 45%,#b8862a,#5a3a0c 70%,#2a1a06)}
 </style>
 
 <div id="lk-login" style="position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#12060a;color:#f7efe6;font-family:system-ui,sans-serif">
