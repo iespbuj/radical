@@ -8360,18 +8360,6 @@ function renderHome(app){
       <button class="hm-tile" onclick="go('trueques')"><span class="ic">🔁</span><span><div class="v">${Object.values(trueques).filter(t => t && (t.from === LOGIN_ME || t.to === LOGIN_ME)).length}</div><div class="l">Trueques</div></span></button>
       <button class="hm-tile" onclick="go('duel')"><span class="ic">⚔️</span><span><div class="v">Arena</div><div class="l">Combates</div></span></button>
     </section>` : ''}
-    <section class="home-commandbar" aria-label="Accesos rápidos">
-      <div class="home-command-copy">
-        <span class="home-command-kicker">TU AVENTURA, EN MARCHA</span>
-        <h2>Cada ruta cuenta. Cada vida también.</h2>
-        <p>Consulta el estado de la run y vuelve a la acción.</p>
-      </div>
-      <div class="home-quicklinks">
-        <button type="button" onclick="go('routes')"><span>🗺️</span><b>Explorar rutas</b><small>Encuentros y progreso</small></button>
-        <button type="button" onclick="go('duel')"><span>⚔️</span><b>Ir a la arena</b><small>Retos y combates</small></button>
-        <button type="button" onclick="go('casino')"><span>🎰</span><b>Visitar el casino</b><small>Juega con tus tickets</small></button>
-      </div>
-    </section>
     ${canDaily ? `<div class="kpi brk rr-daily"><div><strong style="color:var(--silver-bright)">🎁 Bonus de hoy</strong><br><span style="font-size:12px;color:var(--silver-dim)">Cobra tus tickets diarios.</span></div><button class="primary" onclick="LK.daily()">Cobrar</button></div>` : ''}
     <div class="rr-board">
       ${order.map(t=>`<div class="rr-col">${lkProfileCard(t,false)}${rrInfo(t, rankOf[t])}</div>`).join('')}
