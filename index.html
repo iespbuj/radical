@@ -14797,7 +14797,7 @@ async function gcShow(it,ng){
   ov.innerHTML=`<div class="gc-orb"></div><div class="gc-flash"></div>
   <div class="gc-stars" style="--n:${s}"><div class="gc-rev"><img src="${GC.img(s)}" alt="" onerror="this.parentNode.innerHTML='<b class=gc-glyph>${'★'.repeat(s)}</b>'"></div></div>
   <div class="gc-card"><div class="gc-q">${GC.nm[s]} · ${'★'.repeat(s)}</div>${vis}<h3>${ch?'Personaje ':'Fondo '}${it.id}</h3>
-  <div class="gc-q" style="color:#cfc8e8">4★+ garantizado en ${GC.pity4-ng.p4} · 5★ en ${GC.pity5-ng.p5}</div>
+  <div class="gc-q" style="color:#cfc8e8">4★+ garantizado en ${Math.max(1,GC.pity4-ng.p4)} · 5★ en ${Math.max(1,GC.pity5-ng.p5)}</div>
   <div class="gc-row"><button class="gc-btn" data-gcx="close">Genial</button><button class="gc-btn" data-gcx="again">Tirar otra vez · ${GC.cost}</button></div></div>
   <button class="gc-skip" data-gcx="skip">Saltar</button>`;
   document.body.appendChild(ov);
@@ -14821,7 +14821,7 @@ function gcHome(a){
   <div class="gc-meta">Colección: <b>${tot-pool.length}/${tot}</b> · 4★+ garantizado en <b class="p4">—</b> · 5★ en <b class="p5">—</b> tiradas</div></div>
   <div class="gc-h-r"><div class="gc-bal">🎟️ <b>${tkv}</b></div><button class="gc-btn" data-gc="pull" ${tkv<GC.cost||!pool.length?'disabled':''} type="button">${pool.length?'Tirar · '+GC.cost:'Colección completa'}</button></div>`;
   const hero=a.querySelector('.rr-hero');hero?hero.insertAdjacentElement('afterend',el):a.prepend(el);
-  get(gcRef()).then(sn=>{const g=sn.val()||{};el.querySelector('.p4').textContent=GC.pity4-(g.p4||0);el.querySelector('.p5').textContent=GC.pity5-(g.p5||0)}).catch(()=>{})}
+  get(gcRef()).then(sn=>{const g=sn.val()||{};el.querySelector('.p4').textContent=Math.max(1,GC.pity4-(g.p4||0));el.querySelector('.p5').textContent=Math.max(1,GC.pity5-(g.p5||0))}).catch(()=>{})}
 {const h=window.renderHome;if(h)window.renderHome=a=>{h(a);try{gcHome(a)}catch(e){console.error(e)}}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-gc]');if(b&&b.dataset.gc==='pull')act(gcPull)});
 
