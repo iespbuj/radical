@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<style id="global-zoom">:root{--z:.7}html{zoom:var(--z)}@media (max-width:700px){:root{--z:1}}</style>
 <meta name="theme-color" content="#12060a">
 <title>Locke Navideño · Radical Red</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎄%3C/text%3E%3C/svg%3E">
@@ -40,7 +41,7 @@ body{
   background: radial-gradient(ellipse at 50% -10%, #2a0a14 0%, var(--bg) 55%);
   color: var(--silver);
   font-family: var(--f-body);
-  min-height: 100vh;
+  min-height: calc(100vh / var(--z,1));
   padding-bottom: 60px;
 }
 ::selection{ background: var(--accent-dim); color: var(--silver-bright); }
@@ -251,7 +252,7 @@ body{
   border-radius: 7px;
   padding: 26px;
   width: 100%; max-width: 420px;
-  max-height: 85vh; overflow-y:auto;
+  max-height: calc(85vh / var(--z,1)); overflow-y:auto;
 }
 .modal h3{
   font-family:var(--f-ui); letter-spacing:1px; color: var(--silver-bright);
@@ -971,7 +972,7 @@ body{
 .final-page .final-controls{margin:22px 0 8px}
 .final-page .final-done-note{color:#8fe8c1;font-weight:700}
 .final-stage-content{
-  min-height:clamp(360px,calc(100vh - 350px),560px);display:grid;place-items:center;
+  min-height:clamp(360px,calc(calc(100vh / var(--z,1)) - 350px),560px);display:grid;place-items:center;
   animation:final-stage-in .42s cubic-bezier(.2,.8,.2,1) both
 }
 .final-stage-content > *{width:100%;max-width:760px;margin-left:auto;margin-right:auto}
@@ -993,7 +994,7 @@ body{
 .final-ceremony-progress{max-width:720px;height:4px;margin:-10px auto 8px;overflow:hidden;border-radius:9px;background:rgba(255,255,255,.09)}
 .final-ceremony-progress span{display:block;width:var(--final-progress);height:100%;border-radius:inherit;background:linear-gradient(90deg,#ffc83c,#ff7b86);box-shadow:0 0 12px rgba(255,200,60,.38);transition:width .45s ease}
 .final-stage-counter{margin:0 auto 18px;text-align:center;color:var(--silver-dim);font:700 9px var(--f-mono);letter-spacing:.12em;text-transform:uppercase}
-@media(max-width:700px){.final-stage-content{min-height:clamp(380px,calc(100vh - 320px),560px)}.final-page .final-stage-content .final-mentions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.final-stage-content{min-height:clamp(380px,calc(calc(100vh / var(--z,1)) - 320px),560px)}.final-page .final-stage-content .final-mentions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.final-page-head{align-items:flex-start;flex-direction:column}.final-page-status{align-self:flex-start}.final-page .final-gate-hype{flex-wrap:wrap}.final-page .final-podium-wrap{padding:12px}.final-stage-content{min-height:0;padding:12px 0 20px}.final-page .final-stage-content .final-mentions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.final-auto-toggle{margin:10px 0 0}}
 /* ---- El bracket ahora es una GRIETA DE MAGMA que conecta las losas ---- */
 .bracket{
@@ -1987,7 +1988,7 @@ body{
     radial-gradient(900px 640px at 108% 110%, rgba(255,200,60,.17), transparent 62%),
     linear-gradient(180deg,#17070a 0%,#100507 100%);
   background-attachment:fixed;
-  color:var(--silver); font-family:var(--f-body); padding-bottom:0; min-height:100vh;
+  color:var(--silver); font-family:var(--f-body); padding-bottom:0; min-height:calc(100vh / var(--z,1));
 }
 ::selection{ background:var(--ruby-deep); color:#fff; }
 ::-webkit-scrollbar{ width:10px; height:10px; }
@@ -1995,9 +1996,9 @@ body{
 ::-webkit-scrollbar-thumb{ background:linear-gradient(180deg,var(--ruby-deep),var(--sapphire-deep)); border-radius:8px; }
 
 /* ------------------------------------------------ shell (carril + escenario) */
-.shell{ display:grid; grid-template-columns:248px minmax(0,1fr); min-height:100vh; }
+.shell{ display:grid; grid-template-columns:248px minmax(0,1fr); min-height:calc(100vh / var(--z,1)); }
 .rail{
-  position:sticky; top:0; align-self:start; height:100vh; z-index:60;
+  position:sticky; top:0; align-self:start; height:calc(100vh / var(--z,1)); z-index:60;
   display:flex; flex-direction:column; gap:18px; padding:20px 14px 16px;
   background:linear-gradient(180deg,rgba(39,11,16,.96),rgba(16,5,7,.98));
   border-right:1px solid var(--border);
@@ -2147,7 +2148,7 @@ input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--sapphi
 .notif-toggle{ position:relative; width:46px; height:46px; display:flex; align-items:center; justify-content:center; color:var(--silver-bright); background:rgba(26,7,10,.94); border:1px solid var(--border); border-radius:10px; cursor:pointer; font-size:20px; }
 .notif-toggle i{ position:absolute; right:-6px; top:-6px; min-width:18px; padding:1px 4px; border-radius:9px; font:700 11px var(--f-ui); font-style:normal; text-align:center; color:#1a070a; background:var(--neon-cyan); }
 .notif-toggle.zero i{ color:var(--silver-dim); background:rgba(255,255,255,.12); }
-.notif-panel{ position:absolute; top:52px; right:0; width:min(360px,calc(100vw - 28px)); max-height:calc(100vh - 140px); overflow:auto; padding:12px; background:rgba(26,7,10,.97); border:1px solid var(--border); border-radius:10px; }
+.notif-panel{ position:absolute; top:52px; right:0; width:min(360px,calc(100vw - 28px)); max-height:calc(calc(100vh / var(--z,1)) - 140px); overflow:auto; padding:12px; background:rgba(26,7,10,.97); border:1px solid var(--border); border-radius:10px; }
 .notif-heading{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; color:var(--neon-cyan); font:700 10px var(--f-mono); letter-spacing:.08em; }
 .notif-heading button{ width:26px; height:26px; color:var(--silver-bright); background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:6px; cursor:pointer; }
 .notif-item{ padding:8px; margin-bottom:6px; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:8px; font-size:12px; color:var(--silver); }
@@ -2730,7 +2731,7 @@ body.casino-mode main{ max-width:1320px; }
 .tc-ko-note.maybe{ color:#241b00; background:var(--neon-yellow); }
 .tc-sub{ margin-top:12px; display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; font-size:12px; color:var(--silver-dim); }
 .contest-page{max-width:1040px;margin:0 auto;padding:18px 0 40px}
-.contest-countdown{min-height:min(82vh,860px);display:grid;place-items:center;text-align:center;position:relative;overflow:hidden;border:1px solid rgba(255,218,124,.12);border-radius:24px;background:radial-gradient(ellipse at 50% 48%,rgba(48,20,25,.65),rgba(10,3,4,.99) 61%);isolation:isolate}
+.contest-countdown{min-height:min(calc(82vh / var(--z,1)),860px);display:grid;place-items:center;text-align:center;position:relative;overflow:hidden;border:1px solid rgba(255,218,124,.12);border-radius:24px;background:radial-gradient(ellipse at 50% 48%,rgba(48,20,25,.65),rgba(10,3,4,.99) 61%);isolation:isolate}
 .contest-countdown::before,.contest-countdown::after{content:'';position:absolute;inset:-30%;z-index:-1;pointer-events:none}
 .contest-countdown::before{background:radial-gradient(ellipse at 50% 50%,transparent 19%,rgba(191,34,47,.11) 20%,transparent 21%),radial-gradient(ellipse at 50% 50%,transparent 37%,rgba(219,53,67,.1) 37.2%,transparent 37.6%),radial-gradient(ellipse at 50% 50%,transparent 56%,rgba(230,186,76,.08) 56.2%,transparent 56.6%);animation:contestPulse 18s linear infinite}
 .contest-countdown::after{background:radial-gradient(ellipse at 50% 52%,rgba(30,13,16,.15),#080203 72%);box-shadow:inset 0 0 120px #000}
@@ -9065,7 +9066,7 @@ function injectSlakingQuizStyle(){
   s.textContent = `
   #gq-overlay{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;overflow-y:auto;
     background:radial-gradient(circle at 50% 30%,#67232a,#14090f 75%);color:#fff;font-family:inherit;text-align:center}
-  #gq-overlay img{height:min(38vh,320px);width:auto;object-fit:contain;filter:drop-shadow(0 12px 26px rgba(0,0,0,.7))}
+  #gq-overlay img{height:min(calc(38vh / var(--z,1)),320px);width:auto;object-fit:contain;filter:drop-shadow(0 12px 26px rgba(0,0,0,.7))}
   #gq-overlay .gq-tag{font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.7}
   #gq-overlay .gq-q{font-size:clamp(18px,3.4vw,26px);font-weight:700;max-width:640px;line-height:1.3}
   #gq-overlay .gq-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(640px,100%)}
