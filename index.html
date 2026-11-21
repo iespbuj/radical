@@ -1124,6 +1124,8 @@ body{
 .arena-vote-chip{padding:5px 9px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.03);color:var(--silver);font:700 10px var(--f-ui);cursor:pointer;transition:border-color .15s,background .15s,color .15s}
 .arena-vote-chip:hover{border-color:var(--lava-hot)}
 .arena-vote-chip.on{border-color:var(--lava-hot);background:rgba(255,106,44,.14);color:var(--lava-hot)}
+.arena-vote .arena-vote-btn{display:block;width:100%;padding:9px 12px;font-size:11px;letter-spacing:.03em}
+.arena-vote .arena-vote-btn:disabled{opacity:.5;cursor:not-allowed}
 .arena-postleague .arena-vote{margin-top:9px;padding-top:0;border-top:0}
 .arena-stage-state{display:inline-flex;align-items:center;gap:5px;color:var(--silver-dim);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .arena-stage-state.ready{color:var(--lava-hot)}
@@ -3874,7 +3876,7 @@ let trackerVersion = {};
 let trackerLives = {};
 let trackerBadgesAvailable = {};
 const GAME_LEVEL_CAPS = [ // en el orden de las medallas (Roca, Cascada, Trueno, Arcoíris, Alma, Pantano, Volcán, Tierra)
-  { leader:'Brock', cap:15, sprite:'https://play.pokemonshowdown.com/sprites/trainers/brock-gen3.png' },
+  { leader:'Brock', cap:14, sprite:'https://play.pokemonshowdown.com/sprites/trainers/brock-gen3.png' },
   { leader:'Misty', cap:27, sprite:'https://play.pokemonshowdown.com/sprites/trainers/misty-gen3.png' },
   { leader:'Teniente Surge', cap:34, sprite:'https://play.pokemonshowdown.com/sprites/trainers/ltsurge-gen3.png' },
   { leader:'Erika', cap:44, sprite:'https://play.pokemonshowdown.com/sprites/trainers/erika-gen3.png' },
@@ -3885,7 +3887,7 @@ const GAME_LEVEL_CAPS = [ // en el orden de las medallas (Roca, Cascada, Trueno,
 ];
 // Todos los hitos con tope de nivel (modo normal), en orden de aparición
 const GAME_CAP_MILESTONES = [
-  { name:'Brock', cap:15 }, { name:'Archer (Monte Moon)', cap:22 }, { name:'Misty', cap:27 }, { name:'Teniente Surge', cap:34 },
+  { name:'Brock', cap:14 }, { name:'Archer (Monte Moon)', cap:22 }, { name:'Misty', cap:27 }, { name:'Teniente Surge', cap:34 },
   { name:'Erika', cap:44 }, { name:'Giovanni (Casino)', cap:47 }, { name:'Archer y Ariana (Silph Co.)', cap:56 },
   { name:'Giovanni (Silph Co.)', cap:57 }, { name:'Sabrina', cap:59 }, { name:'Koga', cap:68 }, { name:'May', cap:73 },
   { name:'Blaine', cap:76 }, { name:'Archer y Ariana (Cueva Celeste)', cap:79 }, { name:'Giovanni (Cueva Celeste)', cap:80 },
@@ -7554,6 +7556,7 @@ async function addPendingPrize(t, text, source){
 }
 
 async function removePendingPrize(t, id){
+  if(t!==window.LOGIN_ME){ toast('Solo puedes hacerlo con tu propia cuenta.'); return; }
   pendingPrizes[t] = (pendingPrizes[t]||[]).filter(p=>p.id!==id);
   render();
   const ok = await saveProfile(t);
@@ -7653,6 +7656,7 @@ window.onGameOrders = ()=>{ settleCastigoOrders().catch(error=>console.error(err
 setInterval(()=>{ if(loaded && window.LOGIN_ME) window.onGameOrders(); }, 5000);
 
 function openGiftPrize(fromTrainer, id){
+  if(fromTrainer!==window.LOGIN_ME){ toast('Solo puedes regalar tus propios premios.'); return; }
   const prize = (pendingPrizes[fromTrainer]||[]).find(p=>p.id===id);
   if(!prize) return;
   const others = TRAINERS.filter(t=>t!==fromTrainer);
@@ -7672,6 +7676,7 @@ function openGiftPrize(fromTrainer, id){
   `);
 }
 async function confirmGiftPrize(fromTrainer, id){
+  if(fromTrainer!==window.LOGIN_ME){ toast('Solo puedes regalar tus propios premios.'); return; }
   const targetSel = document.getElementById('gift-target-select');
   if(!targetSel) return;
   const target = targetSel.value;
@@ -8406,9 +8411,9 @@ function __renderProfileBase(app, t){
         </div>
         <div class="hearts-grid" id="gems-row">${gems.map(on=> `<div class="gem ${on?'':'empty'}"></div>`).join('')}</div>
         <div class="hero-actions">
-          <button class="danger-outline" onclick="loseLife('${t}')">💔 Perder vida</button>
+          ${t===window.LOGIN_ME ? `<button class="danger-outline" onclick="loseLife('${t}')">💔 Perder vida</button>
           <button class="ghost" onclick="addLife('${t}')">➕ Sumar vida</button>
-          <button class="ghost" onclick="resetLives('${t}')">🔄 Restablecer</button>
+          <button class="ghost" onclick="resetLives('${t}')">🔄 Restablecer</button>` : ''}
           <button class="ghost" onclick="openApplySancion()">⚖️ Sanción</button>
           ${window.LOGIN_ME === 'iker' ? `<button class="ghost" onclick="giveRareCandies('${t}')">🍬 +999 Caramelos raros</button>` : ''}
         </div>
@@ -8447,8 +8452,8 @@ function __renderProfileBase(app, t){
                 <div class="n-meta mono">${p.source} · ${fmtTime(p.ts)}</div>
                 <div style="text-align:right;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center;">
                   ${legendaryPrizeActions(t,p)}
-                  ${gameOrderOf(p.id) ? '' : `<button class="ghost" onclick="openGiftPrize('${t}','${p.id}')">🎁 Regalar</button>`}
-                  <button class="danger-outline" onclick="removePendingPrize('${t}','${p.id}')">Entregado</button>
+                  ${(gameOrderOf(p.id) || t!==window.LOGIN_ME) ? '' : `<button class="ghost" onclick="openGiftPrize('${t}','${p.id}')">🎁 Regalar</button>`}
+                  ${t===window.LOGIN_ME ? `<button class="danger-outline" onclick="removePendingPrize('${t}','${p.id}')">Entregado</button>` : ''}
                 </div>
               </div>
             </div>`).join('')}
@@ -9144,6 +9149,7 @@ function closeSlakingQuiz(){
 }
 
 function confirmCasinoPlayer(t){
+  t = window.LOGIN_ME || t;
   casinoPlayer = t;
   casinoNeedsProfileSelect = false;
   closeModal();
@@ -9152,6 +9158,7 @@ function confirmCasinoPlayer(t){
 }
 
 function setCasinoPlayer(t){
+  t = window.LOGIN_ME || t;
   casinoPlayer = t;
   render();
   checkDailyBonus(t);
@@ -10885,15 +10892,12 @@ function arenaPostLeagueReady(){
 }
 function arenaVoteBox(key){
   const votes = arenaVotesOf(key);
+  const me = window.LOGIN_ME;
+  const mine = !!me && votes.includes(me);
+  const who = votes.length ? 'Han votado: ' + votes.map(t=>NAMES[t]).join(', ') : 'Nadie ha votado todavía';
   return `
     <div class="arena-vote">
-      <div class="arena-vote-title">🗳️ Adelantar sin medallas · ${votes.length}/3 votos</div>
-      <div class="arena-vote-row">
-        ${TRAINERS.map(t=>{
-          const on = votes.includes(t);
-          return `<button type="button" class="arena-vote-chip ${on?'on':''}" aria-pressed="${on}" onclick="toggleArenaVote('${key}','${t}')">${on?'✓ ':''}${NAMES[t]}</button>`;
-        }).join('')}
-      </div>
+      <button type="button" class="arena-vote-chip arena-vote-btn ${mine?'on':''}" aria-pressed="${mine}" title="${who}" ${me?`onclick="toggleArenaVote('${key}','${me}')"`:'disabled'}>${mine?'✓ ':''}Adelantar el combate · ${votes.length}/3</button>
     </div>`;
 }
 function arenaClearVotes(key){
@@ -10904,6 +10908,7 @@ function arenaClearVotes(key){
 }
 async function toggleArenaVote(key, trainer){
   if(!TRAINERS.includes(trainer) || !ARENA_VOTE_KEYS.includes(key)) return;
+  if(trainer !== window.LOGIN_ME){ toast('Solo puedes votar por ti.'); return; }
   if(duelState.scheduled){ toast('Termina el torneo actual antes de votar.'); return; }
   const isPost = key === 'post-league';
   const medals = isPost ? null : Number(key);
@@ -12490,6 +12495,7 @@ async function finishDuel(){
 
 /* ---------------- ACTIONS: hearts / team ---------------- */
 async function loseLife(t){
+  if(t!==window.LOGIN_ME){ toast('Solo puedes hacerlo con tu propia cuenta.'); return; }
   hearts[t] = Math.max(hearts[t]-1, -1);
   pushHistory(`💔 ${NAMES[t]} perdió una vida (${hearts[t]}/20)`);
   playSound('heartbreak');
@@ -12501,6 +12507,7 @@ async function loseLife(t){
   }
 }
 async function addLife(t){
+  if(t!==window.LOGIN_ME){ toast('Solo puedes hacerlo con tu propia cuenta.'); return; }
   hearts[t] = Math.min(hearts[t]+1, 20);
   pushHistory(`➕ ${NAMES[t]} sumó una vida manualmente (${hearts[t]}/20)`);
   render();
@@ -12511,6 +12518,7 @@ async function addLife(t){
   }
 }
 async function resetLives(t){
+  if(t!==window.LOGIN_ME){ toast('Solo puedes hacerlo con tu propia cuenta.'); return; }
   if(!confirm(`¿Seguro que quieres restablecer las 20 vidas de ${NAMES[t]}?`)) return;
   hearts[t] = 20;
   pushHistory(`🔄 ${NAMES[t]} restableció sus 20 vidas`);
@@ -13112,6 +13120,7 @@ let typeCalcState = {
   result: null, err: '', loading: false,
 };
 function pickTcTrainer(t){
+  t = window.LOGIN_ME || t;
   typeCalcState.trainer = t;
   try{ localStorage.setItem(TC_TRAINER_KEY, t); }catch(e){}
   render();
@@ -13692,13 +13701,14 @@ function openPokemonDetail(ownerTrainer, pid){
     </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal()">Cerrar</button>
-      <button class="ghost" onclick="toggleManualFainted('${ownerTrainer}','${pid}')">${mon.fainted ? '💚 Marcar como vivo' : '💀 Marcar como debilitado'}</button>
+      ${ownerTrainer===window.LOGIN_ME ? `<button class="ghost" onclick="toggleManualFainted('${ownerTrainer}','${pid}')">${mon.fainted ? '💚 Marcar como vivo' : '💀 Marcar como debilitado'}</button>` : ''}
       <button class="primary" onclick="openTrueque('${ownerTrainer}', null, '${pid}')">🔁 Proponer trueque</button>
     </div>
   `);
 }
 
 async function toggleManualFainted(trainer, pid){
+  if(trainer!==window.LOGIN_ME){ toast('Solo puedes cambiar el estado de tus propios Pokémon.'); return; }
   const mon = allMonsOf(trainer).find(m=>m.pid===pid);
   if(!mon) return;
   const map = { ...(manualFainted[trainer]||{}) };
@@ -13712,12 +13722,13 @@ async function toggleManualFainted(trainer, pid){
 
 const ABILITY_REVEAL_COST = 20;
 function openRevealAbility(targetTrainer){
+  if(!window.LOGIN_ME || targetTrainer===window.LOGIN_ME){ toast('Esto sirve para revelar la habilidad de otro jugador, no la tuya.'); return; }
   const pool = allMonsOf(targetTrainer).filter(m=>m.inTeam && !m.isEgg);
   if(pool.length === 0){
     openModal(`<h3>🔓 Revelar habilidad</h3><div class="empty-state">${NAMES[targetTrainer]} no tiene ningún Pokémon del que se pueda revelar la habilidad en el equipo activo.</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Cerrar</button></div>`);
     return;
   }
-  const payers = TRAINERS.filter(t=>t!==targetTrainer);
+  const payers = TRAINERS.filter(t=>t===window.LOGIN_ME && t!==targetTrainer);
   openModal(`
     <h3>🔓 Revelar habilidad de un Pokémon al azar</h3>
     <div style="font-size:12px;color:var(--silver-dim);margin-bottom:12px;">
@@ -13737,7 +13748,8 @@ function openRevealAbility(targetTrainer){
   `);
 }
 async function confirmRevealAbility(targetTrainer){
-  const payer = document.getElementById('reveal-payer-select').value;
+  const payer = window.LOGIN_ME;
+  if(!payer || payer===targetTrainer) return;
   const err = document.getElementById('reveal-err');
   if((tickets[payer]||0) < ABILITY_REVEAL_COST){
     err.textContent = `${NAMES[payer]} no tiene suficientes tickets.`;
