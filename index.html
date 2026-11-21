@@ -8411,9 +8411,9 @@ function __renderProfileBase(app, t){
         </div>
         <div class="hearts-grid" id="gems-row">${gems.map(on=> `<div class="gem ${on?'':'empty'}"></div>`).join('')}</div>
         <div class="hero-actions">
-          ${t===window.LOGIN_ME ? `<button class="danger-outline" onclick="loseLife('${t}')">💔 Perder vida</button>
+          <button class="danger-outline" onclick="loseLife('${t}')">💔 Perder vida</button>
           <button class="ghost" onclick="addLife('${t}')">➕ Sumar vida</button>
-          <button class="ghost" onclick="resetLives('${t}')">🔄 Restablecer</button>` : ''}
+          <button class="ghost" onclick="resetLives('${t}')">🔄 Restablecer</button>
           <button class="ghost" onclick="openApplySancion()">⚖️ Sanción</button>
           ${window.LOGIN_ME === 'iker' ? `<button class="ghost" onclick="giveRareCandies('${t}')">🍬 +999 Caramelos raros</button>` : ''}
         </div>
@@ -12495,7 +12495,6 @@ async function finishDuel(){
 
 /* ---------------- ACTIONS: hearts / team ---------------- */
 async function loseLife(t){
-  if(t!==window.LOGIN_ME){ toast('Solo puedes hacerlo con tu propia cuenta.'); return; }
   hearts[t] = Math.max(hearts[t]-1, -1);
   pushHistory(`💔 ${NAMES[t]} perdió una vida (${hearts[t]}/20)`);
   playSound('heartbreak');
@@ -12507,7 +12506,6 @@ async function loseLife(t){
   }
 }
 async function addLife(t){
-  if(t!==window.LOGIN_ME){ toast('Solo puedes hacerlo con tu propia cuenta.'); return; }
   hearts[t] = Math.min(hearts[t]+1, 20);
   pushHistory(`➕ ${NAMES[t]} sumó una vida manualmente (${hearts[t]}/20)`);
   render();
@@ -12518,7 +12516,6 @@ async function addLife(t){
   }
 }
 async function resetLives(t){
-  if(t!==window.LOGIN_ME){ toast('Solo puedes hacerlo con tu propia cuenta.'); return; }
   if(!confirm(`¿Seguro que quieres restablecer las 20 vidas de ${NAMES[t]}?`)) return;
   hearts[t] = 20;
   pushHistory(`🔄 ${NAMES[t]} restableció sus 20 vidas`);
@@ -13701,14 +13698,13 @@ function openPokemonDetail(ownerTrainer, pid){
     </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal()">Cerrar</button>
-      ${ownerTrainer===window.LOGIN_ME ? `<button class="ghost" onclick="toggleManualFainted('${ownerTrainer}','${pid}')">${mon.fainted ? '💚 Marcar como vivo' : '💀 Marcar como debilitado'}</button>` : ''}
+      <button class="ghost" onclick="toggleManualFainted('${ownerTrainer}','${pid}')">${mon.fainted ? '💚 Marcar como vivo' : '💀 Marcar como debilitado'}</button>
       <button class="primary" onclick="openTrueque('${ownerTrainer}', null, '${pid}')">🔁 Proponer trueque</button>
     </div>
   `);
 }
 
 async function toggleManualFainted(trainer, pid){
-  if(trainer!==window.LOGIN_ME){ toast('Solo puedes cambiar el estado de tus propios Pokémon.'); return; }
   const mon = allMonsOf(trainer).find(m=>m.pid===pid);
   if(!mon) return;
   const map = { ...(manualFainted[trainer]||{}) };
@@ -14421,7 +14417,8 @@ button:disabled{opacity:.45;cursor:default}
 </style>
 
 <div id="lk-login" style="position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#12060a;color:#f7efe6;font-family:system-ui,sans-serif">
-<form id="lk-f" style="width:min(92%,340px);display:grid;gap:14px;background:#2a1216;border:1px solid #d6283966;border-radius:18px;padding:24px">
+<div id="lk-wait" style="position:absolute;color:#b99aa0;font-size:14px;letter-spacing:.12em">🎄 Cargando…</div>
+<form id="lk-f" style="visibility:hidden;width:min(92%,340px);display:grid;gap:14px;background:#2a1216;border:1px solid #d6283966;border-radius:18px;padding:24px">
 <div><div style="font-size:28px;font-weight:700;color:#f4c95d">🎄 Locke Navideño</div><div style="color:#b99aa0">Pokémon Radical Red</div></div>
 <label style="display:grid;gap:6px;font-size:13px;color:#b99aa0">Quién eres<select id="lk-u" style="padding:10px;border-radius:10px;background:#14080b;color:#f7efe6;border:1px solid #d6283988"><option value="iker">Iker</option><option value="joel">Joel</option><option value="alex">Alex</option></select></label>
 <label style="display:grid;gap:6px;font-size:13px;color:#b99aa0">Contraseña<input id="lk-p" type="password" autocomplete="current-password" required style="padding:10px;border-radius:10px;background:#14080b;color:#f7efe6;border:1px solid #d6283988"></label>
@@ -14566,8 +14563,10 @@ window.FBD={
   }};
 $('#lk-f').onsubmit=async e=>{e.preventDefault();$('#lk-err').textContent='';
   try{await signInWithEmailAndPassword(auth,$('#lk-u').value+'@locke.local',$('#lk-p').value)}catch{$('#lk-err').textContent='Usuario o contraseña incorrectos.'}};
+const showLogin=()=>{$('#lk-f').style.visibility='visible';const w=$('#lk-wait');if(w)w.style.display='none'};
+setTimeout(showLogin,8000); /* por si Firebase tarda o no responde: que se vea el formulario */
 onAuthStateChanged(auth,async user=>{
-  if(!user){$('#lk-login').style.display='grid';return}
+  if(!user){$('#lk-login').style.display='grid';showLogin();return}
   me=user.email.split('@')[0];window.LOGIN_ME=me;
   cfg=(await get(ref(db,'config'))).val()||{};
   await Promise.all([sub('legacy',v=>{FBS.legacy=v||{}}),sub('profiles',v=>{FBS.profiles=v||{}}),sub('inventory',v=>{FBS.inventory=v||{};inv=FBS.inventory[me]||{}}),
