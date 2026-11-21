@@ -14726,6 +14726,7 @@ function gcRoll(g,pool){
   const c=pool.filter(p=>p.s===have[0]);return c[Math.floor(gcRand()*c.length)]}
 /*GC-END*/
 const gcRef=()=>ref(db,`gacha/${me}`);
+let gcState=null;const gcLeft=n=>n<=1?'la próxima tirada':n+' tiradas';
 function gcTone(f,t,d,type,v,f2){try{ensureAudio();const a=audioCtx;if(!a)return;if(a.state==='suspended')a.resume();
   const o=a.createOscillator(),g=a.createGain(),s=a.currentTime+t;o.type=type||'sine';o.frequency.setValueAtTime(f,s);
   if(f2)o.frequency.exponentialRampToValueAtTime(f2,s+d);g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(v||.15,s+.02);
@@ -14744,16 +14745,19 @@ function gcChord(s){const b=[262,330,392,523,659,784],n=s>=5?6:s===4?4:s===3?3:2
 .gc-btn:disabled{filter:grayscale(1);opacity:.5;cursor:not-allowed}
 #gc-ov{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--c) 28%,#06030f),#030108 70%);overflow:hidden}
 #gc-ov>.gc-stars,#gc-ov>.gc-card{grid-area:1/1}
-.gc-orb{position:absolute;left:50%;top:50%;width:90px;height:90px;margin:-45px;border-radius:50%;background:radial-gradient(circle,#fff 0 25%,var(--c) 55%,transparent 72%);box-shadow:0 0 70px 30px var(--c);animation:gcFall 1.7s cubic-bezier(.5,0,.9,.6) forwards}
-@keyframes gcFall{0%{transform:translateY(-70vh) scale(.3);opacity:0}15%{opacity:1}85%{transform:translateY(0) scale(1.2)}100%{transform:translateY(0) scale(6);opacity:0}}
-.gc-flash{position:absolute;inset:0;background:#fff;opacity:0;animation:gcFlash .6s 1.55s forwards}
+#gc-ov>.gc-card{position:relative;z-index:3}
+.gc-orb{position:absolute;left:50%;top:50%;width:90px;height:90px;margin:-45px;border-radius:50%;background:radial-gradient(circle,#fff 0 25%,var(--c) 55%,transparent 72%);box-shadow:0 0 70px 30px var(--c);pointer-events:none;will-change:transform,opacity;animation:gcFall 1.7s cubic-bezier(.5,0,.9,.6) forwards}
+@keyframes gcFall{0%{transform:translateY(-70vh) scale(.3);opacity:0}15%{opacity:1}85%{transform:translateY(0) scale(1.2)}100%{transform:translateY(0) scale(2.2);opacity:0}}
+.gc-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;will-change:opacity;animation:gcFlash .6s 1.55s forwards}
 @keyframes gcFlash{0%{opacity:0}40%{opacity:.9}100%{opacity:0}}
-.gc-stars{opacity:0;transition:opacity .3s;text-align:center;filter:drop-shadow(0 0 22px var(--c))}
+.gc-stars{position:relative;opacity:0;transition:opacity .3s;text-align:center}
+.gc-halo{position:absolute;inset:-70px -110px;background:radial-gradient(closest-side,var(--c),transparent 72%);opacity:.5;pointer-events:none}
+.gc-rev{position:relative;will-change:clip-path}
 .gc-stars.on{opacity:1}
 .gc-rev{clip-path:inset(0 100% 0 0)}
 .gc-stars.on .gc-rev{clip-path:inset(0 0 0 0);transition:clip-path calc(var(--n)*340ms) steps(var(--n),end)}
 .gc-stars img{display:block;max-width:min(80vw,520px);max-height:30vh}
-.gc-glyph{font-size:72px;color:var(--c);letter-spacing:8px}
+.gc-glyph{font-size:72px;color:var(--c);letter-spacing:8px;text-shadow:0 0 14px var(--c)}
 .gc-card{display:none;flex-direction:column;align-items:center;gap:10px;padding:26px 34px;border-radius:16px;background:linear-gradient(180deg,#1c1238,#0d0820);border:2px solid var(--c);box-shadow:0 0 50px var(--c);animation:gcPop .5s cubic-bezier(.2,1.4,.4,1)}
 .gc-card.on{display:flex}
 @keyframes gcPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
@@ -14762,7 +14766,10 @@ function gcChord(s){const b=[262,330,392,523,659,784],n=s>=5?6:s===4?4:s===3?3:2
 .gc-card h3{margin:0;color:#fff;font-size:22px}
 .gc-q{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--c)}
 .gc-row{display:flex;gap:10px;margin-top:6px}
-.gc-skip{position:absolute;right:18px;top:16px;background:transparent;border:1px solid #fff5;color:#fff;border-radius:999px;padding:6px 16px;cursor:pointer}
+.gc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.gc-chip{padding:5px 13px;border-radius:999px;font-size:12.5px;color:#fff;background:color-mix(in srgb,var(--c) 20%,transparent);border:1px solid var(--c)}
+.gc-chip b{color:var(--c);font-size:13.5px}
+.gc-skip{position:absolute;z-index:5;right:18px;top:16px;background:transparent;border:1px solid #fff5;color:#fff;border-radius:999px;padding:6px 16px;cursor:pointer}
 #app .hm-tiles{margin-bottom:22px !important}
 .gc-home{gap:22px}
 .gc-logo{height:150px;max-height:none;max-width:none;width:auto;flex:0 0 auto;filter:drop-shadow(0 0 14px #b36bff88)}
@@ -14783,21 +14790,21 @@ async function gcPull(){
   catch(e){await runTransaction(tk,c=>(+c||0)+GC.cost);say('No se pudo completar la tirada. Te hemos devuelto los tickets.');return}
   inv[it.kind]=inv[it.kind]||{};inv[it.kind][it.id]=true;FBS.inventory[me]=inv;dirty();
   const ng={p4:it.s>=4?0:(g.p4||0)+1,p5:it.s===5?0:(g.p5||0)+1};
-  try{await set(gcRef(),ng)}catch(e){console.error(e)}
+  gcState=ng;try{await set(gcRef(),ng)}catch(e){console.error(e)}
   gcShow(it,ng)}
 async function gcShow(it,ng){
   const s=it.s,ch=it.kind==='characters',sp=ch?window.characterAsset(it.id):null,ov=document.createElement('div');
   ov.id='gc-ov';ov.style.setProperty('--c',GC.col[s]);
   const nm=(ch?'Personaje ':'Fondo ')+it.id,vis=`<div class="gc-img">${ch?`<img src="${sp.src}" ${window.characterFallbackAttrs(sp.fallback)} alt="${nm}">`:`<img class="w" src="${REWARD_ASSET_ROOT}fondos/fondo_${it.id}.png" alt="${nm}">`}</div>`;
   ov.innerHTML=`<div class="gc-orb"></div><div class="gc-flash"></div>
-  <div class="gc-stars" style="--n:${s}"><div class="gc-rev"><img src="${GC.img(s)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><b class="gc-glyph" style="display:none">${'★'.repeat(s)}</b></div></div>
+  <div class="gc-stars" style="--n:${s}"><div class="gc-halo"></div><div class="gc-rev"><img src="${GC.img(s)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><b class="gc-glyph" style="display:none">${'★'.repeat(s)}</b></div></div>
   <div class="gc-card"><div class="gc-q">${GC.nm[s]} · ${'★'.repeat(s)}</div>${vis}<h3>${nm}</h3>
-  <div class="gc-q" style="color:#cfc8e8">4★+ garantizado en ${Math.max(1,GC.pity4-ng.p4)} · 5★ en ${Math.max(1,GC.pity5-ng.p5)}</div>
   <div class="gc-row"><button class="gc-btn" data-gcx="close">Genial</button><button class="gc-btn" data-gcx="again">Tirar otra vez · ${GC.cost}</button></div></div>
   <button class="gc-skip" data-gcx="skip">Saltar</button>`;
   document.body.appendChild(ov);
+  const si=ov.querySelector('.gc-rev img');if(si&&si.decode)si.decode().catch(()=>{}); /* precarga la imagen de estrellas para que no tire al aparecer */
   let sk=false;const nap=ms=>sk?Promise.resolve():new Promise(r=>setTimeout(r,ms));
-  const show=()=>{const st=ov.querySelector('.gc-stars');st.style.display='none';ov.querySelector('.gc-card').classList.add('on')};
+  const show=()=>{ov.querySelectorAll('.gc-orb,.gc-flash').forEach(x=>x.remove());const st=ov.querySelector('.gc-stars');st.style.display='none';ov.querySelector('.gc-card').classList.add('on')};
   ov.addEventListener('click',e=>{const x=e.target.closest('[data-gcx]');if(!x)return;const k=x.dataset.gcx;
     if(k==='skip'){sk=true;show();gcChord(s);return}
     ov.remove();window.render&&window.render();if(k==='again')act(gcPull)});
@@ -14814,10 +14821,13 @@ function gcHome(a){
   if(!tot)return;
   const el=document.createElement('section');el.className='gc-home';
   el.innerHTML=`<img class="gc-logo" src="${GC_LOGO}" alt=""><div class="gc-body"><span class="gc-eye">GACHA</span><h2>Skins y fondos</h2><p>${GC.cost} 🎟️ por tirada · nunca te salen repetidos</p>
-  <div class="gc-meta">Colección: <b>${tot-pool.length}/${tot}</b> · 4★+ garantizado en <b class="p4">—</b> · 5★ en <b class="p5">—</b> tiradas</div></div>
+  <div class="gc-meta">Colección: <b>${tot-pool.length}/${tot}</b></div>
+  <div class="gc-chips"><span class="gc-chip" style="--c:#b36bff">4★ o más garantizado en <b class="p4">…</b></span><span class="gc-chip" style="--c:#ffcc4d">5★ garantizado en <b class="p5">…</b></span></div></div>
   <div class="gc-h-r"><div class="gc-bal">🎟️ <b>${tkv}</b></div><button class="gc-btn" data-gc="pull" ${tkv<GC.cost||!pool.length?'disabled':''} type="button">${pool.length?'Tirar · '+GC.cost:'Colección completa'}</button></div>`;
   const hero=a.querySelector('.rr-hero');hero?hero.insertAdjacentElement('afterend',el):a.prepend(el);
-  get(gcRef()).then(sn=>{const g=sn.val()||{};el.querySelector('.p4').textContent=Math.max(1,GC.pity4-(g.p4||0));el.querySelector('.p5').textContent=Math.max(1,GC.pity5-(g.p5||0))}).catch(()=>{})}
+  const paint=g=>{const a=el.querySelector('.p4'),b=el.querySelector('.p5');if(a)a.textContent=gcLeft(GC.pity4-(g.p4||0));if(b)b.textContent=gcLeft(GC.pity5-(g.p5||0))};
+  if(gcState)paint(gcState);
+  get(gcRef()).then(sn=>{gcState=sn.val()||{};paint(gcState)}).catch(()=>{})}
 {const h=window.renderHome;if(h)window.renderHome=a=>{h(a);try{gcHome(a)}catch(e){console.error(e)}}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-gc]');if(b&&b.dataset.gc==='pull')act(gcPull)});
 
