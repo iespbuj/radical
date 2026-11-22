@@ -7454,6 +7454,12 @@ function illegalBadge(t){
   return activeIllegals().some(c => c.player === t)
     ? `<div class="cs-ill-badge" title="Tiene una ilegalidad pendiente">☠️ ILEGAL</div>` : '';
 }
+async function clearIllegalAdmin(id){ /* solo desde la página de Iker, por si algo sale mal */
+  const c = castigos[id];
+  if(!c || c.type !== 'illegal' || window.LOGIN_ME !== 'iker') return;
+  pushHistory(`✅ Iker ha quitado la ilegalidad de ${NAMES[c.player]}.`);
+  await removeCastigo(id);
+}
 async function clearIllegal(id){
   const c = castigos[id];
   if(!c || c.type !== 'illegal' || c.player !== window.LOGIN_ME) return;
@@ -7508,7 +7514,7 @@ function renderCastigosHome(){
       : `<div class="cs-row"><span class="ic">🥚</span><span class="tx"><b>${lkEsc(NAMES[c.player])}</b> ${c.status === 'voting'
           ? `cambia un Pokémon de su equipo por un huevo: votan ${eggSwapVoters(c).map(v => `${lkEsc(NAMES[v])} ${(c.votes || {})[v] ? '✅' : '⏳'}`).join(' · ')}`
           : `cambia ${lkEsc(c.chosen ? c.chosen.label : 'un Pokémon')} por un huevo (esperando a su juego)`}<small>${lkEsc(c.source || '')} · ${when(c.ts)}</small></span></div>`).join('')}</div>` : ''}
-    ${ill.length ? `<div class="cs-block cs-ill"><div class="cs-h">☠️ Ilegalidad en curso</div>${ill.map(c => `<div class="cs-row"><span class="ic">☠️</span><span class="tx"><b>${lkEsc(NAMES[c.player])}</b> tiene permiso para una ilegalidad<small>la página seguirá a oscuras hasta que la haga</small></span></div>`).join('')}</div>` : ''}
+    ${ill.length ? `<div class="cs-block cs-ill"><div class="cs-h">☠️ Ilegalidad en curso</div>${ill.map(c => `<div class="cs-row"><span class="ic">☠️</span><span class="tx"><b>${lkEsc(NAMES[c.player])}</b> tiene permiso para una ilegalidad<small>la página seguirá a oscuras hasta que la haga</small></span>${window.LOGIN_ME === 'iker' ? `<button class="primary" onclick="clearIllegalAdmin('${c.id}')">Quitar (Iker)</button>` : ''}</div>`).join('')}</div>` : ''}
   </section>`;
 }
 
@@ -14598,7 +14604,7 @@ onAuthStateChanged(auth,async user=>{
   $('#lk-login').style.display='none';window._fbResolve();
 });
 /* ---------- calendario ---------- */
-const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Se entregará al juego con el botón Recibir.'],illegality:['ILEG','Una ilegalidad','Sí, se llama así. Úsala cuando quieras.'],sanction:['SANC','Derecho a una sanción','Eliges a quién y puedes girar la ruleta de sanciones.'],steal:['ROBO','Derecho a un robo','Eliges a la persona y gira una ruleta con su equipo.'],operator:['OPER','Un Operator','Quien elijas te compra un Operator en Valorant.'],casino:['CASINO','Ruleta de casino','Te invita a una tirada gratis quien elijas.'],slots:['777','Tiradas gratis','Para las tragaperras de la web.'],shield:['ESCUDO','Un escudo','Bloquea un robo o una sanción.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis de la lotería.'],reroll:['REPITE','Repetir una tirada','Vuelves a girar cualquier ruleta.'],nickname:['MOTE','Mote forzado','Eliges un Pokémon de otro y le pones el mote.']};
+const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Te llega un huevo sorpresa al PC del juego.'],illegality:['ILEG','Una ilegalidad','Se activa sola al abrir la puerta. Cuando la hagas, pulsa «Ya la hice» en Inicio.'],sanction:['SANC','Derecho a una sanción','Eliges a quién y puedes girar la ruleta de sanciones.'],steal:['ROBO','Derecho a un robo','Eliges a la persona y gira una ruleta con su equipo.'],operator:['OPER','Un Operator','Alguien te debe un Operator en Valorant. Queda apuntado en el diario.'],casino:['CASINO','Ruleta de casino','Alguien te debe una tirada de ruleta en un casino de verdad. Queda apuntado en el diario.'],slots:['777','Tiradas gratis','Para las tragaperras de la web.'],shield:['ESCUDO','Un escudo','Bloquea un robo o una sanción.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis de la lotería.'],reroll:['REPITE','Repetir una tirada','Vuelves a girar cualquier ruleta.'],nickname:['MOTE','Mote forzado','Eliges un Pokémon de otro y le pones el mote.']};
 const KIND={title:'titles',palette:'palettes',character:'characters',background:'backgrounds'};
 const REWARD_ASSET_ROOT='';
 window.characterAsset=function(id,silhouette=false){
@@ -14634,7 +14640,8 @@ function paletteColorsOf(p){
 }
 function paletteNameOf(p){return p&&(p.name||p.nombre)||'Paleta';}
 function paletteRarityOf(p){return p&&(p.rarity||p.rareza)||'Especial';}
-const AUTO=t=>t==='tickets'||!!KIND[t];
+const SPECIAL_AUTO=['illegality','operator','casino','pokemon'],grantNotes={};
+const AUTO=t=>t==='tickets'||!!KIND[t]||SPECIAL_AUTO.includes(t);
 const mini=p=>p.type==='tickets'?'+'+p.amount:p.type==='title'?'TÍT':p.type==='palette'?'PAL':p.type==='character'?'SKIN':p.type==='background'?'FONDO':SP[p.type][0];
 const pname=p=>p.type==='slots'?p.spins+' tiradas gratis':SP[p.type][1];
 function dayNum(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid'}).format(new Date(Date.now()+off)).split('-').map(Number);
@@ -14657,8 +14664,39 @@ function paintCal(){if(!$('#cg'))return;const t=dayNum();$('#caldia').textConten
   const st=Object.keys(opened).filter(k=>pz[k]&&!AUTO(pz[k].type)&&!claims[k]);
   $('#stored').innerHTML=st.length?`<h2>Premios guardados</h2><div class="shop">${st.map(k=>`<div class="it own"><div class="nm">Puerta ${k}<small>${esc(pname(pz[k]))}</small></div>${pz[k].type==='life'?`<button class="btn" data-life="${k}" type="button">Cobrar vida</button>`:''}</div>`).join('')}</div>`:''}
 function price(p){const P=cfg.prices||{};return p.type==='title'?(P.titleByStars||{})[(cfg.titles[p.id]||{}).stars]||10:P[KIND[p.type]]||20}
+/* ---- premios especiales automáticos: ilegalidad, Operator, casino y huevo (Pokémon aleatorio) ---- */
+const calOthers=t=>['iker','joel','alex'].filter(x=>x!==t);
+function calHash(x){let h=0;for(const c of String(x))h=(h*31+c.charCodeAt(0))>>>0;return h}
+function calDebtor(k){const o=calOthers(me);return o[calHash(me+':'+k)%o.length]} /* siempre el mismo para la misma puerta */
+function specialNote(p,k){if(!p)return'';
+  if(p.type==='operator'||p.type==='casino')return`Se lo debe ${NAMES[calDebtor(k)]}: queda apuntado en el diario.`;
+  return''}
+/* reclamo atómico: solo una llamada lo consigue, así un premio nunca se entrega dos veces */
+async function claimOnce(k){try{return(await runTransaction(ref(db,`claims/${me}/${k}`),c=>c?undefined:{at:serverTimestamp()},{applyLocally:false})).committed}catch{return false}}
+async function calReady(){for(let i=0;i<60;i++){if(typeof loaded!=='undefined'&&loaded)return true;await wait(500)}return false}
+async function applySpecial(k,p){
+  if(!(await calReady()))return'';
+  if(!(await claimOnce(k)))return'';
+  const key=me+':'+k,ev=text=>pushHistoryEvents([{id:'cal:'+key,text}]);
+  try{
+    if(p.type==='illegality'){
+      if(!Object.values(castigos).some(c=>c&&c.calKey===key))await addCastigo({type:'illegal',player:me,status:'active',source:'Calendario · puerta '+k,calKey:key});
+      ev(`☠️ ${NAMES[me]} abre una ilegalidad en el calendario: la página se queda a oscuras hasta que la haga.`);
+      return'Ya está activa: la página se oscurece hasta que pulses «Ya la hice».'}
+    if(p.type==='operator'||p.type==='casino'){
+      const what=p.type==='operator'?'un Operator en Valorant':'una tirada de ruleta en un casino de verdad';
+      ev(`🎯 ${NAMES[calDebtor(k)]} le debe ${what} a ${NAMES[me]} (Calendario, puerta ${k}).`);
+      return specialNote(p,k)}
+    if(p.type==='pokemon'){
+      await window.FBD.createGameOrder('cal-egg-'+k,{kind:'give_egg',species:randomEggSpecies()});
+      ev(`🥚 ${NAMES[me]} recibe un huevo sorpresa (Calendario): aparecerá en su PC.`)}
+    return''
+  }catch(e){console.error('No se pudo entregar el premio especial de la puerta '+k,e);try{await remove(ref(db,`claims/${me}/${k}`))}catch{}return''}}
 async function applyGrant(k,p){
-  try{await set(ref(db,`claims/${me}/${k}`),{at:serverTimestamp()})}catch{return''}
+  const note=SPECIAL_AUTO.includes(p.type)?await applySpecial(k,p):await applyBasic(k,p);
+  if(note)grantNotes[k]=note;return note}
+async function applyBasic(k,p){
+  if(!(await claimOnce(k)))return'';
   const tk=ref(db,`profiles/${me}/tickets`);
   if(p.type==='tickets'){await runTransaction(tk,c=>(+c||0)+p.amount);return`+${p.amount} tickets`}
   try{await set(ref(db,`inventory/${me}/${KIND[p.type]}/${p.id}`),true);return'Ya está en tu colección.'}
@@ -14682,14 +14720,17 @@ function calBurst(el){el.classList.remove('unlocking');el.classList.add('open','
     el.appendChild(p);setTimeout(()=>p.remove(),1700)}}
 async function openDoor(d){
   if(cbusy)return;
-  if(opened[d]){if(pz[d])reveal(d,false,pz[d],'');return}
+  if(opened[d]){if(pz[d])reveal(d,false,pz[d],specialNote(pz[d],String(d)));return}
   if(d>dayNum()){const e=doors[d];e.classList.remove('shake');void e.offsetWidth;e.classList.add('shake');return}
   cbusy=true;zoom(doors[d]);await wait(700);doors[d].classList.add('unlocking');await wait(1100);
   try{await set(ref(db,`calendarOpened/${me}/${d}`),{at:serverTimestamp()})}catch{say('No se pudo abrir la puerta. Inténtalo otra vez.');unzoom();return}
   let p=null;try{p=(await get(ref(db,`calendarPrizes/${me}/${d}`))).val()}catch{}
   if(!p){say('No se pudo leer el premio. Recarga la página.');unzoom();return}
   pz[d]=p;calBurst(doors[d]);await wait(2600);doors[d].classList.remove('swing');
-  const k=String(d);let note='';if(AUTO(p.type)){granting.add(k);note=await applyGrant(k,p);granting.delete(k)}
+  const k=String(d);let note='';if(AUTO(p.type)){
+    while(granting.has(k))await wait(100); /* syncCal ya lo está entregando: esperamos */
+    if(!claims[k]){granting.add(k);try{note=await applyGrant(k,p)}finally{granting.delete(k)}}
+    note=note||grantNotes[k]||specialNote(p,k)}
   reveal(d,true,p,note)}
 function reveal(d,fresh,p,note){const rv=$('#rv');if(!rv)return;let h='',t=p.type;
   if(t==='character'||t==='background'){const ch=t==='character',n=p.id,nm=(ch?'Personaje ':'Fondo ')+n,sprite=ch?window.characterAsset(n):null,silhouette=ch?window.characterAsset(n,true):null;
@@ -14697,7 +14738,7 @@ function reveal(d,fresh,p,note){const rv=$('#rv');if(!rv)return;let h='',t=p.typ
   else if(t==='title'){const x=cfg.titles[p.id]||{name:p.id,stars:0};h=`<div class="emb">${'★'.repeat(x.stars)}</div><h2>${esc(x.name)}</h2><p>Título de ${x.stars}★. Ya puedes ponértelo.</p>`}
   else if(t==='palette'){const x=paletteById(p.id),colors=paletteColorsOf(x)||{},name=paletteNameOf(x),rarity=paletteRarityOf(x);h=`<div style="display:flex;gap:8px;justify-content:center;margin:14px 0">${Object.values(colors).map(c=>`<i style="width:34px;height:34px;border-radius:50%;background:${esc(c)};border:2px solid #fff4"></i>`).join('')}</div><h2>${esc(name)}</h2><p>Paleta ${esc(String(rarity).toLowerCase())}.</p>`}
   else if(t==='tickets')h=`<div class="emb">+${p.amount}</div><h2>${p.amount} tickets</h2>`;
-  else h=`<div class="emb">${SP[t][0]}</div><h2>${esc(pname(p))}</h2><p>${SP[t][2]} Queda guardado en tu perfil.</p>`;
+  else h=`<div class="emb">${SP[t][0]}</div><h2>${esc(pname(p))}</h2><p>${SP[t][2]}${AUTO(t)?'':' Queda guardado en tu perfil.'}</p>`;
   rv.innerHTML=`<div class="cd" role="dialog" aria-modal="true" aria-label="Premio de la puerta ${d}"><div class="kick">Puerta ${d}</div>${h}${note?`<p>${esc(note)}</p>`:''}<button class="sm" id="ok" type="button">${fresh?'Genial':'Cerrar'}</button></div>`;
   rv.classList.add('on');$('#ok').onclick=closeCard;$('#ok').focus();
   if(fresh){for(let i=0;i<22;i++){const s=document.createElement('i'),a=Math.random()*6.283,r=90+Math.random()*130;s.className='sp';s.style.setProperty('--x',Math.cos(a)*r+'px');s.style.setProperty('--y',Math.sin(a)*r+'px');rv.appendChild(s);setTimeout(()=>s.remove(),1400)}
@@ -15405,6 +15446,7 @@ window.renderLocker=a=>{
     ${items.length?`<div class="shop">${cards}</div>`:`<p class="mu" style="margin-top:16px">Aún no tienes nada en esta categoría. <a href="#" onclick="go('shop');return false" style="color:var(--ac)">Ir a la tienda</a> o abre las puertas del calendario.</p>`}</div>`};
 
 setInterval(()=>{if(me&&$('#cg'))paintCal()},30000);
+setInterval(()=>{if(me)syncCal()},20000); /* reintenta entregas pendientes (p. ej. si la web aún cargaba) */
 
 /* ---------- cosméticos de las ruedas y brillo de lo nuevo ---------- */
 Object.assign(window.FBD,{
