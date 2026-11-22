@@ -5458,6 +5458,7 @@ function syncTrackerEvents(t, snapshot, team){
       .filter(m => !partyPids.has(String(m.pid)));
     const all = [...team.map(m => ({ m, inTeam:true })), ...boxMons.map(m => ({ m, inTeam:false }))].filter(x => !x.m.isEgg);
     const grave = Array.isArray(graveyard[t]) ? graveyard[t] : [];
+    const hasSecond = all.length >= 2; // con un solo Pokémon (el inicial) sus caídas no cuentan: no hay tumba
     const newReg = { ...reg };
     const events = [], tombs = [];
     let regChanged = false;
@@ -5472,7 +5473,7 @@ function syncTrackerEvents(t, snapshot, team){
       if(!prev && !baseline){
         events.push({ id:`cap:${t}:${pid}`, text:`${m.shiny ? '✨' : '🆕'} ${NAMES[t]} capturó a ${m.nickname}${m.nickname !== m.species ? ` (${m.species})` : ''}${m.metLocationName ? ` en ${m.metLocationName}` : ''}` });
       }
-      if(m.fainted && !grave.some(g => (g.pid != null && String(g.pid) === pid) || (g.pid == null && g.nickname === m.nickname && g.speciesName === m.species))){
+      if(hasSecond && m.fainted && !grave.some(g => (g.pid != null && String(g.pid) === pid) || (g.pid == null && g.nickname === m.nickname && g.speciesName === m.species))){
         tombs.push({ pid, nickname:m.nickname, speciesName:m.species, sprite:m.sprite || '', level:m.level || 1, diedAt:now });
         if(!baseline) events.push({ id:`dead:${t}:${pid}`, text:`💔 ${NAMES[t]} perdió a ${m.nickname}${m.nickname !== m.species ? ` (${m.species})` : ''}${m.level ? ` · Nv.${m.level}` : ''}` });
       }
@@ -5480,7 +5481,7 @@ function syncTrackerEvents(t, snapshot, team){
     (Array.isArray(snapshot.deaths) ? snapshot.deaths : []).forEach(death => {
       if(!death || typeof death !== 'object') return;
       const pid = String(death.identity || `${death.personality || ''}-${death.trainer_id || ''}`);
-      if(pid === '-' || grave.some(g => String(g.pid) === pid) || tombs.some(g => g.pid === pid)) return;
+      if(!hasSecond || pid === '-' || grave.some(g => String(g.pid) === pid) || tombs.some(g => g.pid === pid)) return;
       const nickname = String(death.nickname || death.species || 'Pokémon');
       const speciesName = String(death.species || (death.species_id ? `#${death.species_id}` : 'Pokémon'));
       const level = Math.max(1, Number(death.level) || 1);
