@@ -3378,6 +3378,12 @@ body.casino-mode, body{ background-color:#0e0a0b; }
 .pf-card{ position:relative; }
 .cs-ill-badge{ position:absolute; z-index:6; top:8px; right:8px; padding:4px 10px; border-radius:999px; font:800 10px/1 var(--f-ui,inherit); letter-spacing:.14em;
   color:#ff5d5d; background:rgba(8,0,2,.9); border:1px solid #ff3b3b; box-shadow:0 0 14px rgba(255,40,40,.6),inset 0 0 8px rgba(255,40,40,.25); animation:csIllPulse 1.8s ease-in-out infinite; }
+.cs-shield-cape{ position:absolute; z-index:6; top:0; left:12px; width:54px; padding:9px 0 22px; display:flex; flex-direction:column; align-items:center; gap:4px;
+  color:#0b3a5c; background:linear-gradient(180deg,#e3f5ff,#a9d8f6); clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%); }
+.cs-shield-cape i{ font-style:normal; font-size:19px; line-height:1; }
+.cs-shield-cape b{ font:800 8.5px/1 var(--f-ui,inherit); letter-spacing:.08em; }
+.pf-free{ margin:2px 0 0; font-size:11px; opacity:.92; letter-spacing:.02em; }
+.pf-card:has(.cs-shield-cape){ box-shadow:0 0 0 2px #a9d8f6,0 0 22px rgba(169,216,246,.55); }
 @keyframes csIllPulse{ 0%,100%{ box-shadow:0 0 10px rgba(255,40,40,.4),inset 0 0 6px rgba(255,40,40,.2); } 50%{ box-shadow:0 0 22px rgba(255,40,40,.85),inset 0 0 10px rgba(255,40,40,.4); } }
 .cs-wrap{ max-width:1100px; margin:14px auto 4px; padding:0 4px; display:grid; gap:10px; }
 .cs-block{ border:1px solid var(--border); border-radius:14px; background:rgba(22,7,11,.78); padding:12px 14px; }
@@ -5016,6 +5022,11 @@ async function persistSteal(){
   if(!ok) queueRetry('steals', saveStealState);
 }
 async function startSteal(victim, source){
+  if(hasShield(victim)){
+    pushHistory(`🛡️ El robo a ${NAMES[victim]} no se puede hacer: tiene escudo (${source}).`);
+    toast(`🛡️ ${NAMES[victim]} tiene escudo: el robo no se puede hacer.`);
+    return;
+  }
   const id = crypto.randomUUID();
   stealState[id] = { id, victim, others: TRAINERS.filter(t=>t!==victim), status:'wheel', thief:null, pid:null, label:null, accepts:{}, source, ts:Date.now() };
   pushHistory(`🦹 A ${NAMES[victim]} le toca que le roben un Pokémon (${source}). Ruleta entre los otros dos.`);
@@ -7454,6 +7465,63 @@ function illegalBadge(t){
   return activeIllegals().some(c => c.player === t)
     ? `<div class="cs-ill-badge" title="Tiene una ilegalidad pendiente">☠️ ILEGAL</div>` : '';
 }
+/* ---- tiradas gratis, boletos gratis y rerolls: contadores del perfil (freeSpins, freeLottery, rerolls) que se gastan EN LUGAR de tickets ---- */
+const freeOf = (t, f) => Math.max(0, Math.floor(+((window.FBS && FBS.profiles && FBS.profiles[t] || {})[f]) || 0));
+function spendFree(t, f, n){
+  if(freeOf(t, f) < n) return false;
+  window.FBD.bump(t, f, -n);
+  return true;
+}
+function freeChips(t){
+  const a = freeOf(t, 'freeSpins'), b = freeOf(t, 'freeLottery'), c = freeOf(t, 'rerolls');
+  if(!a && !b && !c) return '';
+  return `<p class="pf-free">${a ? `<span title="Tiradas gratis de tragaperras">🎰 ${a}</span> ` : ''}${b ? `<span title="Boletos de lotería gratis">🎫 ${b}</span> ` : ''}${c ? `<span title="Rerolls de ruleta">🔁 ${c}</span>` : ''}</p>`;
+}
+// Ofrece repetir una ruleta ANTES de que se aplique el resultado. Devuelve true si se repite (y gasta 1 reroll).
+function offerReroll(trainer, label){
+  return new Promise(resolve => {
+    const n = freeOf(trainer, 'rerolls');
+    if(n < 1){ resolve(false); return; }
+    window.__rerollAsk = { trainer, label, resolve };
+    openModal(`<h3>🔁 ${lkEsc(NAMES[trainer])} tiene ${n} reroll${n === 1 ? '' : 's'}</h3>
+      <p style="margin:10px 0">Le ha tocado: <b>${lkEsc(label)}</b></p>
+      <div class="modal-actions"><button class="ghost" onclick="rerollAnswer(false)">Quedármelo</button><button class="primary" onclick="rerollAnswer(true)">Repetir (gasta 1 reroll)</button></div>`, false);
+  });
+}
+function rerollAnswer(yes){
+  const a = window.__rerollAsk; window.__rerollAsk = null;
+  closeModal();
+  if(!a) return;
+  if(yes && spendFree(a.trainer, 'rerolls', 1)){
+    pushHistory(`🔁 ${NAMES[a.trainer]} usa un reroll y repite la ruleta (le había tocado: ${a.label}).`);
+    a.resolve(true);
+  } else a.resolve(false);
+}
+
+/* ---- ESCUDO: lo da el calendario. Nadie puede robarle, sancionarle ni desafiarle hasta que termine el siguiente torneo ----
+   Se guarda en profiles/<t>/shield = { since:<ms> }. Caduca solo: en cuanto hay un torneo terminado (duelHistory) posterior a 'since'. */
+function hasShield(t){
+  const s = (window.FBS && FBS.profiles && FBS.profiles[t] || {}).shield;
+  if(!s || !Number(s.since)) return false;
+  return !(duelHistory || []).some(e => e && Number(e.ts) > Number(s.since));
+}
+function shieldBadge(t){
+  return hasShield(t) ? `<div class="cs-shield-cape" title="Tiene escudo hasta que termine el próximo torneo"><i>🛡️</i><b>ESCUDO</b></div>` : '';
+}
+function shieldBlock(t, what){
+  if(!hasShield(t)) return false;
+  toast(`🛡️ ${NAMES[t]} tiene escudo: no se le puede ${what}.`);
+  return true;
+}
+// robo de Pokémon con el premio del calendario: el que lo usa es el ladrón y elige a la víctima (sin ruleta); luego sigue el flujo normal (elegir Pokémon -> aceptan los dos)
+async function startPrizeSteal(thief, victim, source){
+  if(shieldBlock(victim, 'robar')) return false;
+  const id = crypto.randomUUID();
+  stealState[id] = { id, victim, others: TRAINERS.filter(t=>t!==victim), status:'pick', thief, pid:null, label:null, accepts:{}, source, ts:Date.now() };
+  pushHistory(`🦹 ${NAMES[thief]} usa su robo del calendario contra ${NAMES[victim]} (${source}).`);
+  await persistSteal();
+  return true;
+}
 async function clearIllegalAdmin(id){ /* solo desde la página de Iker, por si algo sale mal */
   const c = castigos[id];
   if(!c || c.type !== 'illegal' || window.LOGIN_ME !== 'iker') return;
@@ -8277,11 +8345,11 @@ window.lkProfileCard = function(t, big){
   const online = Object.values(((window.FBS&&FBS.presence)||{})[t]||{}).some(Boolean);
   const stars = Object.keys(p.tournamentStarClaims||{}).length;
   const bg = a.background ? `background-image:url(fondos/fondo_${lkEsc(a.background)}.png),var(--pf-fb);` : '';
-  return `<article class="pf-card${big?' big':''}${t===LOGIN_ME?' me':''}" style="${pal}" ${big?'':`onclick="go('profile','${t}')"`}>${illegalBadge(t)}
+  return `<article class="pf-card${big?' big':''}${t===LOGIN_ME?' me':''}" style="${pal}" ${big?'':`onclick="go('profile','${t}')"`}>${illegalBadge(t)}${shieldBadge(t)}
     <div class="pf-ban" style="${bg}"></div>
     ${character ? `<img class="pf-ch" src="${character.src}" ${window.characterFallbackAttrs(character.fallback)} alt="">` : `<div class="pf-ch pf-ph">🎅</div>`}
     ${ret ? '<div class="pf-stamp">🚩 ABANDONÓ</div>' : ''}
-    <div class="pf-txt"><h3>${NAMES[t]} <span class="pf-presence ${online?'online':''}" role="img" aria-label="${online?'En línea':'Sin conexión'}" title="${online?'En línea':'Sin conexión'}"></span></h3><p class="pf-ttl">${ti ? `<span>${'★'.repeat(+ti.stars||0)}</span> ${lkEsc(ti.name)}` : '<em>Sin título</em>'}</p><p class="pf-stars">⭐ ${stars} estrella${stars===1?'':'s'} de torneo</p></div>
+    <div class="pf-txt"><h3>${NAMES[t]} <span class="pf-presence ${online?'online':''}" role="img" aria-label="${online?'En línea':'Sin conexión'}" title="${online?'En línea':'Sin conexión'}"></span></h3><p class="pf-ttl">${ti ? `<span>${'★'.repeat(+ti.stars||0)}</span> ${lkEsc(ti.name)}` : '<em>Sin título</em>'}</p><p class="pf-stars">⭐ ${stars} estrella${stars===1?'':'s'} de torneo</p>${freeChips(t)}</div>
   </article>`;
 }
 function rrInfo(t, r){
@@ -9209,11 +9277,11 @@ function renderSlotMachine(id){
       <div class="slot-cabinet-inner">
         <div class="slot-marquee">${Array.from({length:9}).map(()=>`<div class="slot-bulb"></div>`).join('')}</div>
         <div class="slot-title">${machine.emoji} ${machine.name.toUpperCase()}</div>
-        <div class="slot-sub">Jugando: ${NAMES[casinoPlayer]} · coste ${SLOT_SPIN_COST} tickets por tirada</div>
+        <div class="slot-sub">Jugando: ${NAMES[casinoPlayer]} · ${freeOf(casinoPlayer,'freeSpins')>0 ? `🎰 ${freeOf(casinoPlayer,'freeSpins')} tirada${freeOf(casinoPlayer,'freeSpins')===1?'':'s'} gratis` : `coste ${SLOT_SPIN_COST} tickets por tirada`}</div>
 
         <div class="slot-multiplier-row">
           ${[1,2,5,10].map(n=>`<button class="slot-mult-btn ${slotMultiplier===n?'active':''}" ${slotSpinning?'disabled':''} onclick="setSlotMultiplier(${n})">x${n}</button>`).join('')}
-          <span class="slot-mult-cost">= ${SLOT_SPIN_COST * slotMultiplier} tickets</span>
+          <span class="slot-mult-cost">= ${SLOT_SPIN_COST * slotMultiplier} ${freeOf(casinoPlayer,'freeSpins') >= SLOT_SPIN_COST * slotMultiplier ? 'tiradas gratis' : 'tickets'}</span>
         </div>
 
         <div class="slot-machine-row">
@@ -9267,7 +9335,8 @@ function setSlotMultiplier(n){
 async function pullLever(machineId){
   if(slotSpinning) return;
   const totalCost = SLOT_SPIN_COST * slotMultiplier;
-  if((tickets[casinoPlayer]||0) < totalCost){
+  const useFree = freeOf(casinoPlayer, 'freeSpins') >= totalCost; // con tiradas gratis suficientes se gastan ESAS en vez de tickets
+  if(!useFree && (tickets[casinoPlayer]||0) < totalCost){
     slotResultText = `No tienes suficientes tickets (necesitas ${totalCost}).`;
     slotResultClass = 'lose';
     render();
@@ -9280,7 +9349,12 @@ async function pullLever(machineId){
   playSound('lever');
 
   // Cobrar el coste total de golpe
-  await addTickets(casinoPlayer, -totalCost, `Tirada x${slotMultiplier} de tragaperras`);
+  if(useFree){
+    spendFree(casinoPlayer, 'freeSpins', totalCost);
+    pushHistory(`🎰 ${NAMES[casinoPlayer]} usa ${totalCost} tirada${totalCost===1?'':'s'} gratis (tragaperras x${slotMultiplier}).`);
+  } else {
+    await addTickets(casinoPlayer, -totalCost, `Tirada x${slotMultiplier} de tragaperras`);
+  }
 
   // Se resuelven TODAS las tiradas ya (aunque solo se vea una animación)
   const outcomes = Array.from({length: slotMultiplier}, () => pickWeighted(SLOT_OUTCOMES));
@@ -10508,11 +10582,11 @@ function renderLoteriaTab(){
       </div>
 
       <div class="bet-panel" style="max-width:420px;">
-        <div class="bet-panel-header">Jugando: ${NAMES[casinoPlayer]} · 🎟️ ${tickets[casinoPlayer]||0}</div>
+        <div class="bet-panel-header">Jugando: ${NAMES[casinoPlayer]} · 🎟️ ${tickets[casinoPlayer]||0}${freeOf(casinoPlayer,'freeLottery')>0 ? ` · 🎫 ${freeOf(casinoPlayer,'freeLottery')} gratis` : ''}</div>
         <div style="font-size:12px;color:var(--silver-dim);margin-bottom:14px;">Cada boleto cuesta ${LOTERIA_TICKET_COST} tickets y va directo al bote. Cuantos más boletos compres, más grande es tu porción de la rueda.</div>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-          <button class="primary" onclick="buyLotteryTicket(1)" ${loteriaDrawing?'disabled':''}>+1 boleto (${LOTERIA_TICKET_COST} 🎟️)</button>
-          <button class="primary" onclick="buyLotteryTicket(5)" ${loteriaDrawing?'disabled':''}>+5 boletos (${LOTERIA_TICKET_COST*5} 🎟️)</button>
+          <button class="primary" onclick="buyLotteryTicket(1)" ${loteriaDrawing?'disabled':''}>+1 boleto (${freeOf(casinoPlayer,'freeLottery')>=1 ? 'gratis' : LOTERIA_TICKET_COST+' 🎟️'})</button>
+          <button class="primary" onclick="buyLotteryTicket(5)" ${loteriaDrawing?'disabled':''}>+5 boletos (${freeOf(casinoPlayer,'freeLottery')>=5 ? 'gratis' : LOTERIA_TICKET_COST*(5-Math.min(5,freeOf(casinoPlayer,'freeLottery')))+' 🎟️'})</button>
         </div>
         <div class="err-msg" id="loteria-err"></div>
         <button class="danger-outline" style="margin-top:6px;" onclick="drawLoteria()" ${loteriaDrawing || total===0 ?'disabled':''}>${loteriaDrawing ? 'Girando…' : '🎉 Girar la rueda'}</button>
@@ -10536,19 +10610,22 @@ function renderLoteriaTab(){
 async function buyLotteryTicket(qty){
   if(loteriaDrawing) return;
   const err = document.getElementById('loteria-err');
-  const cost = LOTERIA_TICKET_COST * qty;
+  // los boletos gratis se gastan primero, en vez de tickets; el bote sube igual (el valor del boleto lo pone la casa)
+  const nFree = Math.min(qty, freeOf(casinoPlayer, 'freeLottery'));
+  const paid = qty - nFree, cost = LOTERIA_TICKET_COST * paid;
   if((tickets[casinoPlayer]||0) < cost){
     if(err) err.textContent = `No tienes suficientes tickets (necesitas ${cost}).`;
     return;
   }
   if(err) err.textContent = '';
   playSound('ticket');
-  await addTickets(casinoPlayer, -cost, `Compra de ${qty} boleto${qty===1?'':'s'} de lotería`);
+  if(nFree > 0) spendFree(casinoPlayer, 'freeLottery', nFree);
+  if(cost > 0) await addTickets(casinoPlayer, -cost, `Compra de ${paid} boleto${paid===1?'':'s'} de lotería`);
   for(let i=0;i<qty;i++){
     loteria.entries.push({ id: crypto.randomUUID(), trainer: casinoPlayer, ts: Date.now() });
   }
-  loteria.pot += cost;
-  pushHistory(`🎫 ${NAMES[casinoPlayer]} compró ${qty} boleto${qty===1?'':'s'} de lotería`);
+  loteria.pot += LOTERIA_TICKET_COST * qty;
+  pushHistory(`🎫 ${NAMES[casinoPlayer]} compró ${qty} boleto${qty===1?'':'s'} de lotería${nFree ? ` (${nFree} gratis)` : ''}`);
   render();
   const ok = await saveLoteria();
   if(!ok) queueRetry('loteria', saveLoteria);
@@ -10658,7 +10735,7 @@ function openApplySancion(){
     <div class="field">
       <label>¿Quién cometió la infracción?</label>
       <select id="sancion-trainer">
-        ${TRAINERS.map(t=>`<option value="${t}">${NAMES[t]}</option>`).join('')}
+        ${TRAINERS.map(t=>`<option value="${t}" ${hasShield(t)?'disabled':''}>${NAMES[t]}${hasShield(t)?' 🛡️ (escudo)':''}</option>`).join('')}
       </select>
     </div>
     <div class="modal-actions">
@@ -10669,6 +10746,7 @@ function openApplySancion(){
 }
 async function submitApplySancion(){
   const trainer = document.getElementById('sancion-trainer').value;
+  if(shieldBlock(trainer, 'sancionar')) return;
   sancionState = { offender: trainer, prize: null };
   sancionWheelRotation = 0;
   sancionWheelSpinning = false;
@@ -10701,9 +10779,11 @@ function spinSancionWheel(){
 
   setTimeout(async ()=>{
     const outcome = outcomes[idx];
-    sancionWheelSpinning = false;
-    sancionState.prize = outcome.label;
     playSound('wheelLand');
+    const again = await offerReroll(sancionState.offender, outcome.label); // si tiene rerolls, puede repetir antes de que se aplique
+    sancionWheelSpinning = false;
+    if(again){ render(); spinSancionWheel(); return; }
+    sancionState.prize = outcome.label;
     render();
     const ok = await saveSancion();
     if(!ok) queueRetry('sancion', saveSancion);
@@ -11383,11 +11463,12 @@ function spinMatch1LoserWheel(){
 
   setTimeout(async ()=>{
     const outcome = outcomes[idx];
-    match1LoserWheelSpinning = false;
-    duelState.match1LoserPrize = outcome.label;
-    playSound('wheelLand');
-
     const loser = [duelState.match1.p1, duelState.match1.p2].find(p=> p!==duelState.match1Winner);
+    playSound('wheelLand');
+    const again = await offerReroll(loser, outcome.label); // si tiene rerolls, puede repetir antes de que se aplique
+    match1LoserWheelSpinning = false;
+    if(again){ render(); spinMatch1LoserWheel(); return; }
+    duelState.match1LoserPrize = outcome.label;
     pushHistory(`💀 ${NAMES[loser]} perdió el Combate 1 y le tocó: ${outcome.label}`);
     await applyPrizeToTrainer(loser, outcome.label, 'Ruleta del perdedor del Combate 1');
 
@@ -12120,6 +12201,7 @@ async function recordBo3Game(matchKey, gameWinner){
 /* ================= DESAFÍOS 1v1 (fuera del bracket semanal) ================= */
 
 function openChallenge(targetTrainer){
+  if(shieldBlock(targetTrainer, 'desafiar')) return;
   if(challengeState){
     openModal(`<h3>⚔️ Desafío</h3><div class="empty-state">Ya hay un desafío en marcha (${NAMES[challengeState.challenger]} vs ${NAMES[challengeState.opponent]}). Termínalo antes de crear otro.</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Cerrar</button></div>`);
     return;
@@ -12166,6 +12248,7 @@ function renderChallengeMonPicker(targetTrainer){
   `;
 }
 async function confirmChallenge(targetTrainer){
+  if(shieldBlock(targetTrainer, 'desafiar')){ closeModal(); return; }
   const challenger = document.getElementById('challenge-who-select').value;
   const stakeId = document.getElementById('challenge-stake-select').value;
   const stake = CHALLENGE_STAKES.find(s=>s.id===stakeId);
@@ -12410,14 +12493,11 @@ function spinFinalWheel(role){
   setTimeout(async ()=>{
     const prize = prizes[idx];
     const trainer = role==='winner' ? duelState.finalWinner : finalLoserOf();
-    if(role==='winner'){
-      finalWheelSpinningWinner = false;
-      duelState.finalWinnerPrize = prize;
-    } else {
-      finalWheelSpinningLoser = false;
-      duelState.finalLoserPrize = prize;
-    }
     playSound('wheelLand');
+    const again = await offerReroll(trainer, prize); // si tiene rerolls, puede repetir antes de que se aplique
+    if(role==='winner') finalWheelSpinningWinner = false; else finalWheelSpinningLoser = false;
+    if(again){ render(); spinFinalWheel(role); return; }
+    if(role==='winner') duelState.finalWinnerPrize = prize; else duelState.finalLoserPrize = prize;
     render();
     const ok = await saveDuelState();
     if(!ok) queueRetry('duel', saveDuelState);
@@ -14604,7 +14684,7 @@ onAuthStateChanged(auth,async user=>{
   $('#lk-login').style.display='none';window._fbResolve();
 });
 /* ---------- calendario ---------- */
-const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Te llega un huevo sorpresa al PC del juego.'],illegality:['ILEG','Una ilegalidad','Se activa sola al abrir la puerta. Cuando la hagas, pulsa «Ya la hice» en Inicio.'],sanction:['SANC','Derecho a una sanción','Eliges a quién y puedes girar la ruleta de sanciones.'],steal:['ROBO','Derecho a un robo','Eliges a la persona y gira una ruleta con su equipo.'],operator:['OPER','Un Operator','Alguien te debe un Operator en Valorant. Queda apuntado en el diario.'],casino:['CASINO','Ruleta de casino','Alguien te debe una tirada de ruleta en un casino de verdad. Queda apuntado en el diario.'],slots:['777','Tiradas gratis','Para las tragaperras de la web.'],shield:['ESCUDO','Un escudo','Bloquea un robo o una sanción.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis de la lotería.'],reroll:['REPITE','Repetir una tirada','Vuelves a girar cualquier ruleta.'],nickname:['MOTE','Mote forzado','Eliges un Pokémon de otro y le pones el mote.']};
+const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Te llega un huevo sorpresa al PC del juego.'],illegality:['ILEG','Una ilegalidad','Se activa sola al abrir la puerta. Cuando la hagas, pulsa «Ya la hice» en Inicio.'],sanction:['SANC','Derecho a una sanción','Eliges a quién y puedes girar la ruleta de sanciones.'],steal:['ROBO','Derecho a un robo','Pulsa «Usar robo» en Premios guardados: eliges a quién (no a quien tenga escudo) y luego el Pokémon.'],operator:['OPER','Un Operator','Alguien te debe un Operator en Valorant. Queda apuntado en el diario.'],casino:['CASINO','Ruleta de casino','Alguien te debe una tirada de ruleta en un casino de verdad. Queda apuntado en el diario.'],slots:['777','Tiradas gratis','Se suman a tu perfil: en la tragaperras se gastan en lugar de tickets.'],shield:['ESCUDO','Un escudo','Capa azul en tu perfil: nadie puede robarte, sancionarte ni desafiarte hasta que termine el próximo torneo.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis: en la lotería se gasta en lugar de tickets.'],reroll:['REPITE','Un reroll','Cuando una ruleta te toque, podrás repetirla (se pregunta antes de aplicar el resultado).'],nickname:['MOTE','Mote forzado','Eliges un Pokémon de otro y le pones el mote.']};
 const KIND={title:'titles',palette:'palettes',character:'characters',background:'backgrounds'};
 const REWARD_ASSET_ROOT='';
 window.characterAsset=function(id,silhouette=false){
@@ -14640,7 +14720,7 @@ function paletteColorsOf(p){
 }
 function paletteNameOf(p){return p&&(p.name||p.nombre)||'Paleta';}
 function paletteRarityOf(p){return p&&(p.rarity||p.rareza)||'Especial';}
-const SPECIAL_AUTO=['illegality','operator','casino','pokemon'],grantNotes={};
+const SPECIAL_AUTO=['illegality','operator','casino','pokemon','shield','slots','lottery','reroll'],grantNotes={};
 const AUTO=t=>t==='tickets'||!!KIND[t]||SPECIAL_AUTO.includes(t);
 const mini=p=>p.type==='tickets'?'+'+p.amount:p.type==='title'?'TÍT':p.type==='palette'?'PAL':p.type==='character'?'SKIN':p.type==='background'?'FONDO':SP[p.type][0];
 const pname=p=>p.type==='slots'?p.spins+' tiradas gratis':SP[p.type][1];
@@ -14662,7 +14742,7 @@ function paintCal(){if(!$('#cg'))return;const t=dayNum();$('#caldia').textConten
   for(let d=1;d<=30;d++){const el=doors[d],o=!!opened[d],p=pz[d];el.className='door '+(o?'open':d>t?'locked':d===t?'today':'pend')+['zooming','unlocking','swing','shake'].filter(c=>el.classList.contains(c)).map(c=>' '+c).join('');
     el.setAttribute('aria-label',`Puerta ${d}, ${o?'abierta':d>t?'bloqueada':'disponible'}`);el.querySelector('.mn').textContent=o&&p?mini(p):''}
   const st=Object.keys(opened).filter(k=>pz[k]&&!AUTO(pz[k].type)&&!claims[k]);
-  $('#stored').innerHTML=st.length?`<h2>Premios guardados</h2><div class="shop">${st.map(k=>`<div class="it own"><div class="nm">Puerta ${k}<small>${esc(pname(pz[k]))}</small></div>${pz[k].type==='life'?`<button class="btn" data-life="${k}" type="button">Cobrar vida</button>`:''}</div>`).join('')}</div>`:''}
+  $('#stored').innerHTML=st.length?`<h2>Premios guardados</h2><div class="shop">${st.map(k=>`<div class="it own"><div class="nm">Puerta ${k}<small>${esc(pname(pz[k]))}</small></div>${pz[k].type==='life'?`<button class="btn" data-life="${k}" type="button">Cobrar vida</button>`:''}${pz[k].type==='steal'?`<button class="btn" data-steal="${k}" type="button">Usar robo</button>`:''}</div>`).join('')}</div>`:''}
 function price(p){const P=cfg.prices||{};return p.type==='title'?(P.titleByStars||{})[(cfg.titles[p.id]||{}).stars]||10:P[KIND[p.type]]||20}
 /* ---- premios especiales automáticos: ilegalidad, Operator, casino y huevo (Pokémon aleatorio) ---- */
 const calOthers=t=>['iker','joel','alex'].filter(x=>x!==t);
@@ -14674,24 +14754,63 @@ function specialNote(p,k){if(!p)return'';
 /* reclamo atómico: solo una llamada lo consigue, así un premio nunca se entrega dos veces */
 async function claimOnce(k){try{return(await runTransaction(ref(db,`claims/${me}/${k}`),c=>c?undefined:{at:serverTimestamp()},{applyLocally:false})).committed}catch{return false}}
 async function calReady(){for(let i=0;i<60;i++){if(typeof loaded!=='undefined'&&loaded)return true;await wait(500)}return false}
+const specialDone=new Set();
+const COUNTER_PRIZES={ /* tipo -> [campo del perfil, cuánto suma, texto] */
+  slots:['freeSpins',p=>Math.max(0,Math.floor(+p.spins||0)),n=>`${n} tirada${n===1?'':'s'} gratis`],
+  lottery:['freeLottery',()=>1,()=>'1 boleto de lotería gratis'],
+  reroll:['rerolls',()=>1,()=>'1 reroll']};
 async function applySpecial(k,p){
   if(!(await calReady()))return'';
-  if(!(await claimOnce(k)))return'';
   const key=me+':'+k,ev=text=>pushHistoryEvents([{id:'cal:'+key,text}]);
   try{
-    if(p.type==='illegality'){
-      if(!Object.values(castigos).some(c=>c&&c.calKey===key))await addCastigo({type:'illegal',player:me,status:'active',source:'Calendario · puerta '+k,calKey:key});
-      ev(`☠️ ${NAMES[me]} abre una ilegalidad en el calendario: la página se queda a oscuras hasta que la haga.`);
-      return'Ya está activa: la página se oscurece hasta que pulses «Ya la hice».'}
-    if(p.type==='operator'||p.type==='casino'){
-      const what=p.type==='operator'?'un Operator en Valorant':'una tirada de ruleta en un casino de verdad';
-      ev(`🎯 ${NAMES[calDebtor(k)]} le debe ${what} a ${NAMES[me]} (Calendario, puerta ${k}).`);
-      return specialNote(p,k)}
-    if(p.type==='pokemon'){
-      await window.FBD.createGameOrder('cal-egg-'+k,{kind:'give_egg',species:randomEggSpecies()});
-      ev(`🥚 ${NAMES[me]} recibe un huevo sorpresa (Calendario): aparecerá en su PC.`)}
-    return''
-  }catch(e){console.error('No se pudo entregar el premio especial de la puerta '+k,e);try{await remove(ref(db,`claims/${me}/${k}`))}catch{}return''}}
+    const c=COUNTER_PRIZES[p.type];
+    if(c){ /* contadores del perfil. Orden: sumar -> reclamar; si otra pestaña reclamó antes, se resta lo sumado. Si falla la suma (p. ej. reglas), no se reclama y se reintenta */
+      if(claims[k])return'';
+      const n=c[1](p),path=`profiles/${me}/${c[0]}`;
+      await runTransaction(ref(db,path),v=>(+v||0)+n);
+      if(!(await claimOnce(k))){try{await runTransaction(ref(db,path),v=>Math.max(0,(+v||0)-n))}catch{}return''}
+      dirty();ev(`🎁 ${NAMES[me]} gana ${c[2](n)} en el calendario (se gastan en lugar de tickets).`);
+      return`Se suma a tu perfil: ${c[2](n)}.`}
+    /* el resto son idempotentes: primero el efecto y al final el reclamo (las reglas no dejan borrar un claim) */
+    let note='';
+    if(!specialDone.has(k)){
+      specialDone.add(k);
+      try{
+        if(p.type==='illegality'){
+          if(!Object.values(castigos).some(c=>c&&c.calKey===key))await addCastigo({type:'illegal',player:me,status:'active',source:'Calendario · puerta '+k,calKey:key});
+          ev(`☠️ ${NAMES[me]} abre una ilegalidad en el calendario: la página se queda a oscuras hasta que la haga.`);
+          note='Ya está activa: la página se oscurece hasta que pulses «Ya la hice».'}
+        else if(p.type==='operator'||p.type==='casino'){
+          const what=p.type==='operator'?'un Operator en Valorant':'una tirada de ruleta en un casino de verdad';
+          ev(`🎯 ${NAMES[calDebtor(k)]} le debe ${what} a ${NAMES[me]} (Calendario, puerta ${k}).`);
+          note=specialNote(p,k)}
+        else if(p.type==='shield'){
+          const cur=(FBS.profiles[me]||{}).shield;
+          if(!(cur&&+cur.door===+k))await set(ref(db,`profiles/${me}/shield`),{since:Date.now()+off,door:+k});
+          dirty();ev(`🛡️ ${NAMES[me]} consigue un escudo en el calendario: nadie puede robarle, sancionarle ni desafiarle hasta que termine el próximo torneo.`);
+          note='Ya lo tienes puesto: mira la capa azul en tu perfil.'}
+        else if(p.type==='pokemon'){
+          await window.FBD.createGameOrder('cal-egg-'+k,{kind:'give_egg',species:randomEggSpecies()});
+          ev(`🥚 ${NAMES[me]} recibe un huevo sorpresa (Calendario): aparecerá en su PC.`)}
+      }catch(e){specialDone.delete(k);throw e}
+    }
+    await claimOnce(k);
+    return note
+  }catch(e){console.error('No se pudo entregar el premio especial de la puerta '+k,e);return''}}
+/* robo del calendario: eliges a quién; si alguien tiene escudo no sale en la lista, y si solo queda uno va directo */
+window.lkPickSteal=async(k,victim)=>{
+  try{window.closeModal()}catch{}
+  if(window.hasShield(victim)){say('🛡️ '+NAMES[victim]+' tiene escudo: no se le puede robar.');return}
+  if(!(await claimOnce(k)))return;
+  let ok=false;
+  try{ok=await window.startPrizeSteal(me,victim,'Calendario · puerta '+k)}catch(e){console.error(e)}
+  if(!ok){try{await remove(ref(db,`claims/${me}/${k}`))}catch{}return}
+  say('🦹 Robo en marcha: elige el Pokémon en «Te toca a ti», en Inicio.')};
+function useSteal(k){
+  const free=calOthers(me).filter(t=>!window.hasShield(t));
+  if(!free.length){say('🛡️ Los dos tienen escudo: ahora mismo no puedes robar a nadie.');return}
+  if(free.length===1){window.lkPickSteal(k,free[0]);return}
+  window.openModal(`<h3>🦹 ¿A quién le robas un Pokémon?</h3><div class="modal-actions">${free.map(t=>`<button class="primary" onclick="lkPickSteal('${k}','${t}')">${NAMES[t]}</button>`).join('')}<button class="ghost" onclick="closeModal()">Cancelar</button></div>`)}
 async function applyGrant(k,p){
   const note=SPECIAL_AUTO.includes(p.type)?await applySpecial(k,p):await applyBasic(k,p);
   if(note)grantNotes[k]=note;return note}
@@ -15293,6 +15412,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('.lk button');if(
     const r=await runTransaction(tk,c=>(+c||0)>=pr?(+c||0)-pr:undefined);
     if(!r.committed){say('No tienes tickets suficientes.');return}
     try{await set(ref(db,`inventory/${me}/${kind}/${id}`),true);inv[kind]=inv[kind]||{};inv[kind][id]=true;FBS.inventory[me]=inv;dirty();say('Compra realizada. Ya puedes equiparlo desde tu taquilla.');window.render()}catch{await runTransaction(tk,c=>(+c||0)+pr);say('No se pudo completar la compra. Te hemos devuelto los tickets.')}});
+  if(b.dataset.steal)useSteal(b.dataset.steal);
   if(b.dataset.life)act(async()=>{const k=b.dataset.life;if(((FBS.profiles[me]||{}).lives??20)>=20){say('Ya tienes 20 vidas. Cóbrala cuando pierdas alguna.');return}
     await set(ref(db,`claims/${me}/${k}`),{at:serverTimestamp()});await runTransaction(ref(db,`profiles/${me}/lives`),c=>Math.min(20,(+c||0)+1))})});
 document.addEventListener('change',e=>{
