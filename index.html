@@ -3382,6 +3382,24 @@ body.casino-mode, body{ background-color:#0e0a0b; }
   color:#0b3a5c; background:linear-gradient(180deg,#e3f5ff,#a9d8f6); clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%); }
 .cs-shield-cape i{ font-style:normal; font-size:19px; line-height:1; }
 .cs-shield-cape b{ font:800 8.5px/1 var(--f-ui,inherit); letter-spacing:.08em; }
+.sanc-card{ position:relative; margin:6px 0 18px; padding:18px 18px 16px; border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:12px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 9%,var(--panel)),var(--panel) 62%); }
+.sanc-head{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.sanc-ico{ width:42px; height:42px; display:grid; place-items:center; font-size:22px; border-radius:10px; flex:none;
+  background:color-mix(in srgb,var(--accent) 22%,transparent); border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border)); }
+.sanc-title{ font-weight:800; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--silver-bright); }
+.sanc-sub{ font-size:12px; color:var(--silver-dim); margin-top:2px; }
+.sanc-stamp{ display:inline-block; transform:rotate(-3deg); padding:5px 14px; margin-bottom:8px; border:2px solid var(--accent); color:var(--accent);
+  font-weight:900; font-size:12px; letter-spacing:.16em; border-radius:6px; }
+.sanc-verdict{ font-size:20px; font-weight:800; line-height:1.25; color:var(--silver-bright); margin:4px 0 16px; }
+.sanc-note{ font-size:13px; color:var(--silver); margin:0 0 12px; }
+.sanc-ledger{ display:grid; gap:7px; margin-top:16px; padding-top:12px; border-top:1px dashed var(--border); }
+.sanc-ledger-t{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--silver-dim); }
+.sanc-row{ display:flex; gap:12px; align-items:baseline; font-size:12.5px; }
+.sanc-row time{ flex:none; min-width:92px; font-size:11px; color:var(--silver-dim); font-variant-numeric:tabular-nums; }
+.sanc-card .wheel-wrap{ margin:0 auto 4px; }
+.sanc-hub{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.sanc-hub button.live{ border-color:var(--accent); color:var(--accent); }
 .pf-free{ margin:2px 0 0; font-size:11px; opacity:.92; letter-spacing:.02em; }
 .pf-card:has(.cs-shield-cape){ box-shadow:0 0 0 2px #a9d8f6,0 0 22px rgba(169,216,246,.55); }
 @keyframes csIllPulse{ 0%,100%{ box-shadow:0 0 10px rgba(255,40,40,.4),inset 0 0 6px rgba(255,40,40,.2); } 50%{ box-shadow:0 0 22px rgba(255,40,40,.85),inset 0 0 10px rgba(255,40,40,.4); } }
@@ -5262,8 +5280,41 @@ async function doCapsule(mon){
 }
 
 /* ---- Mejoras desde la ficha de un Pokémon (perfil > tus Pokémon > clic): solo salen si tienes menta o cápsula ---- */
+/* ---- APODO FORZADO (premio del calendario): con usos disponibles, abres un Pokémon de otro jugador (su perfil > clic) y le pones el mote ---- */
+function nickSectionHtml(owner, mon){
+  const n = freeOf(window.LOGIN_ME, 'nickUses'), pid = lkEsc(mon.pid);
+  return `<div style="grid-column:1/-1;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+    <div class="field"><label>✏️ Apodo forzado (${n} uso${n === 1 ? '' : 's'}) · hasta 10 caracteres: letras, números, espacio y ! ? . - ' á é í ó ú ñ</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="force-nick" maxlength="10" autocomplete="off" placeholder="Apodo" style="flex:1;min-width:160px">
+        <button class="primary" onclick="applyForcedNick('${owner}','${pid}')">Poner apodo</button>
+      </div>
+      <div class="err-msg" id="force-nick-err"></div></div></div>`;
+}
+let forceNickBusy = false;
+async function applyForcedNick(owner, pid){
+  const me = window.LOGIN_ME, err = document.getElementById('force-nick-err');
+  const mon = allMonsOf(owner).find(m => m.pid === pid);
+  if(!me || owner === me || !mon || mon.isEgg || !STEAL_PID_RE.test(String(pid)) || forceNickBusy) return;
+  if(freeOf(me, 'nickUses') < 1){ if(err) err.textContent = 'No te quedan usos de apodo.'; return; }
+  const hex = encodeNick((document.getElementById('force-nick').value || '').trim());
+  if(!hex){ if(err) err.textContent = 'El apodo debe tener entre 1 y 10 caracteres válidos (sin símbolos raros).'; return; }
+  forceNickBusy = true;
+  try{
+    const [pers, tid] = pid.split('-');
+    await window.FBD.createGameOrderFor(owner, 'nick-' + crypto.randomUUID(), { kind:'set_nickname', monpers:pers, montid:tid, nickhex:hex });
+    spendFree(me, 'nickUses', 1);
+    pushHistory(`✏️ ${NAMES[me]} ha usado un apodo forzado: le ha cambiado el mote a un Pokémon de ${NAMES[owner]} (sorpresa).`);
+    closeModal();
+    toast(`✏️ Hecho. ${NAMES[owner]} lo verá cuando su juego y el tracker estén abiertos.`);
+  }catch(error){
+    console.error('No se pudo crear la orden del apodo forzado.', error);
+    if(err) err.textContent = 'No se pudo enviar. Inténtalo de nuevo.';
+  } finally { forceNickBusy = false; }
+}
 function upgradeSectionHtml(ownerTrainer, mon){
   const me = window.LOGIN_ME;
+  if(me && ownerTrainer !== me && !mon.isEgg && STEAL_PID_RE.test(String(mon.pid || '')) && freeOf(me, 'nickUses') > 0) return nickSectionHtml(ownerTrainer, mon);
   if(!me || ownerTrainer !== me || mon.isEgg || !STEAL_PID_RE.test(String(mon.pid || ''))) return '';
   const mm = normalizeMints(mints[me]), caps = capsules[me] || 0;
   if(!mm.choose && !mm.random && !caps) return '';
@@ -7473,9 +7524,9 @@ function spendFree(t, f, n){
   return true;
 }
 function freeChips(t){
-  const a = freeOf(t, 'freeSpins'), b = freeOf(t, 'freeLottery'), c = freeOf(t, 'rerolls');
-  if(!a && !b && !c) return '';
-  return `<p class="pf-free">${a ? `<span title="Tiradas gratis de tragaperras">🎰 ${a}</span> ` : ''}${b ? `<span title="Boletos de lotería gratis">🎫 ${b}</span> ` : ''}${c ? `<span title="Rerolls de ruleta">🔁 ${c}</span>` : ''}</p>`;
+  const a = freeOf(t, 'freeSpins'), b = freeOf(t, 'freeLottery'), c = freeOf(t, 'rerolls'), d = freeOf(t, 'nickUses');
+  if(!a && !b && !c && !d) return '';
+  return `<p class="pf-free">${a ? `<span title="Tiradas gratis de tragaperras">🎰 ${a}</span> ` : ''}${b ? `<span title="Boletos de lotería gratis">🎫 ${b}</span> ` : ''}${c ? `<span title="Rerolls de ruleta">🔁 ${c}</span> ` : ''}${d ? `<span title="Apodos forzados">✏️ ${d}</span>` : ''}</p>`;
 }
 // Ofrece repetir una ruleta ANTES de que se aplique el resultado. Devuelve true si se repite (y gasta 1 reroll).
 function offerReroll(trainer, label){
@@ -7520,7 +7571,7 @@ async function startPrizeSteal(thief, victim, source){
   stealState[id] = { id, victim, others: TRAINERS.filter(t=>t!==victim), status:'pick', thief, pid:null, label:null, accepts:{}, source, ts:Date.now() };
   pushHistory(`🦹 ${NAMES[thief]} usa su robo del calendario contra ${NAMES[victim]} (${source}).`);
   await persistSteal();
-  return true;
+  return id;
 }
 async function clearIllegalAdmin(id){ /* solo desde la página de Iker, por si algo sale mal */
   const c = castigos[id];
@@ -7547,6 +7598,7 @@ setInterval(syncIllegalMode, 1500);
 function myCastigoTasks(){
   const me = window.LOGIN_ME, list = [];
   if(!me) return list;
+  if(sancionState && sancionState.offender) list.push({ icon:'⚖️', text: sancionState.prize ? `Sanción dictada para ${NAMES[sancionState.offender]}` : `Sanción en marcha para ${NAMES[sancionState.offender]}`, source:'Sanciones', label:'Ver', fn:`go('profile','${sancionState.offender}')` });
   for(const c of Object.values(castigos)){
     if(!c) continue;
     if(c.type === 'die2' && c.status === 'pending' && c.player === me)
@@ -8489,7 +8541,7 @@ function __renderProfileBase(app, t){
           <button class="danger-outline" onclick="loseLife('${t}')">💔 Perder vida</button>
           <button class="ghost" onclick="addLife('${t}')">➕ Sumar vida</button>
           <button class="ghost" onclick="resetLives('${t}')">🔄 Restablecer</button>
-          <button class="ghost" onclick="openApplySancion()">⚖️ Sanción</button>
+          <button class="ghost" onclick="startSancion('${t}')">⚖️ Sancionar</button>
           ${window.LOGIN_ME === 'iker' ? `<button class="ghost" onclick="giveRareCandies('${t}')">🍬 +999 Caramelos raros</button>` : ''}
         </div>
       </aside>
@@ -8516,6 +8568,8 @@ function __renderProfileBase(app, t){
           <div class="kpi"><div class="kpi-label">🛍️ Cosméticos</div><div class="kpi-val">${cosmeticsCountOf(t)}<small> objetos</small></div></div>
           ${renderEloCard(t)}
         </div>
+
+        ${renderSancionCard(t)}
 
         <div class="section-label">🎁 Premios pendientes</div>
         ${myPending.length===0 ? '<div class="empty-state" style="margin:6px 0 0;">No hay premios pendientes de entregar.</div>' : `
@@ -8847,7 +8901,7 @@ function renderNormas(app){
     ${renderCapTable()}
 
     <div class="section-sub">⚖️ Sanciones</div>
-    ${renderSancionSection()}
+    ${renderSancionHub()}
   `;
 }
 
@@ -10729,6 +10783,70 @@ function renderSancionSection(){
   `;
 }
 
+/* ---- SANCIONES EN EL PERFIL: la tarjeta vive en el perfil de cada jugador (ruleta, sentencia e historial) ---- */
+function sancionHistoryOf(t){
+  const key = `${NAMES[t]} cometió una infracción y le tocó: `;
+  return (history || []).filter(e => e && typeof e.text === 'string' && e.text.includes(key))
+    .sort((a, b) => Number(b.ts) - Number(a.ts)).slice(0, 5)
+    .map(e => ({ ts:e.ts, label:e.text.split(key).slice(1).join(key) }));
+}
+function sancionLedger(t){
+  const past = sancionHistoryOf(t);
+  if(!past.length) return '';
+  return `<div class="sanc-ledger"><div class="sanc-ledger-t">Últimas sanciones</div>${past.map(p => `<div class="sanc-row"><time>${fmtTime(p.ts)}</time><span>${lkEsc(p.label)}</span></div>`).join('')}</div>`;
+}
+function renderSancionCard(t){
+  const ss = sancionState || {};
+  const head = sub => `<div class="sanc-head"><div class="sanc-ico">⚖️</div><div><div class="sanc-title">Sanciones</div><div class="sanc-sub">${sub}</div></div></div>`;
+  if(ss.offender === t){
+    if(ss.prize){
+      return `<div class="sanc-card" id="sancion-card">${head('Sanción dictada')}<div class="sanc-stamp">SANCIONADO</div><div class="sanc-verdict">${lkEsc(ss.prize)}</div>
+        <button class="ghost" onclick="closeSancion()">Cerrar sanción</button>${sancionLedger(t)}</div>`;
+    }
+    const outcomes = SANCION_WHEEL, segAngle = 360 / outcomes.length;
+    const stops = outcomes.map((o, i) => `${WHEEL_COLORS[i % WHEEL_COLORS.length]} ${i * segAngle}deg ${(i + 1) * segAngle}deg`).join(', ');
+    return `<div class="sanc-card" id="sancion-card">${head(`Gira la ruleta para saber qué le toca a ${lkEsc(NAMES[t])}`)}
+      <div class="wheel-wrap">
+        <div class="wheel-outer small"><div class="wheel-pointer"></div>
+          <div class="wheel" id="sancion-wheel" style="background: conic-gradient(${stops});"><div class="wheel-center"></div></div></div>
+        <div class="prize-legend">${outcomes.map((o, i) => `<div class="prize-legend-item"><span class="prize-swatch" style="background:${WHEEL_COLORS[i % WHEEL_COLORS.length]}"></span>${o.label}</div>`).join('')}</div>
+        <button class="primary" onclick="spinSancionWheel()" ${sancionWheelSpinning ? 'disabled' : ''}>${sancionWheelSpinning ? 'Girando…' : 'Girar la rueda'}</button>
+      </div>${sancionLedger(t)}</div>`;
+  }
+  if(ss.offender){
+    return `<div class="sanc-card" id="sancion-card">${head('Hay una sanción en marcha')}
+      <p class="sanc-note">Ahora mismo se está sancionando a <b>${lkEsc(NAMES[ss.offender])}</b>. Hasta que se cierre no se puede abrir otra.</p>
+      <button class="ghost" onclick="go('profile','${ss.offender}')">Ir al perfil de ${lkEsc(NAMES[ss.offender])}</button>${sancionLedger(t)}</div>`;
+  }
+  const shielded = hasShield(t), n = sancionHistoryOf(t).length;
+  return `<div class="sanc-card" id="sancion-card">${head(n ? `${n} sanción${n === 1 ? '' : 'es'} reciente${n === 1 ? '' : 's'}` : 'Sin sanciones por ahora')}
+    <button class="danger-outline" ${shielded ? 'disabled' : ''} onclick="startSancion('${t}')">${shielded ? '🛡️ Tiene escudo: no se le puede sancionar' : `⚖️ Sancionar a ${lkEsc(NAMES[t])}`}</button>${sancionLedger(t)}</div>`;
+}
+// En la pestaña antigua solo queda un acceso: las sanciones están en los perfiles
+function renderSancionHub(){
+  const live = sancionState && sancionState.offender;
+  return `<div class="sanc-card"><div class="sanc-head"><div class="sanc-ico">⚖️</div><div><div class="sanc-title">Las sanciones ahora están en los perfiles</div>
+    <div class="sanc-sub">${live ? `Hay una sanción en marcha para ${lkEsc(NAMES[live])}.` : 'Entra en el perfil del jugador al que quieras sancionar.'}</div></div></div>
+    <div class="sanc-hub">${TRAINERS.map(t => `<button class="ghost ${live === t ? 'live' : ''}" onclick="go('profile','${t}')">${lkEsc(NAMES[t])}${live === t ? ' · en curso' : ''}</button>`).join('')}</div></div>`;
+}
+async function startSancion(t){
+  if(sancionState && sancionState.offender){ toast('Ya hay una sanción en marcha: ciérrala antes de abrir otra.'); return false; }
+  if(shieldBlock(t, 'sancionar')) return false;
+  sancionState = { offender: t, prize: null };
+  sancionWheelRotation = 0;
+  sancionWheelSpinning = false;
+  render();
+  setTimeout(() => { const el = document.getElementById('sancion-card'); if(el && el.scrollIntoView) el.scrollIntoView({ behavior:'smooth', block:'center' }); }, 80);
+  const ok = await saveSancion();
+  if(!ok) queueRetry('sancion', saveSancion);
+  return true;
+}
+async function cancelSancion(){ // solo para deshacer una sanción abierta por error (p. ej. si no se pudo gastar el premio)
+  sancionState = { offender:null, prize:null }; sancionWheelRotation = 0; sancionWheelSpinning = false;
+  render();
+  const ok = await saveSancion();
+  if(!ok) queueRetry('sancion', saveSancion);
+}
 function openApplySancion(){
   openModal(`
     <h3>Aplicar sanción</h3>
@@ -14684,7 +14802,7 @@ onAuthStateChanged(auth,async user=>{
   $('#lk-login').style.display='none';window._fbResolve();
 });
 /* ---------- calendario ---------- */
-const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Te llega un huevo sorpresa al PC del juego.'],illegality:['ILEG','Una ilegalidad','Se activa sola al abrir la puerta. Cuando la hagas, pulsa «Ya la hice» en Inicio.'],sanction:['SANC','Derecho a una sanción','Eliges a quién y puedes girar la ruleta de sanciones.'],steal:['ROBO','Derecho a un robo','Pulsa «Usar robo» en Premios guardados: eliges a quién (no a quien tenga escudo) y luego el Pokémon.'],operator:['OPER','Un Operator','Alguien te debe un Operator en Valorant. Queda apuntado en el diario.'],casino:['CASINO','Ruleta de casino','Alguien te debe una tirada de ruleta en un casino de verdad. Queda apuntado en el diario.'],slots:['777','Tiradas gratis','Se suman a tu perfil: en la tragaperras se gastan en lugar de tickets.'],shield:['ESCUDO','Un escudo','Capa azul en tu perfil: nadie puede robarte, sancionarte ni desafiarte hasta que termine el próximo torneo.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis: en la lotería se gasta en lugar de tickets.'],reroll:['REPITE','Un reroll','Cuando una ruleta te toque, podrás repetirla (se pregunta antes de aplicar el resultado).'],nickname:['MOTE','Mote forzado','Eliges un Pokémon de otro y le pones el mote.']};
+const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Te llega un huevo sorpresa al PC del juego.'],illegality:['ILEG','Una ilegalidad','Se activa sola al abrir la puerta. Cuando la hagas, pulsa «Ya la hice» en Inicio.'],sanction:['SANC','Derecho a una sanción','Pulsa «Usar sanción» en Premios guardados: eliges a quién (no a quien tenga escudo) y la ruleta se gira en su perfil.'],steal:['ROBO','Derecho a un robo','Pulsa «Usar robo» en Premios guardados: eliges a quién (no a quien tenga escudo) y luego el Pokémon.'],operator:['OPER','Un Operator','Alguien te debe un Operator en Valorant. Queda apuntado en el diario.'],casino:['CASINO','Ruleta de casino','Alguien te debe una tirada de ruleta en un casino de verdad. Queda apuntado en el diario.'],slots:['777','Tiradas gratis','Se suman a tu perfil: en la tragaperras se gastan en lugar de tickets.'],shield:['ESCUDO','Un escudo','Capa azul en tu perfil: nadie puede robarte, sancionarte ni desafiarte hasta que termine el próximo torneo.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis: en la lotería se gasta en lugar de tickets.'],reroll:['REPITE','Un reroll','Cuando una ruleta te toque, podrás repetirla (se pregunta antes de aplicar el resultado).'],nickname:['MOTE','Apodo forzado','Se suma a tu perfil: abre un Pokémon de otro jugador (en su perfil) y podrás ponerle el mote. Es sorpresa.']};
 const KIND={title:'titles',palette:'palettes',character:'characters',background:'backgrounds'};
 const REWARD_ASSET_ROOT='';
 window.characterAsset=function(id,silhouette=false){
@@ -14720,7 +14838,7 @@ function paletteColorsOf(p){
 }
 function paletteNameOf(p){return p&&(p.name||p.nombre)||'Paleta';}
 function paletteRarityOf(p){return p&&(p.rarity||p.rareza)||'Especial';}
-const SPECIAL_AUTO=['illegality','operator','casino','pokemon','shield','slots','lottery','reroll'],grantNotes={};
+const SPECIAL_AUTO=['illegality','operator','casino','pokemon','shield','slots','lottery','reroll','nickname'],grantNotes={};
 const AUTO=t=>t==='tickets'||!!KIND[t]||SPECIAL_AUTO.includes(t);
 const mini=p=>p.type==='tickets'?'+'+p.amount:p.type==='title'?'TÍT':p.type==='palette'?'PAL':p.type==='character'?'SKIN':p.type==='background'?'FONDO':SP[p.type][0];
 const pname=p=>p.type==='slots'?p.spins+' tiradas gratis':SP[p.type][1];
@@ -14742,7 +14860,7 @@ function paintCal(){if(!$('#cg'))return;const t=dayNum();$('#caldia').textConten
   for(let d=1;d<=30;d++){const el=doors[d],o=!!opened[d],p=pz[d];el.className='door '+(o?'open':d>t?'locked':d===t?'today':'pend')+['zooming','unlocking','swing','shake'].filter(c=>el.classList.contains(c)).map(c=>' '+c).join('');
     el.setAttribute('aria-label',`Puerta ${d}, ${o?'abierta':d>t?'bloqueada':'disponible'}`);el.querySelector('.mn').textContent=o&&p?mini(p):''}
   const st=Object.keys(opened).filter(k=>pz[k]&&!AUTO(pz[k].type)&&!claims[k]);
-  $('#stored').innerHTML=st.length?`<h2>Premios guardados</h2><div class="shop">${st.map(k=>`<div class="it own"><div class="nm">Puerta ${k}<small>${esc(pname(pz[k]))}</small></div>${pz[k].type==='life'?`<button class="btn" data-life="${k}" type="button">Cobrar vida</button>`:''}${pz[k].type==='steal'?`<button class="btn" data-steal="${k}" type="button">Usar robo</button>`:''}</div>`).join('')}</div>`:''}
+  $('#stored').innerHTML=st.length?`<h2>Premios guardados</h2><div class="shop">${st.map(k=>`<div class="it own"><div class="nm">Puerta ${k}<small>${esc(pname(pz[k]))}</small></div>${pz[k].type==='life'?`<button class="btn" data-life="${k}" type="button">Cobrar vida</button>`:''}${pz[k].type==='steal'?`<button class="btn" data-steal="${k}" type="button">Usar robo</button>`:''}${pz[k].type==='sanction'?`<button class="btn" data-sanction="${k}" type="button">Usar sanción</button>`:''}</div>`).join('')}</div>`:''}
 function price(p){const P=cfg.prices||{};return p.type==='title'?(P.titleByStars||{})[(cfg.titles[p.id]||{}).stars]||10:P[KIND[p.type]]||20}
 /* ---- premios especiales automáticos: ilegalidad, Operator, casino y huevo (Pokémon aleatorio) ---- */
 const calOthers=t=>['iker','joel','alex'].filter(x=>x!==t);
@@ -14758,7 +14876,8 @@ const specialDone=new Set();
 const COUNTER_PRIZES={ /* tipo -> [campo del perfil, cuánto suma, texto] */
   slots:['freeSpins',p=>Math.max(0,Math.floor(+p.spins||0)),n=>`${n} tirada${n===1?'':'s'} gratis`],
   lottery:['freeLottery',()=>1,()=>'1 boleto de lotería gratis'],
-  reroll:['rerolls',()=>1,()=>'1 reroll']};
+  reroll:['rerolls',()=>1,()=>'1 reroll'],
+  nickname:['nickUses',()=>1,()=>'1 apodo forzado']};
 async function applySpecial(k,p){
   if(!(await calReady()))return'';
   const key=me+':'+k,ev=text=>pushHistoryEvents([{id:'cal:'+key,text}]);
@@ -14798,19 +14917,44 @@ async function applySpecial(k,p){
     return note
   }catch(e){console.error('No se pudo entregar el premio especial de la puerta '+k,e);return''}}
 /* robo del calendario: eliges a quién; si alguien tiene escudo no sale en la lista, y si solo queda uno va directo */
+let prizeBusy=false;
+/* Primero se hace la acción y al final se reclama el premio: las reglas no dejan borrar un claim, así que un fallo a medias no puede gastarlo */
 window.lkPickSteal=async(k,victim)=>{
   try{window.closeModal()}catch{}
+  if(prizeBusy||claims[k])return;
   if(window.hasShield(victim)){say('🛡️ '+NAMES[victim]+' tiene escudo: no se le puede robar.');return}
-  if(!(await claimOnce(k)))return;
-  let ok=false;
-  try{ok=await window.startPrizeSteal(me,victim,'Calendario · puerta '+k)}catch(e){console.error(e)}
-  if(!ok){try{await remove(ref(db,`claims/${me}/${k}`))}catch{}return}
-  say('🦹 Robo en marcha: elige el Pokémon en «Te toca a ti», en Inicio.')};
+  prizeBusy=true;
+  try{
+    const id=await window.startPrizeSteal(me,victim,'Calendario · puerta '+k);
+    if(!id)return;
+    if(!(await claimOnce(k))){try{delete stealState[id];await window.persistSteal()}catch{}return}
+    say('🦹 Robo en marcha: elige el Pokémon en «Te toca a ti», en Inicio.')
+  }catch(e){console.error(e);say('No se pudo iniciar el robo. Inténtalo de nuevo.')}
+  finally{prizeBusy=false}};
 function useSteal(k){
   const free=calOthers(me).filter(t=>!window.hasShield(t));
   if(!free.length){say('🛡️ Los dos tienen escudo: ahora mismo no puedes robar a nadie.');return}
   if(free.length===1){window.lkPickSteal(k,free[0]);return}
   window.openModal(`<h3>🦹 ¿A quién le robas un Pokémon?</h3><div class="modal-actions">${free.map(t=>`<button class="primary" onclick="lkPickSteal('${k}','${t}')">${NAMES[t]}</button>`).join('')}<button class="ghost" onclick="closeModal()">Cancelar</button></div>`)}
+/* sanción del calendario: eliges a quién (sin escudo) y la ruleta se gira en el perfil de esa persona */
+window.lkPickSanction=async(k,target)=>{
+  try{window.closeModal()}catch{}
+  if(prizeBusy||claims[k])return;
+  if(window.hasShield(target)){say('🛡️ '+NAMES[target]+' tiene escudo: no se le puede sancionar.');return}
+  prizeBusy=true;
+  try{
+    if(!(await window.startSancion(target)))return;
+    if(!(await claimOnce(k))){await window.cancelSancion();return}
+    window.pushHistory(`⚖️ ${NAMES[me]} usa su sanción del calendario contra ${NAMES[target]} (puerta ${k}).`);
+    window.go('profile',target)
+  }catch(e){console.error(e);say('No se pudo abrir la sanción. Inténtalo de nuevo.')}
+  finally{prizeBusy=false}};
+function useSanction(k){
+  const free=calOthers(me).filter(t=>!window.hasShield(t));
+  if(!free.length){say('🛡️ Los dos tienen escudo: ahora mismo no puedes sancionar a nadie.');return}
+  if(typeof sancionState!=='undefined'&&sancionState&&sancionState.offender){say('Ya hay una sanción en marcha: espera a que se cierre.');return}
+  if(free.length===1){window.lkPickSanction(k,free[0]);return}
+  window.openModal(`<h3>⚖️ ¿A quién sancionas?</h3><div class="modal-actions">${free.map(t=>`<button class="primary" onclick="lkPickSanction('${k}','${t}')">${NAMES[t]}</button>`).join('')}<button class="ghost" onclick="closeModal()">Cancelar</button></div>`)}
 async function applyGrant(k,p){
   const note=SPECIAL_AUTO.includes(p.type)?await applySpecial(k,p):await applyBasic(k,p);
   if(note)grantNotes[k]=note;return note}
@@ -15413,6 +15557,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('.lk button');if(
     if(!r.committed){say('No tienes tickets suficientes.');return}
     try{await set(ref(db,`inventory/${me}/${kind}/${id}`),true);inv[kind]=inv[kind]||{};inv[kind][id]=true;FBS.inventory[me]=inv;dirty();say('Compra realizada. Ya puedes equiparlo desde tu taquilla.');window.render()}catch{await runTransaction(tk,c=>(+c||0)+pr);say('No se pudo completar la compra. Te hemos devuelto los tickets.')}});
   if(b.dataset.steal)useSteal(b.dataset.steal);
+  if(b.dataset.sanction)useSanction(b.dataset.sanction);
   if(b.dataset.life)act(async()=>{const k=b.dataset.life;if(((FBS.profiles[me]||{}).lives??20)>=20){say('Ya tienes 20 vidas. Cóbrala cuando pierdas alguna.');return}
     await set(ref(db,`claims/${me}/${k}`),{at:serverTimestamp()});await runTransaction(ref(db,`profiles/${me}/lives`),c=>Math.min(20,(+c||0)+1))})});
 document.addEventListener('change',e=>{
