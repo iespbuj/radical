@@ -7747,14 +7747,58 @@ function stealableMons(t){ // lo mismo que exige openStealPick: 2+ en el equipo 
   const team = allMonsOf(t).filter(m => m.inTeam);
   return team.length < 2 ? [] : team.filter(m => !m.isEgg && STEAL_PID_RE.test(String(m.pid || '')));
 }
-async function startPrizeSteal(thief, victim, source){
-  if(shieldBlock(victim, 'robar')) return false;
-  if(!stealableMons(victim).length){ toast(`${NAMES[victim]} no tiene Pokémon robables ahora (necesita 2 en el equipo y su tracker subiendo datos).`); return false; }
-  const id = crypto.randomUUID();
-  stealState[id] = { id, victim, others: TRAINERS.filter(t=>t!==victim), status:'pick', thief, pid:null, label:null, accepts:{}, source, ts:Date.now() };
-  pushHistory(`🦹 ${NAMES[thief]} usa su robo del calendario contra ${NAMES[victim]} (${source}).`);
+/* ---- ROBO DEL CALENDARIO por suerte: una ruleta decide a quién le toca y otra cuál de sus Pokémon ----
+   Si solo hay una opción (un solo jugador sin escudo, o un solo Pokémon robable) va directo, sin girar. */
+function spinPick({ title, items, owner }){
+  return new Promise(async resolve => {
+    for(;;){
+      const pick = items[Math.floor(Math.random() * items.length)];
+      openModal(`<h3>${title}</h3><div id="pick-wheel-img" style="min-height:72px;display:grid;place-items:center;margin-top:10px"></div><div id="pick-wheel-name" style="font-size:26px;font-weight:800;text-align:center;margin:12px 0">…</div>`, false);
+      const show = it => {
+        const e = document.getElementById('pick-wheel-name'), g = document.getElementById('pick-wheel-img');
+        if(e) e.textContent = it.label;
+        if(g) g.innerHTML = it.img ? tqImg(it.img, '❔') : '';
+      };
+      let i = Math.floor(Math.random() * items.length);
+      const timer = setInterval(() => show(items[i++ % items.length]), 110);
+      await new Promise(r => setTimeout(r, 2400));
+      clearInterval(timer);
+      show(pick);
+      const e = document.getElementById('pick-wheel-name'); if(e) e.textContent = '🎯 ' + pick.label;
+      await new Promise(r => setTimeout(r, 900));
+      closeModal();
+      if(!(await offerReroll(owner, pick.label))){ resolve(pick); return; }   // el dueño del premio puede repetir la ruleta
+    }
+  });
+}
+async function prizeStealFlow(thief, candidates, source){
+  let victim = candidates[0];
+  if(candidates.length > 1){
+    const r = await spinPick({ title:'🦹 ¿A quién le toca?', items:candidates.map(t => ({ key:t, label:NAMES[t] })), owner:thief });
+    victim = r.key;
+  }
+  if(shieldBlock(victim, 'robar')) return null;
+  const mons = stealableMons(victim);
+  if(!mons.length){ toast(`${NAMES[victim]} no tiene Pokémon robables ahora (necesita 2 en el equipo y su tracker subiendo datos).`); return null; }
+  let mon = mons[0];
+  if(mons.length > 1){
+    const r = await spinPick({ title:`🦹 ¿Qué Pokémon de ${lkEsc(NAMES[victim])}?`, items:mons.map(m => ({ key:m.pid, label:m.nickname, img:tqSprite(m) })), owner:thief });
+    mon = mons.find(m => m.pid === r.key) || mons[0];
+  }
+  const id = crypto.randomUUID(), label = `${mon.nickname} (${String(mon.speciesName || '').replace(/-/g, ' ')})`;
+  stealState[id] = { id, victim, others: TRAINERS.filter(t => t !== victim), status:'accept', thief, pid:mon.pid, label, accepts:{}, source, ts:Date.now() };
+  pushHistory(`🦹 La suerte decide: ${NAMES[thief]} se queda ${label} de ${NAMES[victim]} (${source}). Deben aceptar los dos.`);
   await persistSteal();
   return id;
+}
+async function removeShieldAdmin(t){ // solo desde la página de Iker, por si algo sale mal
+  if(window.LOGIN_ME !== 'iker' || !hasShield(t)) return;
+  try{
+    await window.FBD.removeShield(t);
+    pushHistory(`🛡️ Iker ha quitado el escudo de ${NAMES[t]}.`);
+    toast(`🛡️ Escudo de ${NAMES[t]} quitado.`);
+    render();
+  }catch(error){ console.error('No se pudo quitar el escudo.', error); toast('No se pudo quitar el escudo. Inténtalo de nuevo.'); }
 }
 async function clearIllegalAdmin(id){ /* solo desde la página de Iker, por si algo sale mal */
   const c = castigos[id];
@@ -8740,7 +8784,7 @@ function __renderProfileBase(app, t){
           <button class="danger-outline" onclick="loseLife('${t}')">💔 Perder vida</button>
           <button class="ghost" onclick="addLife('${t}')">➕ Sumar vida</button>
           <button class="ghost" onclick="resetLives('${t}')">🔄 Restablecer</button>
-          <button class="ghost" onclick="startSancion('${t}')">⚖️ Sancionar</button>
+          <button class="ghost" onclick="startSancion('${t}')">⚖️ Sancionar</button>${window.LOGIN_ME === 'iker' && hasShield(t) ? `<button class="ghost" onclick="removeShieldAdmin('${t}')">🛡️ Quitar escudo</button>` : ''}
           ${window.LOGIN_ME === 'iker' ? `<button class="ghost" onclick="giveRareCandies('${t}')">🍬 +999 Caramelos raros</button>` : ''}
         </div>
       </aside>
@@ -9667,7 +9711,17 @@ async function pullLever(machineId){
   });
 
   setTimeout(async ()=>{
+    // si el jugador tiene rerolls, puede repetir la tirada ANTES de que se aplique el resultado (sin volver a pagar)
+    const shown = [...new Set(outcomes.filter(o => o.type !== 'nothing').map(o => o.label))];
+    const again = await offerReroll(casinoPlayer, `Tragaperras: ${shown.length ? shown.slice(0, 3).join(', ') + (shown.length > 3 ? '…' : '') : 'nada'}`);
     slotSpinning = false;
+    if(again){
+      if(useFree) window.FBD.bump(casinoPlayer, 'freeSpins', totalCost);
+      else await addTickets(casinoPlayer, totalCost, 'Reroll: se repite la tragaperras');
+      render();
+      pullLever(machineId);
+      return;
+    }
     if(slotMultiplier === 1){
       await resolveSingleSlotOutcome(machineId, outcomes[0]);
     } else {
@@ -12007,11 +12061,9 @@ function spinWheel(){
   playSound('spin');
 
   setTimeout(async ()=>{
+    duelSpinning = false;
     playSound('wheelLand');
     const picked = candidates[idx];
-    const again = await offerReroll(picked, `Sale ${NAMES[picked]}`); // el elegido puede repetir la rueda si tiene rerolls
-    duelSpinning = false;
-    if(again){ render(); spinWheel(); return; }
     duelState.picks = [...(duelState.picks||[]), picked];
     duelWheelRotation = 0; // la siguiente rueda tiene otro número de candidatos, debe arrancar limpia
     if(duelState.picks.length === 2){
@@ -15013,6 +15065,10 @@ window.FBD={
     dirty();
     return result.committed||!!(profile.ticketOperations&&profile.ticketOperations[operationId]) ? !insufficient : false;
   },
+  async removeShield(t){ /* solo lo usa el botón de Iker, por si algo sale mal */
+    await remove(ref(db,`profiles/${t}/shield`));
+    if(FBS.profiles[t])delete FBS.profiles[t].shield;
+    dirty()},
   async giveSpecial(t,id){ /* premios especiales (gacha y tragaperras): reroll, apodo, escudo y vida */
     const P=f=>ref(db,`profiles/${t}/${f}`);
     if(id==='reroll')await runTransaction(P('rerolls'),c=>(+c||0)+1);
@@ -15063,7 +15119,7 @@ onAuthStateChanged(auth,async user=>{
   $('#lk-login').style.display='none';window._fbResolve();
 });
 /* ---------- calendario ---------- */
-const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Te llega un huevo sorpresa al PC del juego.'],illegality:['ILEG','Una ilegalidad','Se activa sola al abrir la puerta. Cuando la hagas, pulsa «Ya la hice» en Inicio.'],sanction:['SANC','Derecho a una sanción','Pulsa «Usar sanción» en Premios guardados: eliges a quién (no a quien tenga escudo) y la ruleta se gira en su perfil.'],steal:['ROBO','Derecho a un robo','Pulsa «Usar robo» en Premios guardados: eliges a quién (no a quien tenga escudo) y luego el Pokémon.'],operator:['OPER','Un Operator','Alguien te debe un Operator en Valorant. Queda apuntado en el diario.'],casino:['CASINO','Ruleta de casino','Alguien te debe una tirada de ruleta en un casino de verdad. Queda apuntado en el diario.'],slots:['777','Tiradas gratis','Se suman a tu perfil: en la tragaperras se gastan en lugar de tickets.'],shield:['ESCUDO','Un escudo','Capa azul en tu perfil: nadie puede robarte, sancionarte ni desafiarte hasta que termine el próximo torneo.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis: en la lotería se gasta en lugar de tickets.'],reroll:['REPITE','Un reroll','Cuando una ruleta te toque, podrás repetirla (se pregunta antes de aplicar el resultado).'],nickname:['MOTE','Apodo forzado','Se suma a tu perfil: abre un Pokémon de otro jugador (en su perfil) y podrás ponerle el mote. Es sorpresa.']};
+const SP={life:['VIDA','Una vida','Se guarda en tu perfil y la cobras cuando quieras.'],pokemon:['POKÉ','Un Pokémon aleatorio','Te llega un huevo sorpresa al PC del juego.'],illegality:['ILEG','Una ilegalidad','Se activa sola al abrir la puerta. Cuando la hagas, pulsa «Ya la hice» en Inicio.'],sanction:['SANC','Derecho a una sanción','Pulsa «Usar sanción» en Premios guardados: eliges a quién (no a quien tenga escudo) y la ruleta se gira en su perfil.'],steal:['ROBO','Derecho a un robo','Pulsa «Usar robo» en Premios guardados: una ruleta decide a quién le toca (nadie con escudo) y otra cuál de sus Pokémon. Luego aceptan los dos.'],operator:['OPER','Un Operator','Alguien te debe un Operator en Valorant. Queda apuntado en el diario.'],casino:['CASINO','Ruleta de casino','Alguien te debe una tirada de ruleta en un casino de verdad. Queda apuntado en el diario.'],slots:['777','Tiradas gratis','Se suman a tu perfil: en la tragaperras se gastan en lugar de tickets.'],shield:['ESCUDO','Un escudo','Capa azul en tu perfil: nadie puede robarte, sancionarte ni desafiarte hasta que termine el próximo torneo.'],lottery:['LOTE','Boleto de lotería','Un boleto gratis: en la lotería se gasta en lugar de tickets.'],reroll:['REPITE','Un reroll','Cuando una ruleta te toque, podrás repetirla (se pregunta antes de aplicar el resultado).'],nickname:['MOTE','Apodo forzado','Se suma a tu perfil: abre un Pokémon de otro jugador (en su perfil) y podrás ponerle el mote. Es sorpresa.']};
 const KIND={title:'titles',palette:'palettes',character:'characters',background:'backgrounds'};
 const REWARD_ASSET_ROOT='';
 window.characterAsset=function(id,silhouette=false){
@@ -15181,24 +15237,20 @@ async function applySpecial(k,p){
 /* robo del calendario: eliges a quién; si alguien tiene escudo no sale en la lista, y si solo queda uno va directo */
 let prizeBusy=false;
 /* Primero se hace la acción y al final se reclama el premio: las reglas no dejan borrar un claim, así que un fallo a medias no puede gastarlo */
-window.lkPickSteal=async(k,victim)=>{
-  try{window.closeModal()}catch{}
-  if(prizeBusy||claims[k])return;
-  if(window.hasShield(victim)){say('🛡️ '+NAMES[victim]+' tiene escudo: no se le puede robar.');return}
-  if(!window.stealableMons(victim).length){say('🦹 '+NAMES[victim]+' no tiene Pokémon robables ahora (2 en el equipo y su tracker subiendo datos).');return}
-  prizeBusy=true;
-  try{
-    const id=await window.startPrizeSteal(me,victim,'Calendario · puerta '+k);
-    if(!id)return;
-    if(!(await claimOnce(k))){try{delete stealState[id];await window.persistSteal()}catch{}return}
-    say('🦹 Robo en marcha: elige el Pokémon en «Te toca a ti», en Inicio.')
-  }catch(e){console.error(e);say('No se pudo iniciar el robo. Inténtalo de nuevo.')}
-  finally{prizeBusy=false}};
 function useSteal(k){
+  if(prizeBusy||claims[k])return;
   const noShield=calOthers(me).filter(t=>!window.hasShield(t)),free=noShield.filter(t=>window.stealableMons(t).length);
   if(!free.length){say(noShield.length?'🦹 Ahora mismo no se puede robar a nadie: hace falta que tenga 2 Pokémon en el equipo y su tracker subiendo datos.':'🛡️ Los dos tienen escudo: ahora mismo no puedes robar a nadie.');return}
-  if(free.length===1){window.lkPickSteal(k,free[0]);return}
-  window.openModal(`<h3>🦹 ¿A quién le robas un Pokémon?</h3><div class="modal-actions">${free.map(t=>`<button class="primary" onclick="lkPickSteal('${k}','${t}')">${NAMES[t]}</button>`).join('')}<button class="ghost" onclick="closeModal()">Cancelar</button></div>`)}
+  runSteal(k,free)}
+async function runSteal(k,free){
+  prizeBusy=true;
+  try{
+    const id=await window.prizeStealFlow(me,free,'Calendario · puerta '+k);
+    if(!id)return;
+    if(!(await claimOnce(k))){try{delete stealState[id];await window.persistSteal()}catch{}return}
+    say('🦹 Hecho: ahora deben aceptar los dos, en «Te toca a ti», en Inicio.')
+  }catch(e){console.error(e);say('No se pudo iniciar el robo. Inténtalo de nuevo.')}
+  finally{prizeBusy=false}}
 /* sanción del calendario: eliges a quién (sin escudo) y la ruleta se gira en el perfil de esa persona */
 window.lkPickSanction=async(k,target)=>{
   try{window.closeModal()}catch{}
