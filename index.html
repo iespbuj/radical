@@ -3,7 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<style id="global-zoom">:root{--z:.7}html{zoom:var(--z)}@media (max-width:700px){:root{--z:1}}</style>
+<style id="global-zoom">:root{--z:.7}html{zoom:var(--z)}@media (max-width:700px){:root{--z:1}}.auc-wrap{ max-width:560px; margin:0 auto; padding:6px 4px 30px; }
+.auc-card{ border:1px solid var(--cz-edge, #ff3d9a); border-radius:18px; padding:18px 16px 20px; text-align:center;
+  background:radial-gradient(ellipse at 50% 0%, rgba(255,61,154,.18), transparent 62%), linear-gradient(180deg,#2a0d14,#18070b); }
+.auc-eyebrow{ font-size:12px; letter-spacing:.2em; color:#ffd76a; margin-bottom:6px; }
+.auc-stage{ position:relative; margin:4px auto 6px; width:min(260px,70vw); aspect-ratio:1; display:grid; place-items:center;
+  filter:drop-shadow(0 0 22px rgba(255,215,106,.45)); }
+.auc-img{ width:100%; height:100%; object-fit:contain; image-rendering:auto; }
+.auc-img.em{ font-size:90px; }
+.auc-title{ font-size:22px; font-weight:800; color:#ffe7a8; margin:4px 0 8px; }
+.auc-chips{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:10px; }
+.auc-chips span{ font-size:11px; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,.08); color:#f3d9d0; border:1px solid rgba(255,255,255,.14); }
+.auc-planb{ margin:8px 0; padding:8px 10px; border-radius:10px; background:rgba(255,215,106,.12); color:#ffe7a8; font-size:13px; }
+.auc-sub{ font-size:13px; color:#e7d5cd; margin:8px 0; line-height:1.4; }
+.auc-clock{ font-size:13px; color:#ffd76a; margin:8px 0 12px; }
+.auc-bidders{ display:grid; gap:6px; margin-bottom:12px; }
+.auc-bidder{ display:flex; justify-content:space-between; padding:8px 12px; border-radius:10px; background:rgba(255,255,255,.05); font-size:13px; color:#cdb9b0; }
+.auc-bidder.on{ background:rgba(255,61,154,.16); color:#fff; }
+.auc-form{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.auc-form input{ flex:1; min-width:150px; max-width:260px; }
+.auc-note{ font-size:12px; color:#cdb9b0; margin-top:8px; }
+.auc-winner{ font-size:16px; font-weight:700; color:#ffe7a8; margin:10px 0; }
+</style>
 <meta name="theme-color" content="#12060a">
 <title>Locke Navideño · Radical Red</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎄%3C/text%3E%3C/svg%3E">
@@ -4398,6 +4419,7 @@ let loaded = false;
 let loadWarning = null;
 let finalState = null; // { unlocked, categories:[id,id,id], results:[{id,winner,value}], pointsAwarded } o null
 let finalPasswordInput = '';
+let STATS = {}; // stats[t] = { ticketsWon, gachaPulls } (se cargan al abrir LA FINAL)
 let finalRevealStep = 0; // 0 = nada mostrado, va subiendo con la animacion
 let finalCatRevealed = {}; // idx (categoria estrella) -> bool, revelado en dos fases (misterio -> abierta)
 let finalChampionRevealed = false; // el nombre del Campeón Absoluto se revela en dos fases igual
@@ -4412,10 +4434,11 @@ const FINAL_CATEGORY_POOL = [
   { id:'clumsy',    label:'El más torpe',              icon:'🪦', compute:(t)=> (graveyard[t]||[]).length, unit:'Pokémon caídos' },
   { id:'shiny',     label:'Suerte de shiny',           icon:'✨', compute:(t)=> allMonsOf(t).filter(m=>m.shiny).length, unit:'shinies encontrados' },
   { id:'milestones', label:'El más veterano',           icon:'🏅', compute:(t)=> milestoneCountOf(t), unit:'medallas' },
-  { id:'tickets',   label:'El más rico en fichas',     icon:'🎟️', compute:(t)=> tickets[t]||0, unit:'tickets' },
+  { id:'ticketsWon', label:'El que más tickets ha ganado', icon:'🎟️', compute:(t)=> +((STATS[t]||{}).ticketsWon)||0, unit:'tickets ganados', fixed:true },
+  { id:'gachas',    label:'El mayor gachero',          icon:'🎴', compute:(t)=> +((STATS[t]||{}).gachaPulls)||0, unit:'gachas abiertos', fixed:true },
   { id:'dex',       label:'El enciclopedista',         icon:'📖', compute:(t)=> new Set(allMonsOf(t).filter(m=>!m.isEgg).map(m=>(m.speciesName||'').toLowerCase())).size, unit:'especies distintas' },
   { id:'strongest', label:'El equipo más potente',     icon:'💪', compute:(t)=> Math.max(0, ...allMonsOf(t).filter(m=>m.inTeam && m.level!=null).map(m=>m.level), 0), unit:'nivel máximo' },
-  { id:'cosmetics', label:'El más cosmético',          icon:'🛍️', compute:(t)=> cosmeticsCountOf(t), unit:'cosméticos' },
+  { id:'cosmetics', label:'El más cosmético',          icon:'🛍️', compute:(t)=> cosmeticsCountOf(t), unit:'cosméticos', fixed:true },
 ];
 let lastLoadSignature = null; // para saber si el ultimo loadAll() trajo algo distinto de verdad
 
@@ -6365,11 +6388,13 @@ function evaluateFinalCategoryPool(){
 }
 function pickFinalCategories(){
   const all = evaluateFinalCategoryPool();
-  const decisive = all.filter(c=> c.decisive);
-  // caso normal: hay al menos 3 categorías con ganador claro -> elegimos 3 al azar entre esas
-  // caso extremo (muy improbable): rellenamos con las que queden, aunque estén empatadas
-  const pool = decisive.length >= 3 ? decisive : [...decisive, ...shuffleArr(all.filter(c=>!c.decisive))];
-  const picked = shuffleArr(pool).slice(0, 3);
+  // 3 estrellas FIJAS (cosméticos, tickets ganados, gachas abiertos) + 3 al azar entre las demás con ganador claro.
+  // Una fija en la que nadie tiene nada (todo a 0) no da estrella a nadie.
+  const fixed = all.filter(c=> c.cat.fixed).map(c=> c.maxVal === 0 ? { ...c, winners:[], decisive:false } : c);
+  const rest = all.filter(c=> !c.cat.fixed);
+  const decisive = rest.filter(c=> c.decisive);
+  const pool = decisive.length >= 3 ? decisive : [...decisive, ...shuffleArr(rest.filter(c=>!c.decisive))];
+  const picked = [...fixed, ...shuffleArr(pool).slice(0, 3)];
   return picked.map(c=> ({
     id: c.cat.id, label: c.cat.label, icon: c.cat.icon, unit: c.cat.unit,
     values: c.values, value: c.maxVal, winners: c.winners,
@@ -6396,6 +6421,7 @@ async function submitFinalPassword(){
   if(existing && existing.unlocked){
     finalState = existing;
   } else {
+    try{ STATS = await window.FBD.loadStats(); }catch(e){ console.error('No se pudieron cargar las estadísticas de la Final.', e); }
     const categories = pickFinalCategories();
     const pointsAwarded = {}; TRAINERS.forEach(t=> pointsAwarded[t]=0);
     categories.forEach(c=> (c.winners||[]).forEach(t=> pointsAwarded[t] = (pointsAwarded[t]||0)+1));
@@ -6674,7 +6700,7 @@ function renderFinal(app){
         <div class="final-gate-eyebrow">⚡ Se acabaron los rounds de clasificación ⚡</div>
         <div class="final-gate-icon">🏆</div>
         <div class="final-gate-title" id="final-gate-title">LA FINAL</div>
-        <div class="final-gate-sub">Todo lo que habéis conseguido durante Radical Red llega a este momento. Al desbloquearla se sortearán tres categorías y sus estrellas quedarán fijas para todos.</div>
+        <div class="final-gate-sub">Todo lo que habéis conseguido durante Radical Red llega a este momento. Al desbloquearla se repartirán tres estrellas fijas (cosméticos, tickets ganados y gachas abiertos) y se sortearán tres categorías más y sus estrellas quedarán fijas para todos.</div>
         <div class="final-gate-hype"><span>◆</span> ÚLTIMA PARADA <span>◆</span> SIN VUELTA ATRÁS <span>◆</span></div>
         <div class="field" style="max-width:260px;margin:20px auto 0;">
           <input type="password" id="final-password-input" placeholder="Contraseña" autocomplete="off" onkeydown="if(event.key==='Enter') submitFinalPassword();">
@@ -7224,6 +7250,7 @@ async function addTickets(t, amount, reason){
   tickets[t] = Math.max((tickets[t]||0) + amount, 0);
   const sign = amount >= 0 ? '+' : '';
   pushHistory(`🎟️ ${NAMES[t]} ${sign}${amount} tickets (${reason}) → ${tickets[t]} tickets en total`);
+  if(amount > 0 && !/devuel|reembols|refund/i.test(String(reason))){ try{ window.FBD.bumpStat(t, 'ticketsWon', amount); }catch(e){} }
   const ok = await saveProfile(t);
   if(!ok){
     queueRetry('profile:'+t, ()=>saveProfile(t));
@@ -8249,7 +8276,7 @@ async function settleItemOrders(){
     }
   }
 }
-window.onGameOrders = ()=>{ settleCastigoOrders().catch(error=>console.error(error)); settleReleaseOrders().catch(error=>console.error(error)); settleForcedNickOrders().catch(error=>console.error(error)); settleMoneyOrders().catch(error=>console.error(error)); settleMintOrders().catch(error=>console.error(error)); settleStealOrders().catch(error=>console.error(error)); settleGameOrders().catch(error=>console.error(error)); settleItemOrders().catch(error=>console.error(error)); };
+window.onGameOrders = ()=>{ settleAuctions().catch(error=>console.error(error)); settleCastigoOrders().catch(error=>console.error(error)); settleReleaseOrders().catch(error=>console.error(error)); settleForcedNickOrders().catch(error=>console.error(error)); settleMoneyOrders().catch(error=>console.error(error)); settleMintOrders().catch(error=>console.error(error)); settleStealOrders().catch(error=>console.error(error)); settleGameOrders().catch(error=>console.error(error)); settleItemOrders().catch(error=>console.error(error)); };
 setInterval(()=>{ if(loaded && window.LOGIN_ME) window.onGameOrders(); }, 5000);
 
 function openGiftPrize(fromTrainer, id){
@@ -9140,7 +9167,7 @@ const HISTORY_CATEGORIES = [
   { key: 'vidas',    label: '💔 Vidas',        prefixes: ['💔'] },
   { key: 'capturas', label: '🆕 Capturas',     prefixes: ['🆕', '✨', '🔺'] },
   { key: 'trades',   label: '🔄 Intercambios', prefixes: ['🔄', '🤝', '🔁'] },
-  { key: 'casino',   label: '🎰 Casino',       prefixes: ['🎟️', '🎉', '🎁'] },
+  { key: 'casino',   label: '🎰 Casino',       prefixes: ['🎟️', '🎉', '🎁', '🎰', '🔨'] },
   { key: 'duelos',   label: '⚔️ Duelos',       prefixes: ['⚔️', '💀'] },
   { key: 'otros',    label: '📋 Otros',        prefixes: [] },
 ];
@@ -9413,6 +9440,7 @@ const CZ_GAMES = [
   { zone:'mesas',    id:'roulette', icon:'🎡', name:'Ruleta',       tag:'Números y colores',                hue:'pink',   go:"openCasinoZone('roulette')" },
   { zone:'mesas',    id:'blackjack',icon:'🂡', name:'Blackjack',    tag:'21 contra el crupier',             hue:'green',  go:"openCasinoZone('blackjack')" },
   { zone:'mesas',    id:'nueve',    icon:'9️⃣', name:'El Nueve',     tag:'Jugador · Empate · Crupier',       hue:'cyan',   go:"openCasinoZone('nueve')" },
+  { zone:'extras',   id:'puja',     icon:'🔨', name:'Puja semanal', tag:'Shiny a puja ciega · por tickets', hue:'pink', go:"openCasinoZone('puja')" },
   { zone:'extras',   id:'loteria',  icon:'🎫', name:'Lotería',      tag:'Bote acumulado',                   hue:'yellow', go:"openCasinoZone('loteria')" },
   { zone:'extras',   id:'life',     icon:'❤️', name:'Botón de la vida', tag:'Acceso restringido · con contraseña', hue:'red', go:"openLifeButtonModal()" },
 ];
@@ -9576,7 +9604,212 @@ const MINES_LINES = ['Cada casilla segura suma. Cada mina resta... todo.', 'Cava
 const CRASH_LINES = ['Sube, sube... y BOOM. O te retiras a tiempo.', 'El cohete no tiene frenos. Tú sí.', 'Los valientes cobran. Los listos, también.', 'Cada décima que esperas es una décima que puedes perder.'];
 const PLINKO_LINES = ['Suelta la ficha y confía en las matemáticas... o en la suerte.', 'Cada clavo es un 50/50. Diez veces seguidas.', 'La ficha no tiene memoria. Tú, espero que sí.', 'Las casillas de los lados pagan de lujo. Las del medio, de pena.'];
 const CZ_TITLES = { slots:'TRAGAPERRAS', roulette:'RULETA', blackjack:'BLACKJACK', nueve:'EL NUEVE', mines:'MINES', crash:'CRASH',
-  grieta:'LA GRIETA', plinko:'PLINKO', loteria:'LOTERÍA' };
+  grieta:'LA GRIETA', plinko:'PLINKO', puja:'PUJA SEMANAL', loteria:'LOTERÍA' };
+
+/* ==================== PUJA SEMANAL (casino) ====================
+   Cada semana hay un Pokémon SHINY (nivel 1, Salpicadura, habilidad al azar) a puja ciega por tickets.
+   Si alguien ya tiene la opción A en su juego cuando se abre la puja, sale la opción B (plan B).
+   Los tickets de tu puja quedan retenidos; al cerrar, los que no ganan los recuperan y el ganador recibe el
+   Pokémon solo en su PC (orden give_auction que ejecuta el Lua). */
+const AUC_MIN = 10;
+const AUC_SHOW_AMOUNTS = false;   // true = se ve cuánto ha pujado cada uno; false = puja a ciegas
+const AUC_ART = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/';
+// species = ID de especie en Radical Red; dex = número de la Pokédex nacional (solo para la foto)
+const AUC_WEEKS = [
+  { id:'w1', open:'2026-12-01T00:00:00+01:00', close:'2026-12-07T00:00:00+01:00',
+    a:{ name:'Sobble',    species:1108, dex:816 }, b:{ name:'Dartrix',     species:940,  dex:723 } },
+  { id:'w2', open:'2026-12-07T00:00:00+01:00', close:'2026-12-14T00:00:00+01:00',
+    a:{ name:'Blaziken',  species:282,  dex:257 }, b:{ name:'Cinderace',   species:1107, dex:815 } },
+  { id:'w3', open:'2026-12-14T00:00:00+01:00', close:'2026-12-21T00:00:00+01:00',
+    a:{ name:'Gyarados',  species:130,  dex:130 }, b:{ name:'Basculegion', species:1268, dex:902 } },
+  { id:'w4', open:'2026-12-21T00:00:00+01:00', close:'2026-12-28T00:00:00+01:00',
+    a:{ name:'Tyranitar', species:248,  dex:248 }, b:{ name:'Garchomp',    species:498,  dex:445 } },
+];
+const AUC_BID_LINES = [
+  (n, p) => `🔨 ${n} ha pujado por ${p} ✨. Los demás, ojo.`,
+  (n, p) => `🔨 ${n} se la juega y mete puja por ${p} ✨.`,
+  (n, p) => `🔨 ¡${n} quiere a ${p} ✨! ¿Quién se atreve a subir más?`,
+  (n, p) => `🔨 Movimiento en la subasta: ${n} ha pujado por ${p} ✨.`
+];
+const AUC_RAISE_LINES = [
+  (n, p) => `🔨 ${n} sube su puja por ${p} ✨. Esto se calienta.`,
+  (n, p) => `🔨 ${n} no se rinde y mejora su puja por ${p} ✨.`
+];
+let aucBusy = false;
+const aucSettling = new Set();
+const aucPicking = new Set();
+const aucMs = iso => new Date(iso).getTime();
+function aucNow(){ return window.lkServerNow ? window.lkServerNow() : Date.now(); }
+function aucCurrent(now){
+  const w = AUC_WEEKS.find(x => now >= aucMs(x.open) && now < aucMs(x.close));
+  if(w) return { w, state:'open' };
+  if(now < aucMs(AUC_WEEKS[0].open)) return { w:AUC_WEEKS[0], state:'before' };
+  return { w:AUC_WEEKS[AUC_WEEKS.length - 1], state:'closed' };
+}
+function aucOwns(t, name){
+  const n = name.toLowerCase();
+  try{ return allMonsOf(t).some(m => !m.isEgg && String(m.speciesName || '').toLowerCase().replace(/-/g, ' ') === n); }
+  catch(e){ return false; }
+}
+async function ensureAuctionPick(){
+  if(!loaded || !window.LOGIN_ME || !FBS.auction) return;
+  const cur = aucCurrent(aucNow());
+  if(cur.state !== 'open') return;
+  const w = cur.w;
+  if((FBS.auction[w.id] || {}).pick || aucPicking.has(w.id)) return;
+  aucPicking.add(w.id);
+  try{
+    const taken = TRAINERS.some(t => aucOwns(t, w.a.name));
+    await window.FBD.auctionPick(w.id, taken ? 'b' : 'a');
+  }catch(e){ console.error('Puja: no se pudo fijar la opción.', e); }
+  finally{ aucPicking.delete(w.id); }
+}
+function aucFmtLeft(ms){
+  if(ms <= 0) return 'cerrando…';
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
+  return d > 0 ? `${d} d ${h} h` : (h > 0 ? `${h} h ${mi} min` : `${mi} min`);
+}
+function aucFmtDate(iso){
+  return new Date(iso).toLocaleString('es-ES', { weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
+}
+function aucBidsOf(w){
+  const d = (FBS.auction || {})[w.id] || {};
+  return Object.entries(d.bids || {}).map(([t, b]) => ({ t, amount:+b.amount || 0, at:+b.at || 0 })).filter(b => b.amount > 0)
+    .sort((a, b) => b.amount - a.amount || a.at - b.at);
+}
+function aucOptionLabel(w, species){ const o = [w.a, w.b].find(x => x.species === species); return o ? o.name : 'Pokémon'; }
+function renderAuctionTab(){
+  ensureAuctionPick();
+  const me = window.LOGIN_ME, now = aucNow();
+  const cur = aucCurrent(now), w = cur.w, data = (FBS.auction || {})[w.id] || {};
+  const pick = data.pick, opt = pick ? w[pick] : w.a;
+  const weekNo = AUC_WEEKS.indexOf(w) + 1;
+  if(cur.state === 'before'){
+    return `<div class="auc-wrap"><div class="auc-card"><div class="auc-eyebrow">🔨 PUJA SEMANAL</div>
+      <div class="auc-title">La primera puja abre el ${lkEsc(aucFmtDate(w.open))}</div>
+      <p class="auc-sub">Cada semana, un Pokémon shiny a puja ciega por tickets. Empieza guardando algunos.</p></div></div>`;
+  }
+  const lastClosed = cur.state === 'closed';
+  const img = `<img class="auc-img" alt="" src="${AUC_ART}${opt.dex}.png" onerror="this.outerHTML='<span class=&quot;auc-img em&quot;>✨</span>'">`;
+  const bids = aucBidsOf(w), mine = +((data.bids || {})[me]?.amount) || 0;
+  const planB = pick === 'b';
+  const bidders = TRAINERS.map(t => {
+    const b = (data.bids || {})[t], has = b && +b.amount > 0;
+    const amt = (t === me || AUC_SHOW_AMOUNTS) && has ? ` · <b>${+b.amount}</b> 🎟️` : '';
+    return `<div class="auc-bidder ${has ? 'on' : ''}"><span>${lkEsc(NAMES[t])}</span><span>${has ? '🔨 ha pujado' + amt : 'sin pujar'}</span></div>`;
+  }).join('');
+  let body;
+  if(!lastClosed){
+    const left = aucMs(w.close) - now;
+    body = `
+      <p class="auc-sub">${pick ? `Puja ${AUC_SHOW_AMOUNTS ? 'abierta' : 'a ciegas'}: gana quien más ofrezca. Mínimo ${AUC_MIN} tickets.` : 'Preparando la puja…'}
+        Tus tickets quedan retenidos y, si no ganas, se te devuelven al cerrar.</p>
+      <div class="auc-clock">⏳ Cierra el ${lkEsc(aucFmtDate(w.close))} · quedan <b>${aucFmtLeft(left)}</b></div>
+      <div class="auc-bidders">${bidders}</div>
+      ${pick && me ? `<div class="auc-form">
+        <input id="auc-amount" type="number" min="${Math.max(AUC_MIN, mine + 1)}" step="1" inputmode="numeric" placeholder="${mine ? 'Sube tu puja (más de ' + mine + ')' : 'Tu puja (mín. ' + AUC_MIN + ')'}">
+        <button class="primary" onclick="placeAuctionBid('${w.id}')">${mine ? 'Subir puja' : 'Pujar'}</button></div>
+        <div class="auc-note">Tienes ${tickets[me] || 0} 🎟️ disponibles${mine ? ` · tu puja actual: ${mine}` : ''}.</div>` : ''}`;
+  } else {
+    const s = data.settle;
+    let res = `<p class="auc-sub">Puja cerrada.</p>`;
+    if(s && s.winner){
+      res = `<div class="auc-winner">🏆 ¡${lkEsc(NAMES[s.winner])} se lleva a ${lkEsc(aucOptionLabel(w, s.species))} ✨ con ${+s.amount} tickets!</div>`;
+      if(s.winner === me) res += aucDeliveryHtml(w);
+    } else if(s && s.none){ res = `<p class="auc-sub">Nadie pujó esta vez.</p>`; }
+    else { res = `<p class="auc-sub">Cerrando la puja… un momento.</p>`; }
+    body = res;
+  }
+  return `<div class="auc-wrap"><div class="auc-card">
+    <div class="auc-eyebrow">🔨 PUJA SEMANAL · SEMANA ${weekNo}/${AUC_WEEKS.length}</div>
+    <div class="auc-stage">${img}</div>
+    <div class="auc-title">✨ ${lkEsc(opt.name)} shiny</div>
+    <div class="auc-chips"><span>Nv. 1</span><span>Salpicadura</span><span>Habilidad al azar</span><span>Shiny garantizado</span></div>
+    ${planB ? `<div class="auc-planb">Alguien ya tiene a ${lkEsc(w.a.name)}, así que esta semana toca el plan B.</div>` : ''}
+    ${body}</div></div>`;
+}
+function aucDeliveryHtml(w){
+  const o = (FBS.orders || {})['auction-' + w.id];
+  if(!o) return `<div class="auc-note">⏳ Preparando la entrega…</div>`;
+  if(o.status === 'done') return `<div class="auc-note">✅ Entregado en tu PC (caja ${lkEsc(o.box || '?')}).</div>`;
+  if(o.status === 'error') return `<div class="auc-note">⚠️ No se pudo entregar${o.note ? ': ' + lkEsc(o.note) : ''}. <button class="ghost" onclick="retryAuctionOrder('${w.id}')">Reintentar</button></div>`;
+  if(o.note) return `<div class="auc-note">⚠️ ${lkEsc(o.note)}. Libera un hueco y se entregará solo.</div>`;
+  return `<div class="auc-note">⏳ Se entrega solo en tu PC cuando tengas el juego y el tracker abiertos.</div>`;
+}
+async function retryAuctionOrder(wid){
+  const s = ((FBS.auction || {})[wid] || {}).settle;
+  if(!s || s.winner !== window.LOGIN_ME) return;
+  try{
+    await window.FBD.removeGameOrder('auction-' + wid);
+    await window.FBD.createGameOrderOnce(s.winner, 'auction-' + wid, { kind:'give_auction', species:s.species, shiny:1, auctionId:wid });
+    toast('📥 Pedido reenviado.');
+  }catch(e){ console.error(e); toast('No se pudo reenviar el pedido.'); }
+  render();
+}
+async function placeAuctionBid(wid){
+  const me = window.LOGIN_ME, w = AUC_WEEKS.find(x => x.id === wid);
+  if(!me || !w || aucBusy) return;
+  const cur = aucCurrent(aucNow());
+  if(cur.w.id !== wid || cur.state !== 'open'){ toast('Esta puja ya no está abierta.'); render(); return; }
+  const data = (FBS.auction || {})[wid] || {};
+  if(!data.pick){ toast('La puja se está preparando, prueba otra vez en un segundo.'); return; }
+  const amount = Math.floor(Number((document.getElementById('auc-amount') || {}).value));
+  const mine = +((data.bids || {})[me]?.amount) || 0;
+  if(!(amount >= AUC_MIN)){ toast(`La puja mínima es de ${AUC_MIN} tickets.`); return; }
+  if(amount <= mine){ toast(`Tu puja actual es de ${mine}: tienes que subirla.`); return; }
+  const delta = amount - mine, nonce = crypto.randomUUID();
+  aucBusy = true;
+  try{
+    const ok = await window.FBD.adjustTicketsOnce(me, -delta, `auction-bid:${wid}:${me}:${nonce}`);
+    if(!ok){ toast('No tienes tickets suficientes.'); return; }
+    try{ await window.FBD.auctionBid(wid, me, amount); }
+    catch(e){
+      console.error('Puja: no se pudo registrar.', e);
+      await window.FBD.adjustTicketsOnce(me, delta, `auction-refund:bidfail:${wid}:${me}:${nonce}`);
+      toast('No se pudo registrar la puja. Se te han devuelto los tickets.'); return;
+    }
+    const lines = mine ? AUC_RAISE_LINES : AUC_BID_LINES;
+    let text = lines[Math.floor(Math.random() * lines.length)](NAMES[me], w[data.pick].name);
+    if(AUC_SHOW_AMOUNTS) text += ` (${amount} tickets)`;
+    pushHistory(text);
+    toast(`🔨 Puja de ${amount} tickets registrada.`);
+  } finally { aucBusy = false; render(); }
+}
+async function finishAuction(w, d, s){
+  const bids = d.bids || {};
+  for(const [t, b] of Object.entries(bids)){
+    const amt = +b.amount || 0;
+    if(amt > 0 && t !== s.winner) await window.FBD.adjustTicketsOnce(t, amt, `auction-refund:${w.id}:${t}`);
+  }
+  let text;
+  if(s.winner){
+    await window.FBD.createGameOrderOnce(s.winner, 'auction-' + w.id, { kind:'give_auction', species:s.species, shiny:1, auctionId:w.id });
+    text = `🔨 ¡${NAMES[s.winner]} gana la puja y se lleva a ${aucOptionLabel(w, s.species)} ✨ por ${s.amount} tickets! Los demás recuperan sus tickets.`;
+  } else text = `🔨 La puja de la semana se cierra sin pujas. ${aucOptionLabel(w, w[d.pick || 'a'].species)} ✨ se queda sin dueño.`;
+  await window.FBD.appendHistoryEvents([{ id:'auction-result-' + w.id, text, ts:Date.now() }]);
+  await window.FBD.auctionDone(w.id);
+}
+async function settleAuctions(){
+  if(!loaded || !window.LOGIN_ME || !FBS.auction) return;
+  const now = aucNow();
+  for(const w of AUC_WEEKS){
+    if(now < aucMs(w.close)) continue;
+    const d = FBS.auction[w.id] || {};
+    if(d.done || aucSettling.has(w.id)) continue;
+    aucSettling.add(w.id);
+    try{
+      let s = d.settle;
+      if(!s){
+        const bids = aucBidsOf(w), win = bids[0], species = w[d.pick || 'a'].species;
+        s = win ? { winner:win.t, amount:win.amount, species } : { none:true };
+        const claimed = await window.FBD.auctionClaim(w.id, s);
+        if(!claimed) continue;   // otro dispositivo la está cerrando; el siguiente ciclo lo revisa
+      }
+      await finishAuction(w, d, s);
+    }catch(e){ console.error('Puja: no se pudo cerrar todavía, se reintenta.', e); }
+    finally{ aucSettling.delete(w.id); }
+  }
+}
 
 function renderCasino(app){
   if(casinoFloor){
@@ -9594,7 +9827,7 @@ function renderCasino(app){
       </div>
 
       <div id="casino-content">
-        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : casinoTab==='mines' ? renderMinesTab() : casinoTab==='grieta' ? renderGrietaTab() : casinoTab==='crash' ? renderCrashTab() : casinoTab==='plinko' ? renderPlinkoTab() : renderLoteriaTab()}
+        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : casinoTab==='mines' ? renderMinesTab() : casinoTab==='grieta' ? renderGrietaTab() : casinoTab==='crash' ? renderCrashTab() : casinoTab==='plinko' ? renderPlinkoTab() : casinoTab==='puja' ? renderAuctionTab() : renderLoteriaTab()}
       </div>
     `;
   }
@@ -15246,6 +15479,7 @@ window.FBD={
     const profile=result.snapshot.val()||{};
     FBS.profiles[trainer]=profile;
     dirty();
+    if(result.committed && delta>0 && !/refund/.test(operationId)) window.FBD.bumpStat(trainer,'ticketsWon',delta);
     return result.committed||!!(profile.ticketOperations&&profile.ticketOperations[operationId]) ? !insufficient : false;
   },
   async removeShield(t){ /* solo lo usa el botón de Iker, por si algo sale mal */
@@ -15276,6 +15510,7 @@ onAuthStateChanged(auth,async user=>{
   cfg=(await get(ref(db,'config'))).val()||{};
   await Promise.all([sub('legacy',v=>{FBS.legacy=v||{}}),sub('profiles',v=>{FBS.profiles=v||{}}),sub('inventory',v=>{FBS.inventory=v||{};inv=FBS.inventory[me]||{}}),
     sub('presence',v=>{FBS.presence=v||{}}),
+    sub('auction',v=>{FBS.auction=v||{}},()=>{FBS.auction={}}),
     sub('orders/'+me,v=>{FBS.orders=v||{};if(window.onGameOrders)window.onGameOrders()},()=>{FBS.orders={}}),
     sub('calendarOpened/'+me,v=>{opened=v||{};syncCal()}),sub('claims/'+me,v=>{claims=v||{};syncCal()}),sub('.info/serverTimeOffset',v=>{off=v||0}),
     ...['iker','joel','alex'].map(trainer=>sub('trackers/'+trainer,v=>{trackerStateCache[trainer]=v;delete trackerStateErrors[trainer]},error=>{trackerStateErrors[trainer]=error}))]);
@@ -15459,7 +15694,7 @@ async function applyGrant(k,p){
 async function applyBasic(k,p){
   if(!(await claimOnce(k)))return'';
   const tk=ref(db,`profiles/${me}/tickets`);
-  if(p.type==='tickets'){await runTransaction(tk,c=>(+c||0)+p.amount);return`+${p.amount} tickets`}
+  if(p.type==='tickets'){await runTransaction(tk,c=>(+c||0)+p.amount);window.FBD.bumpStat(me,'ticketsWon',p.amount);return`+${p.amount} tickets`}
   try{await set(ref(db,`inventory/${me}/${KIND[p.type]}/${p.id}`),true);return'Ya está en tu colección.'}
   catch{const n=price(p);await runTransaction(tk,c=>(+c||0)+n);return`Ya lo tenías: te damos ${n} tickets.`}}
 function syncCal(){if(!me)return;for(const k of Object.keys(opened)){
@@ -16002,6 +16237,7 @@ async function gcPull(){
   dirty();
   const ng={p4:it.s>=4?0:(g.p4||0)+1,p5:it.s===5?0:(g.p5||0)+1};
   gcState=ng;try{await set(gcRef(),ng)}catch(e){console.error(e)}
+  window.FBD.bumpStat(me,'gachaPulls',1);
   gcShow(it,ng)}
 const GC_LOGO='data:image/png;base64,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';
 function gcHome(a){
@@ -16194,7 +16430,20 @@ Object.assign(window.FBD,{
     if(!['iker','joel','alex'].includes(trainer)) throw new Error('Entrenador no válido');
     await set(ref(db,`orders/${trainer}/${id}`),{...order,status:'pending',ts:serverTimestamp()});
     return true;
-  }
+  },
+  // igual que createGameOrderFor pero NUNCA pisa una orden que ya existe (idempotente)
+  async createGameOrderOnce(trainer,id,order){
+    if(!['iker','joel','alex'].includes(trainer)) throw new Error('Entrenador no válido');
+    const r=await runTransaction(ref(db,`orders/${trainer}/${id}`),cur=>cur?undefined:{...order,status:'pending',ts:serverTimestamp()},{applyLocally:false});
+    return r.committed;
+  },
+  async auctionPick(id,pick){ const r=await runTransaction(ref(db,`auction/${id}/pick`),c=>c?undefined:pick,{applyLocally:false}); return r.committed; },
+  async auctionBid(id,t,amount){ await set(ref(db,`auction/${id}/bids/${t}`),{amount,at:serverTimestamp()}); },
+  async auctionClaim(id,data){ const r=await runTransaction(ref(db,`auction/${id}/settle`),c=>c?undefined:{...data,at:serverTimestamp()},{applyLocally:false}); return r.committed; },
+  async auctionDone(id){ await runTransaction(ref(db,`auction/${id}/done`),c=>c?undefined:true,{applyLocally:false}); },
+  // contadores para las estrellas de la Final (tickets ganados, gachas abiertos)
+  bumpStat(t,f,d){ return runTransaction(ref(db,`stats/${t}/${f}`),c=>(+c||0)+d,{applyLocally:false}).catch(e=>console.error('No se pudo contar '+f,e)); },
+  async loadStats(){ const sn=await get(ref(db,'stats')); return sn.val()||{}; }
 });
 window.LK={
   pal(a,trainer){const id=a&&String(a.palette),inventory=trainer&&FBS.inventory[trainer],ownsPalette=inventory&&inventory.palettes&&inventory.palettes[id];if(!ownsPalette)return '';const p=paletteById(id),c=paletteColorsOf(p);return c?`--bg:${esc(c.fondo)};--sf:${esc(c.superficie)};--pr:${esc(c.primario)};--ac:${esc(c.acento)};--tx:${esc(c.texto)};--pf-fb:linear-gradient(135deg,${esc(c.fondo)} 0%,${esc(c.superficie)} 100%)`:''},
