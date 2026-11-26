@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <style id="global-zoom">:root{--z:.7}html{zoom:var(--z)}@media (max-width:700px){:root{--z:1}}.auc-wrap{ max-width:560px; margin:0 auto; padding:6px 4px 30px; }
+.auc-home{ margin:14px auto; padding-bottom:6px; }
+.auc-bidder.lead{ border:1px solid #ffd76a; }
 .auc-card{ border:1px solid var(--cz-edge, #ff3d9a); border-radius:18px; padding:18px 16px 20px; text-align:center;
   background:radial-gradient(ellipse at 50% 0%, rgba(255,61,154,.18), transparent 62%), linear-gradient(180deg,#2a0d14,#18070b); }
 .auc-eyebrow{ font-size:12px; letter-spacing:.2em; color:#ffd76a; margin-bottom:6px; }
@@ -9445,7 +9447,6 @@ const CZ_GAMES = [
   { zone:'mesas',    id:'roulette', icon:'🎡', name:'Ruleta',       tag:'Números y colores',                hue:'pink',   go:"openCasinoZone('roulette')" },
   { zone:'mesas',    id:'blackjack',icon:'🂡', name:'Blackjack',    tag:'21 contra el crupier',             hue:'green',  go:"openCasinoZone('blackjack')" },
   { zone:'mesas',    id:'nueve',    icon:'9️⃣', name:'El Nueve',     tag:'Jugador · Empate · Crupier',       hue:'cyan',   go:"openCasinoZone('nueve')" },
-  { zone:'extras',   id:'puja',     icon:'🔨', name:'Puja semanal', tag:'Shiny a puja ciega · por tickets', hue:'pink', go:"openCasinoZone('puja')" },
   { zone:'extras',   id:'loteria',  icon:'🎫', name:'Lotería',      tag:'Bote acumulado',                   hue:'yellow', go:"openCasinoZone('loteria')" },
   { zone:'extras',   id:'life',     icon:'❤️', name:'Botón de la vida', tag:'Acceso restringido · con contraseña', hue:'red', go:"openLifeButtonModal()" },
 ];
@@ -9609,47 +9610,50 @@ const MINES_LINES = ['Cada casilla segura suma. Cada mina resta... todo.', 'Cava
 const CRASH_LINES = ['Sube, sube... y BOOM. O te retiras a tiempo.', 'El cohete no tiene frenos. Tú sí.', 'Los valientes cobran. Los listos, también.', 'Cada décima que esperas es una décima que puedes perder.'];
 const PLINKO_LINES = ['Suelta la ficha y confía en las matemáticas... o en la suerte.', 'Cada clavo es un 50/50. Diez veces seguidas.', 'La ficha no tiene memoria. Tú, espero que sí.', 'Las casillas de los lados pagan de lujo. Las del medio, de pena.'];
 const CZ_TITLES = { slots:'TRAGAPERRAS', roulette:'RULETA', blackjack:'BLACKJACK', nueve:'EL NUEVE', mines:'MINES', crash:'CRASH',
-  grieta:'LA GRIETA', plinko:'PLINKO', puja:'PUJA SEMANAL', loteria:'LOTERÍA' };
+  grieta:'LA GRIETA', plinko:'PLINKO', loteria:'LOTERÍA' };
 
-/* ==================== PUJA SEMANAL (casino) ====================
-   Cada semana hay un Pokémon SHINY (nivel 1, Salpicadura, habilidad al azar) a puja ciega por tickets.
-   Si alguien ya tiene la opción A en su juego cuando se abre la puja, sale la opción B (plan B).
-   Los tickets de tu puja quedan retenidos; al cerrar, los que no ganan los recuperan y el ganador recibe el
+/* ==================== PUJA DE LA SEMANA (pantalla principal) ====================
+   Cada lunes 00:00 se abre una puja por tickets que dura 2 días (cierra el miércoles 00:00).
+   El premio es un Pokémon SHINY nivel 1 con Salpicadura y habilidad al azar. La puja es abierta: se ve quién va ganando.
+   Si alguien ya tiene la opción A en su juego cuando se abre, sale la opción B (plan B).
+   Tus tickets quedan retenidos mientras pujas; al cerrar, los que no ganan los recuperan y el ganador recibe el
    Pokémon solo en su PC (orden give_auction que ejecuta el Lua). */
 const AUC_MIN = 10;
-const AUC_SHOW_AMOUNTS = false;   // true = se ve cuánto ha pujado cada uno; false = puja a ciegas
 const AUC_ART = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/';
 // species = ID de especie en Radical Red; dex = número de la Pokédex nacional (solo para la foto)
 const AUC_WEEKS = [
-  { id:'w1', open:'2026-12-01T00:00:00+01:00', close:'2026-12-07T00:00:00+01:00',
+  { id:'w1', open:'2026-12-07T00:00:00+01:00', close:'2026-12-09T00:00:00+01:00',
     a:{ name:'Sobble',    species:1108, dex:816 }, b:{ name:'Dartrix',     species:940,  dex:723 } },
-  { id:'w2', open:'2026-12-07T00:00:00+01:00', close:'2026-12-14T00:00:00+01:00',
+  { id:'w2', open:'2026-12-14T00:00:00+01:00', close:'2026-12-16T00:00:00+01:00',
     a:{ name:'Blaziken',  species:282,  dex:257 }, b:{ name:'Cinderace',   species:1107, dex:815 } },
-  { id:'w3', open:'2026-12-14T00:00:00+01:00', close:'2026-12-21T00:00:00+01:00',
+  { id:'w3', open:'2026-12-21T00:00:00+01:00', close:'2026-12-23T00:00:00+01:00',
     a:{ name:'Gyarados',  species:130,  dex:130 }, b:{ name:'Basculegion', species:1268, dex:902 } },
-  { id:'w4', open:'2026-12-21T00:00:00+01:00', close:'2026-12-28T00:00:00+01:00',
+  { id:'w4', open:'2026-12-28T00:00:00+01:00', close:'2026-12-30T00:00:00+01:00',
     a:{ name:'Tyranitar', species:248,  dex:248 }, b:{ name:'Garchomp',    species:498,  dex:445 } },
 ];
 const AUC_BID_LINES = [
-  (n, p) => `🔨 ${n} ha pujado por ${p} ✨. Los demás, ojo.`,
-  (n, p) => `🔨 ${n} se la juega y mete puja por ${p} ✨.`,
-  (n, p) => `🔨 ¡${n} quiere a ${p} ✨! ¿Quién se atreve a subir más?`,
-  (n, p) => `🔨 Movimiento en la subasta: ${n} ha pujado por ${p} ✨.`
+  (n, p, a) => `🔨 ¡${n} se pone en cabeza con ${a} tickets por ${p}!`,
+  (n, p, a) => `🔨 ${n} ha pujado ${a} tickets por ${p} y va ganando.`,
+  (n, p, a) => `🔨 ${n} manda: ${a} tickets por ${p}. ¿Quién responde?`,
+  (n, p, a) => `🔨 Movimiento en la puja: ${n} ofrece ${a} tickets por ${p}.`
 ];
 const AUC_RAISE_LINES = [
-  (n, p) => `🔨 ${n} sube su puja por ${p} ✨. Esto se calienta.`,
-  (n, p) => `🔨 ${n} no se rinde y mejora su puja por ${p} ✨.`
+  (n, p, a) => `🔨 ${n} sube su puja a ${a} tickets por ${p}. Esto se calienta.`,
+  (n, p, a) => `🔨 ${n} no se rinde: ${a} tickets por ${p}.`
 ];
-let aucBusy = false;
+let aucBusy = false, aucDraft = '';
 const aucSettling = new Set();
 const aucPicking = new Set();
 const aucMs = iso => new Date(iso).getTime();
 function aucNow(){ return window.lkServerNow ? window.lkServerNow() : Date.now(); }
+// state: before (aún no abre la primera) | open | between (cerrada, falta la siguiente) | closed (ya no hay más)
 function aucCurrent(now){
   const w = AUC_WEEKS.find(x => now >= aucMs(x.open) && now < aucMs(x.close));
   if(w) return { w, state:'open' };
   if(now < aucMs(AUC_WEEKS[0].open)) return { w:AUC_WEEKS[0], state:'before' };
-  return { w:AUC_WEEKS[AUC_WEEKS.length - 1], state:'closed' };
+  const past = AUC_WEEKS.filter(x => now >= aucMs(x.close));
+  const last = past[past.length - 1], next = AUC_WEEKS[past.length];
+  return next ? { w:last, state:'between', next } : { w:last, state:'closed' };
 }
 function aucOwns(t, name){
   const n = name.toLowerCase();
@@ -9683,55 +9687,57 @@ function aucBidsOf(w){
     .sort((a, b) => b.amount - a.amount || a.at - b.at);
 }
 function aucOptionLabel(w, species){ const o = [w.a, w.b].find(x => x.species === species); return o ? o.name : 'Pokémon'; }
-function renderAuctionTab(){
-  ensureAuctionPick();
-  const me = window.LOGIN_ME, now = aucNow();
-  const cur = aucCurrent(now), w = cur.w, data = (FBS.auction || {})[w.id] || {};
-  const pick = data.pick, opt = pick ? w[pick] : w.a;
-  const weekNo = AUC_WEEKS.indexOf(w) + 1;
+function aucImg(opt){ return `<img class="auc-img" alt="" src="${AUC_ART}${opt.dex}.png" onerror="this.outerHTML='<span class=&quot;auc-img em&quot;>🔨</span>'">`; }
+function aucCardHtml(){
+  const me = window.LOGIN_ME, now = aucNow(), cur = aucCurrent(now), w = cur.w;
   if(cur.state === 'before'){
-    return `<div class="auc-wrap"><div class="auc-card"><div class="auc-eyebrow">🔨 PUJA SEMANAL</div>
+    return `<div class="auc-card"><div class="auc-eyebrow">🔨 PUJA DE LA SEMANA</div>
       <div class="auc-title">La primera puja abre el ${lkEsc(aucFmtDate(w.open))}</div>
-      <p class="auc-sub">Cada semana, un Pokémon shiny a puja ciega por tickets. Empieza guardando algunos.</p></div></div>`;
+      <p class="auc-sub">Cada lunes, un Pokémon a puja por tickets durante 2 días. Ve guardando.</p></div>`;
   }
-  const lastClosed = cur.state === 'closed';
-  const img = `<img class="auc-img" alt="" src="${AUC_ART}${opt.dex}.png" onerror="this.outerHTML='<span class=&quot;auc-img em&quot;>✨</span>'">`;
-  const bids = aucBidsOf(w), mine = +((data.bids || {})[me]?.amount) || 0;
-  const planB = pick === 'b';
-  const bidders = TRAINERS.map(t => {
-    const b = (data.bids || {})[t], has = b && +b.amount > 0;
-    const amt = (t === me || AUC_SHOW_AMOUNTS) && has ? ` · <b>${+b.amount}</b> 🎟️` : '';
-    return `<div class="auc-bidder ${has ? 'on' : ''}"><span>${lkEsc(NAMES[t])}</span><span>${has ? '🔨 ha pujado' + amt : 'sin pujar'}</span></div>`;
-  }).join('');
-  let body;
-  if(!lastClosed){
-    const left = aucMs(w.close) - now;
-    body = `
-      <p class="auc-sub">${pick ? `Puja ${AUC_SHOW_AMOUNTS ? 'abierta' : 'a ciegas'}: gana quien más ofrezca. Mínimo ${AUC_MIN} tickets.` : 'Preparando la puja…'}
-        Tus tickets quedan retenidos y, si no ganas, se te devuelven al cerrar.</p>
-      <div class="auc-clock">⏳ Cierra el ${lkEsc(aucFmtDate(w.close))} · quedan <b>${aucFmtLeft(left)}</b></div>
-      <div class="auc-bidders">${bidders}</div>
-      ${pick && me ? `<div class="auc-form">
-        <input id="auc-amount" type="number" min="${Math.max(AUC_MIN, mine + 1)}" step="1" inputmode="numeric" placeholder="${mine ? 'Sube tu puja (más de ' + mine + ')' : 'Tu puja (mín. ' + AUC_MIN + ')'}">
-        <button class="primary" onclick="placeAuctionBid('${w.id}')">${mine ? 'Subir puja' : 'Pujar'}</button></div>
-        <div class="auc-note">Tienes ${tickets[me] || 0} 🎟️ disponibles${mine ? ` · tu puja actual: ${mine}` : ''}.</div>` : ''}`;
-  } else {
+  const data = (FBS.auction || {})[w.id] || {};
+  if(cur.state !== 'open'){
     const s = data.settle;
-    let res = `<p class="auc-sub">Puja cerrada.</p>`;
-    if(s && s.winner){
-      res = `<div class="auc-winner">🏆 ¡${lkEsc(NAMES[s.winner])} se lleva a ${lkEsc(aucOptionLabel(w, s.species))} ✨ con ${+s.amount} tickets!</div>`;
-      if(s.winner === me) res += aucDeliveryHtml(w);
-    } else if(s && s.none){ res = `<p class="auc-sub">Nadie pujó esta vez.</p>`; }
-    else { res = `<p class="auc-sub">Cerrando la puja… un momento.</p>`; }
-    body = res;
+    let res;
+    if(s && s.winner) res = `<div class="auc-winner">🏆 ¡${lkEsc(NAMES[s.winner])} se llevó a ${lkEsc(aucOptionLabel(w, s.species))} con ${+s.amount} tickets!</div>` + (s.winner === me ? aucDeliveryHtml(w) : '');
+    else if(s && s.none) res = `<p class="auc-sub">La última puja se quedó sin pujas.</p>`;
+    else res = `<p class="auc-sub">Cerrando la última puja… un momento.</p>`;
+    const nextTxt = cur.next ? `<p class="auc-sub">Próxima puja: ${lkEsc(aucFmtDate(cur.next.open))}.</p>` : '';
+    return `<div class="auc-card"><div class="auc-eyebrow">🔨 PUJA DE LA SEMANA · CERRADA</div>${res}${nextTxt}</div>`;
   }
-  return `<div class="auc-wrap"><div class="auc-card">
-    <div class="auc-eyebrow">🔨 PUJA SEMANAL · SEMANA ${weekNo}/${AUC_WEEKS.length}</div>
-    <div class="auc-stage">${img}</div>
-    <div class="auc-title">✨ ${lkEsc(opt.name)} shiny</div>
-    <div class="auc-chips"><span>Nv. 1</span><span>Salpicadura</span><span>Habilidad al azar</span><span>Shiny garantizado</span></div>
-    ${planB ? `<div class="auc-planb">Alguien ya tiene a ${lkEsc(w.a.name)}, así que esta semana toca el plan B.</div>` : ''}
-    ${body}</div></div>`;
+  const pick = data.pick, opt = pick ? w[pick] : w.a, weekNo = AUC_WEEKS.indexOf(w) + 1;
+  const bids = aucBidsOf(w), top = bids[0], mine = +((data.bids || {})[me]?.amount) || 0;
+  const minNext = Math.max(AUC_MIN, top ? top.amount + 1 : AUC_MIN);
+  const left = aucMs(w.close) - now;
+  const bidders = TRAINERS.map(t => {
+    const b = (data.bids || {})[t], has = b && +b.amount > 0, lead = top && top.t === t;
+    return `<div class="auc-bidder ${has ? 'on' : ''} ${lead ? 'lead' : ''}"><span>${lead ? '🏆 ' : ''}${lkEsc(NAMES[t])}</span><span>${has ? `ha pujado <b>${+b.amount}</b> 🎟️` : 'sin pujar'}</span></div>`;
+  }).join('');
+  const leader = top ? `<div class="auc-winner">🏆 Va ganando ${lkEsc(NAMES[top.t])} con ${top.amount} 🎟️</div>`
+                     : `<div class="auc-sub">Nadie ha pujado todavía · mínimo ${AUC_MIN} 🎟️</div>`;
+  return `<div class="auc-card">
+    <div class="auc-eyebrow">🔨 PUJA DE LA SEMANA ${weekNo}/${AUC_WEEKS.length}</div>
+    <div class="auc-stage">${aucImg(opt)}</div>
+    <div class="auc-title">${lkEsc(opt.name)}</div>
+    <div class="auc-chips"><span>Nv. 1</span><span>Salpicadura</span><span>Habilidad al azar</span></div>
+    ${pick === 'b' ? `<div class="auc-planb">Alguien ya tiene a ${lkEsc(w.a.name)}, así que esta semana toca el plan B.</div>` : ''}
+    <div class="auc-clock">⏳ Cierra el ${lkEsc(aucFmtDate(w.close))} · quedan <b>${aucFmtLeft(left)}</b></div>
+    ${leader}
+    <div class="auc-bidders">${bidders}</div>
+    ${pick && me ? `<div class="auc-form">
+      <input id="auc-amount" type="number" min="${minNext}" step="1" inputmode="numeric" value="${lkEsc(aucDraft)}" oninput="aucDraft=this.value" placeholder="Tu puja (mín. ${minNext})">
+      <button class="primary" onclick="placeAuctionBid('${w.id}')">${mine ? 'Subir puja' : 'Pujar'}</button></div>
+      <div class="auc-note">Tienes ${tickets[me] || 0} 🎟️${mine ? ` · tu puja actual: ${mine}` : ''}. Tus tickets quedan retenidos y, si no ganas, se te devuelven al cerrar.</div>` : '<div class="auc-note">Preparando la puja…</div>'}
+  </div>`;
+}
+function aucHome(a){
+  if(!a || !window.LOGIN_ME || !FBS.auction || a.querySelector('.auc-home')) return;
+  ensureAuctionPick();
+  const el = document.createElement('section');
+  el.className = 'auc-home auc-wrap';
+  el.innerHTML = aucCardHtml();
+  const hero = a.querySelector('.rr-hero');
+  hero ? hero.insertAdjacentElement('afterend', el) : a.prepend(el);
 }
 function aucDeliveryHtml(w){
   const o = (FBS.orders || {})['auction-' + w.id];
@@ -9759,8 +9765,9 @@ async function placeAuctionBid(wid){
   const data = (FBS.auction || {})[wid] || {};
   if(!data.pick){ toast('La puja se está preparando, prueba otra vez en un segundo.'); return; }
   const amount = Math.floor(Number((document.getElementById('auc-amount') || {}).value));
-  const mine = +((data.bids || {})[me]?.amount) || 0;
+  const mine = +((data.bids || {})[me]?.amount) || 0, top = aucBidsOf(w)[0];
   if(!(amount >= AUC_MIN)){ toast(`La puja mínima es de ${AUC_MIN} tickets.`); return; }
+  if(top && amount <= top.amount){ toast(`Tienes que superar los ${top.amount} tickets de ${NAMES[top.t]}.`); return; }
   if(amount <= mine){ toast(`Tu puja actual es de ${mine}: tienes que subirla.`); return; }
   const delta = amount - mine, nonce = crypto.randomUUID();
   aucBusy = true;
@@ -9774,9 +9781,8 @@ async function placeAuctionBid(wid){
       toast('No se pudo registrar la puja. Se te han devuelto los tickets.'); return;
     }
     const lines = mine ? AUC_RAISE_LINES : AUC_BID_LINES;
-    let text = lines[Math.floor(Math.random() * lines.length)](NAMES[me], w[data.pick].name);
-    if(AUC_SHOW_AMOUNTS) text += ` (${amount} tickets)`;
-    pushHistory(text);
+    pushHistory(lines[Math.floor(Math.random() * lines.length)](NAMES[me], w[data.pick].name, amount));
+    aucDraft = '';
     toast(`🔨 Puja de ${amount} tickets registrada.`);
   } finally { aucBusy = false; render(); }
 }
@@ -9789,8 +9795,8 @@ async function finishAuction(w, d, s){
   let text;
   if(s.winner){
     await window.FBD.createGameOrderOnce(s.winner, 'auction-' + w.id, { kind:'give_auction', species:s.species, shiny:1, auctionId:w.id });
-    text = `🔨 ¡${NAMES[s.winner]} gana la puja y se lleva a ${aucOptionLabel(w, s.species)} ✨ por ${s.amount} tickets! Los demás recuperan sus tickets.`;
-  } else text = `🔨 La puja de la semana se cierra sin pujas. ${aucOptionLabel(w, w[d.pick || 'a'].species)} ✨ se queda sin dueño.`;
+    text = `🔨 ¡${NAMES[s.winner]} gana la puja y se lleva a ${aucOptionLabel(w, s.species)} por ${s.amount} tickets! Los demás recuperan sus tickets.`;
+  } else text = `🔨 La puja de la semana se cierra sin pujas. ${aucOptionLabel(w, w[d.pick || 'a'].species)} se queda sin dueño.`;
   await window.FBD.appendHistoryEvents([{ id:'auction-result-' + w.id, text, ts:Date.now() }]);
   await window.FBD.auctionDone(w.id);
 }
@@ -9801,6 +9807,7 @@ async function settleAuctions(){
     if(now < aucMs(w.close)) continue;
     const d = FBS.auction[w.id] || {};
     if(d.done || aucSettling.has(w.id)) continue;
+    if(!d.pick && !d.bids && !d.settle) continue;   // puja que nunca se abrió en pantalla: nada que cerrar
     aucSettling.add(w.id);
     try{
       let s = d.settle;
@@ -9832,7 +9839,7 @@ function renderCasino(app){
       </div>
 
       <div id="casino-content">
-        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : casinoTab==='mines' ? renderMinesTab() : casinoTab==='grieta' ? renderGrietaTab() : casinoTab==='crash' ? renderCrashTab() : casinoTab==='plinko' ? renderPlinkoTab() : casinoTab==='puja' ? renderAuctionTab() : renderLoteriaTab()}
+        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : casinoTab==='mines' ? renderMinesTab() : casinoTab==='grieta' ? renderGrietaTab() : casinoTab==='crash' ? renderCrashTab() : casinoTab==='plinko' ? renderPlinkoTab() : renderLoteriaTab()}
       </div>
     `;
   }
@@ -16258,7 +16265,7 @@ function gcHome(a){
   const paint=g=>{const a=el.querySelector('.p4'),b=el.querySelector('.p5');if(a)a.textContent=gcLeft(GC.pity4-(g.p4||0));if(b)b.textContent=gcLeft(GC.pity5-(g.p5||0))};
   if(gcState)paint(gcState);
   get(gcRef()).then(sn=>{gcState=sn.val()||{};paint(gcState)}).catch(()=>{})}
-{const h=window.renderHome;if(h)window.renderHome=a=>{h(a);try{gcHome(a)}catch(e){console.error(e)}}}
+{const h=window.renderHome;if(h)window.renderHome=a=>{h(a);try{gcHome(a)}catch(e){console.error(e)}try{aucHome(a)}catch(e){console.error(e)}}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-gc]');if(b&&b.dataset.gc==='pull')act(gcPull)});
 
 async function act(fn){if(busy)return;busy=true;try{await fn()}catch(error){console.error('No se pudo completar la acción de la taquilla/tienda.',error);say('No se pudo completar la acción. Comprueba la conexión e inténtalo otra vez.')}finally{busy=false}}
