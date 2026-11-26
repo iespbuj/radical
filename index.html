@@ -26,6 +26,74 @@
 .auc-form input{ flex:1; min-width:150px; max-width:260px; }
 .auc-note{ font-size:12px; color:#cdb9b0; margin-top:8px; }
 .auc-winner{ font-size:16px; font-weight:700; color:#ffe7a8; margin:10px 0; }
+
+.hm-tile.auc-tile .l{font-weight:800;letter-spacing:.12em;color:#ff7b7b}
+.hm-tile.auc-tile.open .l{color:#5dffa0;text-shadow:0 0 8px rgba(93,255,160,.6)}
+.hm-tile.auc-tile.open .ic{animation:aucHam 1.6s ease-in-out infinite;display:inline-block}
+@keyframes aucHam{0%,70%,100%{transform:rotate(0)}80%{transform:rotate(-28deg)}90%{transform:rotate(8deg)}}
+.auc-page{position:fixed;inset:0;z-index:9999;overflow-y:auto;background:#0b0710;color:#fff;font-family:inherit}
+.auc-page.in{animation:aucIn .35s cubic-bezier(.2,.9,.3,1.2)}
+.auc-page.out{animation:aucOut .3s ease forwards}
+@keyframes aucIn{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:none}}
+@keyframes aucOut{to{opacity:0;transform:scale(.96)}}
+.aucp-bg{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.aucp-rays{position:absolute;left:50%;top:32%;width:180vmax;height:180vmax;margin:-90vmax 0 0 -90vmax;background:repeating-conic-gradient(from 0deg,rgba(255,215,106,.07) 0 6deg,transparent 6deg 18deg);animation:aucSpin 40s linear infinite;mask:radial-gradient(circle,#000 0,transparent 55%);-webkit-mask:radial-gradient(circle,#000 0,transparent 55%)}
+.aucp-bg b{position:absolute;bottom:-20px;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;background:#ffe7a8;box-shadow:0 0 12px #ffd76a;opacity:0;animation:aucRise 6s linear infinite;animation-delay:var(--d)}
+@keyframes aucRise{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:.9}100%{opacity:0;transform:translateY(-105vh) scale(1.2)}}
+@keyframes aucSpin{to{transform:rotate(360deg)}}
+.aucp-inner{position:relative;max-width:520px;margin:0 auto;padding:28px 18px 50px;text-align:center}
+.aucp-inner.first>*{animation:aucUp .6s both}
+.aucp-inner.first>*:nth-child(3){animation-delay:.08s}.aucp-inner.first>*:nth-child(4){animation-delay:.16s}.aucp-inner.first>*:nth-child(5){animation-delay:.22s}.aucp-inner.first>*:nth-child(n+6){animation-delay:.3s}
+@keyframes aucUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.aucp-close{position:fixed;top:16px;right:16px;z-index:2;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.4);color:#fff;font-size:18px;cursor:pointer;transition:transform .2s}
+.aucp-close:hover{transform:rotate(90deg) scale(1.1)}
+.aucp-kicker{font-size:13px;letter-spacing:.3em;color:#ffd76a;font-weight:800}
+.aucp-status{display:inline-flex;align-items:center;gap:8px;margin:10px 0 4px;padding:5px 14px;border-radius:999px;font-weight:800;letter-spacing:.2em;font-size:12px;background:rgba(255,80,80,.14);color:#ff8a8a;border:1px solid rgba(255,80,80,.4)}
+.aucp-status i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.aucp-status.on{background:rgba(93,255,160,.12);color:#5dffa0;border-color:rgba(93,255,160,.45)}
+.aucp-status.on i{animation:aucPulse 1.2s infinite}
+@keyframes aucPulse{0%{box-shadow:0 0 0 0 rgba(93,255,160,.7)}100%{box-shadow:0 0 0 10px rgba(93,255,160,0)}}
+.aucp-stage{position:relative;width:min(290px,72vw);aspect-ratio:1;margin:10px auto 0;display:grid;place-items:center}
+.aucp-halo{position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle,rgba(255,215,106,.55),rgba(255,61,154,.25) 45%,transparent 70%);filter:blur(10px);animation:aucGlow 3s ease-in-out infinite}
+.aucp-ring{position:absolute;inset:2%;border-radius:50%;border:2px dashed rgba(255,215,106,.45);animation:aucSpin 18s linear infinite}
+.aucp-stage .auc-img{position:relative;width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 10px 25px rgba(255,215,106,.45));animation:aucFloat 3.4s ease-in-out infinite}
+.aucp-stage .auc-img.em{font-size:110px;display:grid;place-items:center}
+@keyframes aucFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes aucGlow{0%,100%{opacity:.7;transform:scale(.95)}50%{opacity:1;transform:scale(1.05)}}
+.aucp-shiny{position:absolute;top:6%;right:2%;padding:5px 11px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.1em;color:#2a1600;background:linear-gradient(110deg,#ffd76a 20%,#fff6d0 40%,#ffd76a 60%);background-size:250% 100%;animation:aucShine 2.4s linear infinite;box-shadow:0 0 16px rgba(255,215,106,.6)}
+@keyframes aucShine{from{background-position:120% 0}to{background-position:-120% 0}}
+.aucp-name{font-size:34px;font-weight:900;margin:4px 0 8px;background:linear-gradient(90deg,#ffe7a8,#fff,#ffd76a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.aucp-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:14px}
+.aucp-chips span{font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#f3d9d0}
+.aucp-clock{font-size:15px;color:#ffd76a;margin:8px 0}
+.aucp-sub{font-size:13px;color:#e7d5cd;margin:8px 0}
+.aucp-lead{font-size:15px;margin:6px 0 14px;color:#f3d9d0}
+.aucp-lead b{color:#ffe7a8}
+.aucp-winner{margin:14px 0;padding:16px;border-radius:16px;font-size:20px;font-weight:900;letter-spacing:.04em;color:#ffe7a8;background:linear-gradient(135deg,rgba(255,215,106,.18),rgba(255,61,154,.14));border:1px solid rgba(255,215,106,.5);animation:aucGlow 2.4s ease-in-out infinite}
+.aucp-winner small{display:block;margin-top:6px;font-size:13px;font-weight:600;color:#f3d9d0;letter-spacing:0}
+.aucp-bids{display:grid;gap:8px;margin-bottom:18px}
+.aucp-bid{position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:14px;color:#cdb9b0}
+.aucp-bar{position:absolute;left:0;top:0;bottom:0;width:var(--w);background:linear-gradient(90deg,rgba(255,61,154,.35),rgba(255,61,154,.08));animation:aucBar .9s cubic-bezier(.2,.9,.3,1) both;animation-delay:calc(var(--k)*.1s)}
+@keyframes aucBar{from{width:0}}
+.aucp-who,.aucp-amt{position:relative}
+.aucp-bid.on{color:#fff}
+.aucp-bid.lead{border-color:#ffd76a;box-shadow:0 0 18px rgba(255,215,106,.25)}
+.aucp-bid.lead .aucp-bar{background:linear-gradient(90deg,rgba(255,215,106,.45),rgba(255,215,106,.08))}
+.aucp-form{display:grid;grid-template-columns:1fr auto;gap:8px}
+.aucp-form input{grid-column:1/-1;padding:14px;border-radius:12px;border:1px solid rgba(255,215,106,.4);background:rgba(0,0,0,.35);color:#fff;font-size:20px;font-weight:800;text-align:center}
+.aucp-quick{display:flex;gap:6px}
+.aucp-quick button{flex:1;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-weight:800;cursor:pointer}
+.aucp-quick button:hover{background:rgba(255,255,255,.14)}
+.aucp-go{padding:12px 22px;border:0;border-radius:12px;font-weight:900;letter-spacing:.12em;color:#2a1600;cursor:pointer;background:linear-gradient(110deg,#ffd76a 20%,#fff6d0 40%,#ffb84a 60%);background-size:250% 100%;animation:aucShine 3s linear infinite;box-shadow:0 6px 22px rgba(255,180,70,.45);transition:transform .15s}
+.aucp-go:hover{transform:translateY(-2px) scale(1.03)}.aucp-go:active{transform:scale(.96)}
+.aucp-note{font-size:12px;color:#cdb9b0;margin-top:10px}
+.aucp-orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55}
+.aucp-orb.a{width:55vmax;height:55vmax;left:-15vmax;top:-20vmax;background:#7a1240;animation:aucDrift 14s ease-in-out infinite alternate}
+.aucp-orb.b{width:45vmax;height:45vmax;right:-15vmax;bottom:-15vmax;background:#8a5a10;animation:aucDrift 18s ease-in-out infinite alternate-reverse}
+@keyframes aucDrift{to{transform:translate(8vmax,6vmax) scale(1.1)}}
+.aucp-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:44px 44px;mask:radial-gradient(ellipse at 50% 40%,#000,transparent 75%);-webkit-mask:radial-gradient(ellipse at 50% 40%,#000,transparent 75%)}
+.auc-tile-lead{font-size:11px;font-weight:900;letter-spacing:.1em;color:#ffd76a;margin-top:2px}
+.aucp-inner .auc-note{font-size:12px;color:#cdb9b0}
 </style>
 <meta name="theme-color" content="#12060a">
 <title>Locke Navideño · Radical Red</title>
@@ -5538,6 +5606,7 @@ function myNotifications(){
     else if(s.status === 'error' && (me === s.thief || me === s.victim))
       list.push({ text:`⚠️ El robo de ${s.label} falló: ${s.note || 'error'}`, source:src, label:'Cerrar', fn:`closeSteal('${s.id}')` });
   }
+  try{ list.push(...aucNotifications()); }catch(e){ console.error(e); }
   return list;
 }
 function renderNotifWidget(){
@@ -9003,7 +9072,7 @@ function renderHome(app){
       <button class="hm-tile" onclick="go('casino')"><span class="ic">🎟️</span><span><div class="v">${tickets[LOGIN_ME] ?? 0}</div><div class="l">Tickets</div></span></button>
       <button class="hm-tile${myNotifications().length ? ' alert' : ''}" onclick="toggleNotifs()"><span class="ic">🔔</span><span><div class="v">${myNotifications().length}</div><div class="l">Pendientes</div></span></button>
       <button class="hm-tile" onclick="go('trueques')"><span class="ic">🔁</span><span><div class="v">${Object.values(trueques).filter(t => t && (t.from === LOGIN_ME || t.to === LOGIN_ME)).length}</div><div class="l">Trueques</div></span></button>
-      <button class="hm-tile" onclick="go('duel')"><span class="ic">⚔️</span><span><div class="v">Arena</div><div class="l">Combates</div></span></button>
+      <button class="hm-tile auc-tile${(typeof aucCurrent==='function' && aucCurrent(aucNow()).state==='open') ? ' open' : ''}" onclick="openAuction()"><span class="ic">🔨</span><span><div class="v">PUJA</div><div class="l">${(typeof aucCurrent==='function' && aucCurrent(aucNow()).state==='open') ? 'ABIERTA' : 'CERRADA'}</div>${(()=>{ try{ const c = aucCurrent(aucNow()); if(c.state!=='open') return ''; const t = aucBidsOf(c.w)[0]; return t ? `<div class="auc-tile-lead">👑 ${lkEsc(String(NAMES[t.t]).toUpperCase())}</div>` : ''; }catch(e){ return ''; } })()}</span></button>
     </section>` : ''}
     ${canDaily ? `<div class="kpi brk rr-daily"><div><strong style="color:var(--silver-bright)">🎁 Bonus de hoy</strong><br><span style="font-size:12px;color:var(--silver-dim)">Cobra tus tickets diarios.</span></div><button class="primary" onclick="LK.daily()">Cobrar</button></div>` : ''}
     <div class="rr-board">
@@ -9707,7 +9776,7 @@ function aucCardHtml(){
   }
   const pick = data.pick, opt = pick ? w[pick] : w.a, weekNo = AUC_WEEKS.indexOf(w) + 1;
   const bids = aucBidsOf(w), top = bids[0], mine = +((data.bids || {})[me]?.amount) || 0;
-  const minNext = Math.max(AUC_MIN, top ? top.amount + 1 : AUC_MIN);
+  const minNext = Math.max(AUC_MIN, top ? top.amount + 10 : AUC_MIN);
   const left = aucMs(w.close) - now;
   const bidders = TRAINERS.map(t => {
     const b = (data.bids || {})[t], has = b && +b.amount > 0, lead = top && top.t === t;
@@ -9731,13 +9800,103 @@ function aucCardHtml(){
   </div>`;
 }
 function aucHome(a){
-  if(!a || !window.LOGIN_ME || !FBS.auction || a.querySelector('.auc-home')) return;
+  if(!window.LOGIN_ME || !FBS.auction) return;
   ensureAuctionPick();
-  const el = document.createElement('section');
-  el.className = 'auc-home auc-wrap';
-  el.innerHTML = aucCardHtml();
-  const hero = a.querySelector('.rr-hero');
-  hero ? hero.insertAdjacentElement('afterend', el) : a.prepend(el);
+  aucRefreshPage();
+}
+/* ---------- Subpágina de la puja ---------- */
+const AUC_ORD = ['PRIMERA','SEGUNDA','TERCERA','CUARTA','QUINTA','SEXTA'];
+let aucPageOpen = false, aucTimer = null;
+function aucSeen(){ try{ return JSON.parse(localStorage.getItem('aucNotifSeen') || '[]'); }catch(e){ return []; } }
+function aucDismiss(id){ const s = aucSeen(); if(!s.includes(id)){ s.push(id); localStorage.setItem('aucNotifSeen', JSON.stringify(s.slice(-300))); } render(); }
+function aucNotifications(){
+  const me = window.LOGIN_ME, out = [], seen = aucSeen();
+  if(!me || !FBS.auction) return out;
+  AUC_WEEKS.forEach((w, i) => {
+    const d = FBS.auction[w.id] || {};
+    const prize = d.pick ? w[d.pick].name : w.a.name;
+    for(const [t, b] of Object.entries(d.bids || {})){
+      const amt = +(b && b.amount) || 0;
+      if(amt <= 0 || t === me) continue;
+      const id = `auc:${w.id}:${t}:${amt}`;
+      if(seen.includes(id)) continue;
+      out.push({ text:`🔨 ${NAMES[t]} ha pujado ${amt} tickets por ${prize} ✨`, source:`Puja ${i + 1}`, actions:[{ label:'Ver puja', fn:`aucDismiss('${id}');openAuction()` }, { label:'Cerrar', fn:`aucDismiss('${id}')` }] });
+    }
+    const s = d.settle;
+    if(s && s.winner){
+      const id = `aucwin:${w.id}`;
+      if(!seen.includes(id)) out.push({ text:`🏆 ${String(NAMES[s.winner]).toUpperCase()} HA GANADO LA ${AUC_ORD[i] || (i + 1) + 'ª'} PUJA`, source:`${aucOptionLabel(w, s.species)} shiny · ${+s.amount} tickets`, actions:[{ label:'Cerrar', fn:`aucDismiss('${id}')` }] });
+    }
+  });
+  return out;
+}
+function openAuction(){
+  if(typeof notifOpen !== 'undefined') notifOpen = false;
+  aucPageOpen = true;
+  let el = document.getElementById('auc-page');
+  if(!el){ el = document.createElement('div'); el.id = 'auc-page'; document.body.appendChild(el); }
+  el.className = 'auc-page in';
+  document.body.style.overflow = 'hidden';
+  try{ ensureAuctionPick(); }catch(e){}
+  aucRefreshPage(true);
+  clearInterval(aucTimer); aucTimer = setInterval(()=>aucRefreshPage(), 30000);
+}
+function closeAuction(){
+  aucPageOpen = false; clearInterval(aucTimer);
+  const el = document.getElementById('auc-page');
+  document.body.style.overflow = '';
+  if(el){ el.className = 'auc-page out'; setTimeout(()=>{ if(!aucPageOpen) el.remove(); }, 320); }
+}
+function aucQuick(n){ const i = document.getElementById('auc-amount'); if(!i) return; const min = +i.min || AUC_MIN; i.value = aucDraft = String(Math.max(min, (+i.value || min - n) + n)); }
+function aucRefreshPage(first){
+  const el = document.getElementById('auc-page');
+  if(!el || !aucPageOpen) return;
+  const inp = document.getElementById('auc-amount'), focused = inp && document.activeElement === inp;
+  el.innerHTML = `<div class="aucp-bg"><i class="aucp-orb a"></i><i class="aucp-orb b"></i><i class="aucp-grid"></i></div>
+    <div class="aucp-inner${first ? ' first' : ''}"><button class="aucp-close" type="button" onclick="closeAuction()" aria-label="Cerrar">✕</button>${aucPageHtml()}</div>`;
+  if(focused){ const n = document.getElementById('auc-amount'); if(n){ n.focus(); n.setSelectionRange && n.setSelectionRange(n.value.length, n.value.length); } }
+}
+function aucPageHtml(){
+  const me = window.LOGIN_ME, now = aucNow(), cur = aucCurrent(now), w = cur.w;
+  const data = (FBS.auction || {})[w.id] || {}, weekNo = AUC_WEEKS.indexOf(w) + 1;
+  const isOpen = cur.state === 'open';
+  const opt = data.pick ? w[data.pick] : w.a;
+  const stage = `<div class="aucp-stage"><div class="aucp-halo"></div><div class="aucp-ring"></div>${aucImg(opt)}</div>`;
+  const head = `<div class="aucp-kicker">🔨 PUJA ${weekNo}/${AUC_WEEKS.length}</div>
+    <div class="aucp-status ${isOpen ? 'on' : ''}"><i></i>${isOpen ? 'ABIERTA' : 'CERRADA'}</div>`;
+  const chips = '';
+  if(!isOpen){
+    const s = data.settle;
+    let body = '';
+    if(cur.state === 'before') body = `<div class="aucp-clock">Abre el ${lkEsc(aucFmtDate(w.open))}</div>`;
+    else {
+      if(s && s.winner) body = `<div class="aucp-winner">🏆 ${lkEsc(String(NAMES[s.winner]).toUpperCase())} HA GANADO LA ${AUC_ORD[weekNo-1] || ''} PUJA<small>${lkEsc(aucOptionLabel(w, s.species))} shiny por ${+s.amount} 🎟️</small></div>` + (s.winner === me ? aucDeliveryHtml(w) : '');
+      else if(s && s.none) body = `<div class="aucp-sub">La última puja se quedó sin pujas.</div>`;
+      else body = `<div class="aucp-sub">Cerrando la última puja…</div>`;
+      if(cur.next) body += `<div class="aucp-clock">Próxima puja: ${lkEsc(aucFmtDate(cur.next.open))}</div>`;
+    }
+    const showOpt = cur.state === 'before' ? w.a : (cur.next ? cur.next.a : opt);
+    return `${head}<div class="aucp-stage"><div class="aucp-halo"></div><div class="aucp-ring"></div>${aucImg(showOpt)}</div>
+      <div class="aucp-name">${lkEsc(showOpt.name)}</div>${chips}${body}`;
+  }
+  const bids = aucBidsOf(w), top = bids[0], mine = +((data.bids || {})[me]?.amount) || 0;
+  const minNext = Math.max(AUC_MIN, top ? top.amount + 10 : AUC_MIN), max = top ? top.amount : 1;
+  const rows = TRAINERS.map((t, k) => {
+    const b = (data.bids || {})[t], amt = b ? +b.amount || 0 : 0, lead = top && top.t === t;
+    return `<div class="aucp-bid ${lead ? 'lead' : ''} ${amt ? 'on' : ''}" style="--w:${amt ? Math.max(8, amt / max * 100) : 0}%;--k:${k}">
+      <span class="aucp-bar"></span><span class="aucp-who">${lead ? '👑 ' : ''}${lkEsc(NAMES[t])}${t === me ? ' (tú)' : ''}</span><span class="aucp-amt">${amt ? `${amt} 🎟️` : 'sin pujar'}</span></div>`;
+  }).join('');
+  return `${head}${stage}<div class="aucp-name">${lkEsc(opt.name)}</div>${chips}
+    ${data.pick === 'b' ? `<div class="aucp-sub">Alguien ya tiene a ${lkEsc(w.a.name)}: esta semana toca plan B.</div>` : ''}
+    <div class="aucp-clock">⏳ Quedan <b>${aucFmtLeft(aucMs(w.close) - now)}</b></div>
+    <div class="aucp-lead">${top ? `Va ganando <b>${lkEsc(NAMES[top.t])}</b> con <b>${top.amount}</b> 🎟️` : `Nadie ha pujado · mínimo ${AUC_MIN} 🎟️`}</div>
+    <div class="aucp-bids">${rows}</div>
+    ${data.pick && me ? `<div class="aucp-form">
+        <input id="auc-amount" type="number" min="${minNext}" step="1" inputmode="numeric" value="${lkEsc(aucDraft)}" oninput="aucDraft=this.value" onkeydown="if(event.key==='Enter')placeAuctionBid('${w.id}')" placeholder="Mín. ${minNext}">
+        <div class="aucp-quick"><button type="button" onclick="aucQuick(10)">+10</button><button type="button" onclick="aucQuick(25)">+25</button><button type="button" onclick="aucQuick(50)">+50</button></div>
+        <button class="aucp-go" type="button" onclick="placeAuctionBid('${w.id}')">🔨 ${mine ? 'SUBIR PUJA' : 'PUJAR'}</button>
+      </div>
+      <div class="aucp-note">Tienes ${tickets[me] || 0} 🎟️${mine ? ` · tu puja: ${mine}` : ''} · si no ganas, se te devuelven.</div>` : `<div class="aucp-note">Preparando la puja…</div>`}`;
 }
 function aucDeliveryHtml(w){
   const o = (FBS.orders || {})['auction-' + w.id];
@@ -9767,7 +9926,7 @@ async function placeAuctionBid(wid){
   const amount = Math.floor(Number((document.getElementById('auc-amount') || {}).value));
   const mine = +((data.bids || {})[me]?.amount) || 0, top = aucBidsOf(w)[0];
   if(!(amount >= AUC_MIN)){ toast(`La puja mínima es de ${AUC_MIN} tickets.`); return; }
-  if(top && amount <= top.amount){ toast(`Tienes que superar los ${top.amount} tickets de ${NAMES[top.t]}.`); return; }
+  if(top && amount < top.amount + 10){ toast(`Tienes que pujar al menos ${top.amount + 10} tickets (10 más que ${NAMES[top.t]}).`); return; }
   if(amount <= mine){ toast(`Tu puja actual es de ${mine}: tienes que subirla.`); return; }
   const delta = amount - mine, nonce = crypto.randomUUID();
   aucBusy = true;
@@ -9784,7 +9943,7 @@ async function placeAuctionBid(wid){
     pushHistory(lines[Math.floor(Math.random() * lines.length)](NAMES[me], w[data.pick].name, amount));
     aucDraft = '';
     toast(`🔨 Puja de ${amount} tickets registrada.`);
-  } finally { aucBusy = false; render(); }
+  } finally { aucBusy = false; render(); aucRefreshPage(); }
 }
 async function finishAuction(w, d, s){
   const bids = d.bids || {};
