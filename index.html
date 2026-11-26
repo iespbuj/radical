@@ -9802,6 +9802,7 @@ function aucCardHtml(){
 function aucHome(a){
   if(!window.LOGIN_ME || !FBS.auction) return;
   ensureAuctionPick();
+  try{ const c = aucCurrent(aucNow()); if(c.state === 'open') aucRefundOutbid(c.w); }catch(e){}
   aucRefreshPage();
 }
 /* ---------- Subpágina de la puja ---------- */
@@ -9916,6 +9917,23 @@ async function retryAuctionOrder(wid){
   }catch(e){ console.error(e); toast('No se pudo reenviar el pedido.'); }
   render();
 }
+/* Tickets retenidos: al pujar se descuentan; si alguien te supera se devuelven al momento.
+   La clave de la devolución lleva el importe, así nunca se devuelve dos veces la misma puja. */
+function aucOutbidKey(wid, t, amt){ return `auction-outbid:${wid}:${t}:${amt}`; }
+const aucRefunding = new Set();
+async function aucRefundOutbid(w){
+  const d = (FBS.auction || {})[w.id] || {};
+  if(!d.bids || d.done) return;
+  const top = aucBidsOf(w)[0];
+  for(const [t, b] of Object.entries(d.bids)){
+    const amt = +b.amount || 0, key = aucOutbidKey(w.id, t, amt);
+    if(!amt || (top && t === top.t) || aucRefunding.has(key)) continue;
+    aucRefunding.add(key);
+    try{ await window.FBD.adjustTicketsOnce(t, amt, key); }
+    catch(e){ console.error('Puja: devolución pendiente, se reintenta.', e); }
+    finally{ aucRefunding.delete(key); }
+  }
+}
 async function placeAuctionBid(wid){
   const me = window.LOGIN_ME, w = AUC_WEEKS.find(x => x.id === wid);
   if(!me || !w || aucBusy) return;
@@ -9928,9 +9946,11 @@ async function placeAuctionBid(wid){
   if(!(amount >= AUC_MIN)){ toast(`La puja mínima es de ${AUC_MIN} tickets.`); return; }
   if(top && amount < top.amount + 10){ toast(`Tienes que pujar al menos ${top.amount + 10} tickets (10 más que ${NAMES[top.t]}).`); return; }
   if(amount <= mine){ toast(`Tu puja actual es de ${mine}: tienes que subirla.`); return; }
-  const delta = amount - mine, nonce = crypto.randomUUID();
+  const iLead = !!(top && top.t === me);
+  const delta = iLead ? amount - mine : amount, nonce = crypto.randomUUID();
   aucBusy = true;
   try{
+    if(mine && !iLead) await window.FBD.adjustTicketsOnce(me, mine, aucOutbidKey(wid, me, mine));
     const ok = await window.FBD.adjustTicketsOnce(me, -delta, `auction-bid:${wid}:${me}:${nonce}`);
     if(!ok){ toast('No tienes tickets suficientes.'); return; }
     try{ await window.FBD.auctionBid(wid, me, amount); }
@@ -9939,6 +9959,7 @@ async function placeAuctionBid(wid){
       await window.FBD.adjustTicketsOnce(me, delta, `auction-refund:bidfail:${wid}:${me}:${nonce}`);
       toast('No se pudo registrar la puja. Se te han devuelto los tickets.'); return;
     }
+    if(top && top.t !== me) await window.FBD.adjustTicketsOnce(top.t, top.amount, aucOutbidKey(wid, top.t, top.amount)).catch(e=>console.error(e));
     const lines = mine ? AUC_RAISE_LINES : AUC_BID_LINES;
     pushHistory(lines[Math.floor(Math.random() * lines.length)](NAMES[me], w[data.pick].name, amount));
     aucDraft = '';
@@ -9949,12 +9970,13 @@ async function finishAuction(w, d, s){
   const bids = d.bids || {};
   for(const [t, b] of Object.entries(bids)){
     const amt = +b.amount || 0;
-    if(amt > 0 && t !== s.winner) await window.FBD.adjustTicketsOnce(t, amt, `auction-refund:${w.id}:${t}`);
+    if(amt > 0 && t !== s.winner) await window.FBD.adjustTicketsOnce(t, amt, aucOutbidKey(w.id, t, amt));
   }
   let text;
   if(s.winner){
     await window.FBD.createGameOrderOnce(s.winner, 'auction-' + w.id, { kind:'give_auction', species:s.species, shiny:1, auctionId:w.id });
-    text = `🔨 ¡${NAMES[s.winner]} gana la puja y se lleva a ${aucOptionLabel(w, s.species)} por ${s.amount} tickets! Los demás recuperan sus tickets.`;
+    const n = AUC_WEEKS.indexOf(w);
+    text = `🏆 ${String(NAMES[s.winner]).toUpperCase()} HA GANADO LA ${AUC_ORD[n] || (n + 1) + 'ª'} PUJA, CONSIGUIENDO UN ${String(aucOptionLabel(w, s.species)).toUpperCase()} SHINY POR ${s.amount} TICKETS`;
   } else text = `🔨 La puja de la semana se cierra sin pujas. ${aucOptionLabel(w, w[d.pick || 'a'].species)} se queda sin dueño.`;
   await window.FBD.appendHistoryEvents([{ id:'auction-result-' + w.id, text, ts:Date.now() }]);
   await window.FBD.auctionDone(w.id);
