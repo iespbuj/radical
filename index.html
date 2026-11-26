@@ -4046,7 +4046,12 @@ function slotOutcomesFor(t, v){
 async function giveSpecialPrize(t, id, source){
   try{
     await window.FBD.giveSpecial(t, id);
-    pushHistory(`🎰 ${NAMES[t]} saca «${SPECIAL_INFO[id].name}» (${source}).`);
+    const ev = { id:'special-' + crypto.randomUUID(), text:`🎰 ${NAMES[t]} saca «${SPECIAL_INFO[id].name}» (${source}).`, ts:Date.now() };
+    history.unshift(ev); history = history.slice(0, 300);
+    let logged = await window.FBD.appendHistoryEvents([ev]);
+    // comprobamos que la línea quedó de verdad en el servidor; si no, se reintenta y se avisa
+    if(logged && !(await window.FBD.historyHas(ev.id))){ console.error('Diario: la línea del premio no aparece tras guardarla.', ev); logged = false; }
+    if(!logged){ queueRetry('history-event:' + ev.id, ()=>window.FBD.appendHistoryEvents([ev])); toast('⚠ El premio se ha dado, pero el diario no se ha guardado. Reintentando solo...'); }
   }catch(e){
     console.error('No se pudo dar el premio especial', e);
     toast('No se pudo aplicar el premio especial. Avisa para repetirlo a mano.');
@@ -16443,6 +16448,7 @@ Object.assign(window.FBD,{
   async auctionDone(id){ await runTransaction(ref(db,`auction/${id}/done`),c=>c?undefined:true,{applyLocally:false}); },
   // contadores para las estrellas de la Final (tickets ganados, gachas abiertos)
   bumpStat(t,f,d){ return runTransaction(ref(db,`stats/${t}/${f}`),c=>(+c||0)+d,{applyLocally:false}).catch(e=>console.error('No se pudo contar '+f,e)); },
+  async historyHas(id){ const sn=await get(ref(db,'legacy/history')); const l=decodeLegacyValue(sn.val(),[]); return Array.isArray(l)&&l.some(e=>e&&e.id===id); },
   async loadStats(){ const sn=await get(ref(db,'stats')); return sn.val()||{}; }
 });
 window.LK={
