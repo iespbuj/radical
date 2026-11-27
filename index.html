@@ -7326,7 +7326,7 @@ async function addTickets(t, amount, reason){
   tickets[t] = Math.max((tickets[t]||0) + amount, 0);
   const sign = amount >= 0 ? '+' : '';
   pushHistory(`🎟️ ${NAMES[t]} ${sign}${amount} tickets (${reason}) → ${tickets[t]} tickets en total`);
-  if(amount > 0 && !/devuel|reembols|refund/i.test(String(reason))){ try{ window.FBD.bumpStat(t, 'ticketsWon', amount); }catch(e){} }
+  if(amount > 0 && !/devuel|reembols|refund|reroll/i.test(String(reason))){ try{ window.FBD.bumpStat(t, 'ticketsWon', amount); }catch(e){} }
   const ok = await saveProfile(t);
   if(!ok){
     queueRetry('profile:'+t, ()=>saveProfile(t));
@@ -9737,6 +9737,8 @@ async function ensureAuctionPick(){
   if((FBS.auction[w.id] || {}).pick || aucPicking.has(w.id)) return;
   aucPicking.add(w.id);
   try{
+    // sin los datos de los tres trackers no se puede saber quién tiene qué: se espera (como mucho 3 h) para no elegir mal
+    if(TRAINERS.some(t => !allMonsOf(t).length) && aucNow() < aucMs(w.open) + 3 * 3600e3) return;
     const taken = TRAINERS.some(t => aucOwns(t, w.a.name));
     await window.FBD.auctionPick(w.id, taken ? 'b' : 'a');
   }catch(e){ console.error('Puja: no se pudo fijar la opción.', e); }
@@ -15672,7 +15674,7 @@ window.FBD={
     const profile=result.snapshot.val()||{};
     FBS.profiles[trainer]=profile;
     dirty();
-    if(result.committed && delta>0 && !/refund/.test(operationId)) window.FBD.bumpStat(trainer,'ticketsWon',delta);
+    if(result.committed && delta>0 && !/refund|outbid/.test(operationId)) window.FBD.bumpStat(trainer,'ticketsWon',delta);   // las devoluciones de pujas superadas no cuentan como ganados
     return result.committed||!!(profile.ticketOperations&&profile.ticketOperations[operationId]) ? !insufficient : false;
   },
   async removeShield(t){ /* solo lo usa el botón de Iker, por si algo sale mal */
