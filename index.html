@@ -3568,7 +3568,7 @@ body.illegal-mode #rw-bg{ filter:brightness(.55) saturate(.7); }
 </div>
 
 <script>
-window.FBS = { legacy:{}, profiles:{}, inventory:{} };
+window.FBS = { legacy:{}, profiles:{}, inventory:{}, cosmeticTrades:{} };
 window.LOGIN_ME = null;
 window.FBREADY = new Promise(r => { window._fbResolve = r; });
 window.FBP = (field, defv) => new Proxy({}, {
@@ -9980,7 +9980,9 @@ async function finishAuction(w, d, s){
     const n = AUC_WEEKS.indexOf(w);
     text = `🏆 ${String(NAMES[s.winner]).toUpperCase()} HA GANADO LA ${AUC_ORD[n] || (n + 1) + 'ª'} PUJA, CONSIGUIENDO UN ${String(aucOptionLabel(w, s.species)).toUpperCase()} SHINY POR ${s.amount} TICKETS`;
   } else text = `🔨 La puja de la semana se cierra sin pujas. ${aucOptionLabel(w, w[d.pick || 'a'].species)} se queda sin dueño.`;
-  await window.FBD.appendHistoryEvents([{ id:'auction-result-' + w.id, text, ts:Date.now() }]);
+  // si el diario no se guarda NO se marca la puja como cerrada: el siguiente ciclo repite los pasos (todos son idempotentes)
+  const logged = await window.FBD.appendHistoryEvents([{ id:'auction-result-' + w.id, text, ts:Date.now() }]);
+  if(!logged || !(await window.FBD.historyHas('auction-result-' + w.id))) throw new Error('El mensaje del ganador no se guardó en el diario; se reintentará.');
   await window.FBD.auctionDone(w.id);
 }
 async function settleAuctions(){
@@ -15548,7 +15550,7 @@ button:disabled{opacity:.45;cursor:default}
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import {getDatabase,ref,onValue,get,set,remove,runTransaction,onDisconnect,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+import {getDatabase,ref,onValue,get,set,update,remove,runTransaction,onDisconnect,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 const app=initializeApp({apiKey:"AIzaSyA7HY0r6mmwWUTBgDG8M0quYH6j6roJct8",authDomain:"locke-navideno.firebaseapp.com",databaseURL:"https://locke-navideno-default-rtdb.europe-west1.firebasedatabase.app",projectId:"locke-navideno",appId:"1:351098737273:web:27479e5a49ca9a01cabaa8"});
 const auth=getAuth(app),db=getDatabase(app),$=s=>document.querySelector(s),FBS=window.FBS;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -15706,6 +15708,7 @@ onAuthStateChanged(auth,async user=>{
   await Promise.all([sub('legacy',v=>{FBS.legacy=v||{}}),sub('profiles',v=>{FBS.profiles=v||{}}),sub('inventory',v=>{FBS.inventory=v||{};inv=FBS.inventory[me]||{}}),
     sub('presence',v=>{FBS.presence=v||{}}),
     sub('auction',v=>{FBS.auction=v||{}},()=>{FBS.auction={}}),
+    sub('cosmeticTrades',v=>{FBS.cosmeticTrades=v||{}},()=>{FBS.cosmeticTrades={}}),
     sub('orders/'+me,v=>{FBS.orders=v||{};if(window.onGameOrders)window.onGameOrders()},()=>{FBS.orders={}}),
     sub('calendarOpened/'+me,v=>{opened=v||{};syncCal()}),sub('claims/'+me,v=>{claims=v||{};syncCal()}),sub('.info/serverTimeOffset',v=>{off=v||0}),
     ...['iker','joel','alex'].map(trainer=>sub('trackers/'+trainer,v=>{trackerStateCache[trainer]=v;delete trackerStateErrors[trainer]},error=>{trackerStateErrors[trainer]=error}))]);
@@ -15886,12 +15889,27 @@ function useSanction(k){
 async function applyGrant(k,p){
   const note=SPECIAL_AUTO.includes(p.type)?await applySpecial(k,p):await applyBasic(k,p);
   if(note)grantNotes[k]=note;return note}
+/* Primero se ENTREGA y al final se reclama (las reglas no dejan borrar un claim). Si se corta la conexión entre los dos pasos,
+   al reintentar no se duplica nada: los tickets llevan una operación única por puerta y el cosmético deja su marca. */
 async function applyBasic(k,p){
+  const opId='cal-door-'+k;
+  let note='';
+  if(p.type==='tickets'){
+    if(!(await window.FBD.adjustTicketsOnce(me,p.amount,opId)))return'';
+    note=`+${p.amount} tickets`;
+  }else{
+    const done=(((FBS.profiles||{})[me]||{}).ticketOperations||{})[opId];
+    if(done){note=Number(done.delta)>0?`Ya lo tenías: te damos ${done.delta} tickets.`:'Ya está en tu colección.'}
+    else{
+      const has=(await get(ref(db,`inventory/${me}/${KIND[p.type]}/${p.id}`))).exists();   // si falla la red, se lanza el error y se reintenta
+      if(!has){
+        await set(ref(db,`inventory/${me}/${KIND[p.type]}/${p.id}`),true);
+        if(!(await window.FBD.adjustTicketsOnce(me,0,opId)))return''; note='Ya está en tu colección.';
+      }else{ const n=price(p); if(!(await window.FBD.adjustTicketsOnce(me,n,opId)))return''; note=`Ya lo tenías: te damos ${n} tickets.`; }
+    }
+  }
   if(!(await claimOnce(k)))return'';
-  const tk=ref(db,`profiles/${me}/tickets`);
-  if(p.type==='tickets'){await runTransaction(tk,c=>(+c||0)+p.amount);window.FBD.bumpStat(me,'ticketsWon',p.amount);return`+${p.amount} tickets`}
-  try{await set(ref(db,`inventory/${me}/${KIND[p.type]}/${p.id}`),true);return'Ya está en tu colección.'}
-  catch{const n=price(p);await runTransaction(tk,c=>(+c||0)+n);return`Ya lo tenías: te damos ${n} tickets.`}}
+  return note}
 function syncCal(){if(!me)return;for(const k of Object.keys(opened)){
   if(!(k in pz)){pz[k]=null;get(ref(db,`calendarPrizes/${me}/${k}`)).then(s=>{pz[k]=s.val();syncCal()}).catch(()=>{delete pz[k]})}
   const p=pz[k];if(p&&AUTO(p.type)&&!claims[k]&&!granting.has(k)){granting.add(k);applyGrant(k,p).finally(()=>granting.delete(k))}}
@@ -16460,16 +16478,12 @@ document.addEventListener('click',e=>{const b=e.target.closest('.lk button');if(
     const wanted=document.getElementById('trade-wanted')?.value.split(':');
     if(!['iker','joel','alex'].includes(target)||target===me||!offered||!wanted){say('Elige dos cosméticos válidos para el intercambio.');return}
     const offer={id:crypto.randomUUID(),from:me,to:target,offered:{kind:offered[0],id:offered[1]},wanted:{kind:wanted[0],id:wanted[1]},status:'pending',createdAt:Date.now()};
-    const result=await inventoryTransaction(inventory=>{
-      if(!inventory[me]?.[offer.offered.kind]?.[offer.offered.id]||!inventory[target]?.[offer.wanted.kind]?.[offer.wanted.id]) return undefined;
-      if(cosmeticEquipped(me,offer.offered.kind,offer.offered.id)||cosmeticEquipped(target,offer.wanted.kind,offer.wanted.id)) return undefined;
-      inventory.cosmeticTrades=inventory.cosmeticTrades||{};
-      inventory.cosmeticTrades[offer.id]=offer;
-      return inventory;
-    });
-    if(!result.committed){say('La propiedad del cosmético cambió o está equipado; actualiza la taquilla y vuelve a intentarlo.');return}
-    FBS.inventory=result.snapshot.val()||{};
-    inv=FBS.inventory[me]||{};
+    const inv0=FBS.inventory||{};
+    if(!inv0[me]?.[offer.offered.kind]?.[offer.offered.id]||!inv0[target]?.[offer.wanted.kind]?.[offer.wanted.id]||!COSMETIC_KINDS[offer.offered.kind]||!COSMETIC_KINDS[offer.wanted.kind]
+      ||cosmeticEquipped(me,offer.offered.kind,offer.offered.id)||cosmeticEquipped(target,offer.wanted.kind,offer.wanted.id)){
+      say('La propiedad del cosmético cambió o está equipado; actualiza la taquilla y vuelve a intentarlo.');return}
+    await set(ref(db,'cosmeticTrades/'+offer.id),offer);
+    FBS.cosmeticTrades={...(FBS.cosmeticTrades||{}),[offer.id]:offer};dirty();
     say('Propuesta enviada. El otro entrenador debe aceptarla y tú confirmar la entrega.');
     window.render();
   });
@@ -16543,7 +16557,7 @@ function renderCosmeticTrades(){
   if(!others.includes(tradeTargetTrainer)) tradeTargetTrainer=others[0];
   const mine=ownedCosmetics(me);
   const theirs=ownedCosmetics(tradeTargetTrainer);
-  const offers=Object.values((FBS.inventory||{}).cosmeticTrades||{})
+  const offers=Object.values(FBS.cosmeticTrades||{})
     .filter(offer=>offer&&['pending','accepted-by-target','completed','cancelled'].includes(offer.status))
     .sort((a,b)=>(Number(b.createdAt)||0)-(Number(a.createdAt)||0));
   const rows=offers.map(offer=>{
@@ -16568,37 +16582,38 @@ function renderCosmeticTrades(){
   </section>`;
 }
 async function updateCosmeticTrade(id,action){
-  const result=await inventoryTransaction(inventory=>{
-    const trades=inventory.cosmeticTrades||{};
-    const offer=trades[id];
-    if(!offer) return undefined;
-    if(action==='accept'&&offer.status==='pending'&&offer.to===me){
-      trades[id]={...offer,status:'accepted-by-target',targetConfirmedAt:Date.now()};
-      inventory.cosmeticTrades=trades;
-      return inventory;
-    }
-    if(action==='cancel'&&['pending','accepted-by-target'].includes(offer.status)&&(offer.from===me||offer.to===me)){
-      trades[id]={...offer,status:'cancelled',cancelledAt:Date.now(),cancelledBy:me};
-      inventory.cosmeticTrades=trades;
-      return inventory;
-    }
-    if(action!=='confirm'||offer.status!=='accepted-by-target'||offer.from!==me) return undefined;
-    const {offered,wanted,to,from}=offer;
-    if(!offered||!wanted||!COSMETIC_KINDS[offered.kind]||!COSMETIC_KINDS[wanted.kind]) return undefined;
-    if(!inventory[from]?.[offered.kind]?.[offered.id]||!inventory[to]?.[wanted.kind]?.[wanted.id]) return undefined;
-    if(cosmeticEquipped(from,offered.kind,offered.id)||cosmeticEquipped(to,wanted.kind,wanted.id)) return undefined;
-    inventory[from][offered.kind][offered.id]=null;
-    inventory[to][wanted.kind][wanted.id]=null;
-    inventory[from][wanted.kind]=inventory[from][wanted.kind]||{};
-    inventory[to][offered.kind]=inventory[to][offered.kind]||{};
-    inventory[from][wanted.kind][wanted.id]=true;
-    inventory[to][offered.kind][offered.id]=true;
-    trades[id]={...offer,status:'completed',completedAt:Date.now(),confirmedBy:me};
-    inventory.cosmeticTrades=trades;
-    return inventory;
-  });
-  if(!result.committed) return false;
-  FBS.inventory=result.snapshot.val()||{};
+  const nodeRef=ref(db,'cosmeticTrades/'+id);
+  if(action==='accept'||action==='cancel'){
+    const result=await runTransaction(nodeRef,offer=>{
+      if(!offer) return undefined;
+      if(action==='accept'&&offer.status==='pending'&&offer.to===me) return {...offer,status:'accepted-by-target',targetConfirmedAt:Date.now()};
+      if(action==='cancel'&&['pending','accepted-by-target'].includes(offer.status)&&(offer.from===me||offer.to===me)) return {...offer,status:'cancelled',cancelledAt:Date.now(),cancelledBy:me};
+      return undefined;
+    },{applyLocally:false});
+    if(!result.committed) return false;
+    FBS.cosmeticTrades={...(FBS.cosmeticTrades||{}),[id]:result.snapshot.val()};dirty();
+    return true;
+  }
+  if(action!=='confirm') return false;
+  // confirmar: todo el cambio va en UNA escritura atómica (los dos cosméticos + el estado), con las mismas reglas del inventario
+  const snap=await get(nodeRef),offer=snap.val();
+  if(!offer||offer.status!=='accepted-by-target'||offer.from!==me) return false;
+  const {offered,wanted,to,from}=offer;
+  if(!offered||!wanted||!COSMETIC_KINDS[offered.kind]||!COSMETIC_KINDS[wanted.kind]) return false;
+  const invSnap=(await get(ref(db,'inventory'))).val()||{};
+  if(!invSnap[from]?.[offered.kind]?.[offered.id]||!invSnap[to]?.[wanted.kind]?.[wanted.id]) return false;
+  if(cosmeticEquipped(from,offered.kind,offered.id)||cosmeticEquipped(to,wanted.kind,wanted.id)) return false;
+  const changes={};
+  changes[`inventory/${from}/${offered.kind}/${offered.id}`]=null;
+  changes[`inventory/${to}/${wanted.kind}/${wanted.id}`]=null;
+  // si ya lo tuviera, no se vuelve a escribir (las reglas solo dejan crear o borrar entradas, no pisarlas)
+  if(!invSnap[from]?.[wanted.kind]?.[wanted.id]) changes[`inventory/${from}/${wanted.kind}/${wanted.id}`]=true;
+  if(!invSnap[to]?.[offered.kind]?.[offered.id]) changes[`inventory/${to}/${offered.kind}/${offered.id}`]=true;
+  changes[`cosmeticTrades/${id}/status`]='completed';
+  changes[`cosmeticTrades/${id}/completedAt`]=Date.now();
+  changes[`cosmeticTrades/${id}/confirmedBy`]=me;
+  await update(ref(db),changes);
+  FBS.inventory=(await get(ref(db,'inventory'))).val()||{};
   inv=FBS.inventory[me]||{};
   dirty();
   return true;
